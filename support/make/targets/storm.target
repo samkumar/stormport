@@ -1,0 +1,7 @@
+#-*-Makefile-*- vim:syntax=make
+
+$(call TOSMake_include_platform,storm)
+$(call TOSMake_include_make_platform,storm)
+
+storm: $(BUILD_DEPS)
+	@:

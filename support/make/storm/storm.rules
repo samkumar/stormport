@@ -1,0 +1,33 @@
+define STORM_HELP
+
+ Storm specifics:
+
+   Storm motes are programmed using StormLoader, which requires StormDrop binaries instead of
+   hex files. These are automatically generated, but require some mandatory metadata, you can
+   edit this in the .stormloader file in the root of the app, or you can type:
+
+    make storm config
+
+   For more detailed information see http://storm.pm/msg/ST-002
+
+endef
+
+HELP += $(STORM_HELP)
+
+GCC = arm-none-eabi-gcc
+OBJCOPY = arm-none-eabi-objcopy
+OBJDUMP = arm-none-eabi-objdump
+SIZE = arm-none-eabi-size
+LIBS = -lm
+
+
+TOSMAKE_ADDITIONAL_INPUTS += $(TINYOS_OS_DIR)/platforms/$(PLATFORM)/stormcrt1.c
+LINKERFILE ?= stormpayload.ld
+LDFLAGS += -L$(TINYOS_OS_DIR)/platforms/$(PLATFORM) -T $(LINKERFILE)
+LDFLAGS += -L$(TOSDIR)/chips/cortex/m4/cmsis/Lib/GCC/
+
+INCLUDE_DIRS ?= $(TOSDIR)/platforms/$(PLATFORM)
+
+CFLAGS += -mthumb -D__SAM4LC8C__ -D__ATSAM4LC8C__ -DARM_MATH_CM4=true  -fdata-sections
+CFLAGS += -ffunction-sections -mlong-calls -g3 -mcpu=cortex-m4 -pipe -fno-strict-aliasing
+CFLAGS += -std=gnu99 -ffunction-sections -fdata-sections --param max-inline-insns-single=500
