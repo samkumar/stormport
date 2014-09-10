@@ -28,3 +28,8 @@ _TOSSIM.dll
 # Ignore application byproducts
 apps/BaseStation15.4/seriallisten15-4
 
+tools/platforms/ucmote/motelist2/tosdevicesearch-cygwin.py
+tools/platforms/ucmote/motelist2/tosdevicesearch-linux.py
+tools/platforms/ucmote/motelist2/tosdevicesearch.py
+.idea
+.gitignore

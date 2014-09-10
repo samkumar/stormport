@@ -69,7 +69,7 @@ typedef union
         uint32_t busy       : 1;
         uint32_t ready      : 1;
         uint32_t reserved3  : 2;
-        uint32_t cklbusy    : 1;
+        uint32_t clkbusy    : 1;
         uint32_t clkrdy     : 1;
         uint32_t reserved4  : 2;
     } __attribute__((__packed__)) bits;
@@ -120,11 +120,11 @@ typedef union
 } ast_clock_t;
 
 enum {
-    CSSEL_RCSYS;
-    CSSEL_OSC32;
-    CSSEL_APB;
-    CSSEL_GCLK2;
-    CSSEL_CLK1K;
+    CSSEL_RCSYS,
+    CSSEL_OSC32,
+    CSSEL_APB,
+    CSSEL_GCLK2,
+    CSSEL_CLK1K
 };
 
 typedef union
