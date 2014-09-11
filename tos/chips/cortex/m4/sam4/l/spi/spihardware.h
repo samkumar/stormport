@@ -173,10 +173,7 @@ typedef struct
     spi_ier_write_t imr;
     //0x20
     uint32_t reserved0[4];
-    spi_csr0_write_t csr0;
-    spi_csr0_write_t csr1;
-    spi_csr0_write_t csr2;
-    spi_csr0_write_t csr3;
+    spi_csrx_write_t csr[4];
     //0x40
     uint32_t reserved1[41];
     spi_wpcr_t wpcr;
