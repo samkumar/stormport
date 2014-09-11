@@ -1,6 +1,7 @@
 
 
 #include <asthardware.h>
+#include <nvichardware.h>
 
 module HplSam4lASTP
 {
@@ -106,6 +107,9 @@ implementation
 	async command void HplSam4lAST.enableOverflowIRQ()
 	{
 	    //No busy wait required
+	    NVIC->ipr.bits.ast_ovf = 0;
+	    NVIC->iser.bits.ast_ovf = 1;
+
 		AST->ier.bits.ovf = 1;
 	}
 
@@ -118,6 +122,12 @@ implementation
 	async command void HplSam4lAST.enableAlarmIRQ()
 	{
 	    //No busy wait required
+
+	     NVIC->icpr.bits.ast_alarm = 1;
+	    NVIC->ipr.bits.ast_alarm = 0;
+	    NVIC->iser.bits.ast_alarm = 1;
+	 //   NVIC->iser.flat[1] = 1<<(39&0x1F);
+
 		AST->ier.bits.alarm0 = 1;
 	}
 
@@ -130,6 +140,7 @@ implementation
 	async command void HplSam4lAST.enablePeriodIRQ()
 	{
 	    //No busy wait required
+	    NVIC->iser.bits.ast_per = 1;
 		AST->ier.bits.per0 = 1;
 	}
 
@@ -200,7 +211,6 @@ implementation
 	async command void HplSam4lAST.selectClk_RCSYS()
 	{
 		//We have to wait for the clock to be changeable
-		while(AST->sr.bits.clkbusy == 1);
 		AST->clock.bits.cen = 0;
 		while(AST->sr.bits.clkbusy == 1);
 		AST->clock.bits.cssel = CSSEL_RCSYS;
@@ -212,7 +222,6 @@ implementation
 	async command void HplSam4lAST.selectClk_32khz()
 	{
 		//We have to wait for the clock to be changeable
-		while(AST->sr.bits.clkbusy == 1);
 		AST->clock.bits.cen = 0;
 		while(AST->sr.bits.clkbusy == 1);
 		AST->clock.bits.cssel = CSSEL_OSC32;
@@ -224,7 +233,6 @@ implementation
 	async command void HplSam4lAST.selectClk_APB()
 	{
 		//We have to wait for the clock to be changeable
-		while(AST->sr.bits.clkbusy == 1);
 		AST->clock.bits.cen = 0;
 		while(AST->sr.bits.clkbusy == 1);
 		AST->clock.bits.cssel = CSSEL_APB;
@@ -236,7 +244,6 @@ implementation
 	async command void HplSam4lAST.selectClk_GCLK2()
 	{
 		//We have to wait for the clock to be changeable
-		while(AST->sr.bits.clkbusy == 1);
 		AST->clock.bits.cen = 0;
 		while(AST->sr.bits.clkbusy == 1);
 		AST->clock.bits.cssel = CSSEL_GCLK2;
@@ -248,7 +255,6 @@ implementation
 	async command void HplSam4lAST.selectClk_1K()
 	{
 		//We have to wait for the clock to be changeable
-		while(AST->sr.bits.clkbusy == 1);
 		AST->clock.bits.cen = 0;
 		while(AST->sr.bits.clkbusy == 1);
 		AST->clock.bits.cssel = CSSEL_CLK1K;

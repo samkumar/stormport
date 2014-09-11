@@ -9,23 +9,31 @@ implementation
 {
     async command void HplSam4lBPM.setSleepMode0()
     {
+        bpm_pmcon_t shadow = BPM->pmcon;
+        shadow.bits.sleep = 0;
         BPM->unlock = BPM_UNLOCK_KEY | BPM_PMCON_OFFSET;
-        BPM->pmcon.bits.sleep = 0;
+        BPM->pmcon = shadow;
     }
     async command void HplSam4lBPM.setSleepMode1()
     {
+        bpm_pmcon_t shadow = BPM->pmcon;
+        shadow.bits.sleep = 1;
         BPM->unlock = BPM_UNLOCK_KEY | BPM_PMCON_OFFSET;
-        BPM->pmcon.bits.sleep = 1;
+        BPM->pmcon = shadow;
     }
     async command void HplSam4lBPM.setSleepMode2()
     {
+        bpm_pmcon_t shadow = BPM->pmcon;
+        shadow.bits.sleep = 2;
         BPM->unlock = BPM_UNLOCK_KEY | BPM_PMCON_OFFSET;
-        BPM->pmcon.bits.sleep = 2;
+        BPM->pmcon = shadow;
     }
     async command void HplSam4lBPM.setSleepMode3()
     {
+        bpm_pmcon_t shadow = BPM->pmcon;
+        shadow.bits.sleep = 3;
         BPM->unlock = BPM_UNLOCK_KEY | BPM_PMCON_OFFSET;
-        BPM->pmcon.bits.sleep = 3;
+        BPM->pmcon = shadow;
     }
     //XTAG we also need to map the SCR/SCB SLEEPDEEP bit
     async command void HplSam4lBPM.setDeepSleepRetention()
@@ -51,13 +59,17 @@ implementation
 
     async command void HplSam4lBPM.select32kExternal()
     {
+        bpm_pmcon_t shadow = BPM->pmcon;
+        shadow.bits.clk32s = CK32S_OSCK32K;
         BPM->unlock = BPM_UNLOCK_KEY | BPM_PMCON_OFFSET;
-        BPM->pmcon.bits.clk32s = CK32S_OSCK32K;
+        BPM->pmcon = shadow;
 
     }
     async command void HplSam4lBPM.select32kInternal()
     {
+        bpm_pmcon_t shadow = BPM->pmcon;
+        shadow.bits.clk32s = CK32S_RC32K;
         BPM->unlock = BPM_UNLOCK_KEY | BPM_PMCON_OFFSET;
-        BPM->pmcon.bits.clk32s = CK32S_RC32K;
+        BPM->pmcon = shadow;
     }
 }

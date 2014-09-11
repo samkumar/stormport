@@ -1,0 +1,4 @@
+interface HplSam4lGeneralIOPin
+{
+
+}
