@@ -52,6 +52,8 @@ interface HplSam4Clock
      */
     async command uint32_t getMainClockSpeed();
 
+    async command uint32_t getSysTicks();
+
     /**
      * Fires if the main clock has been changed.
      */

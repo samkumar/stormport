@@ -36,17 +36,33 @@
  * @author Michael Andersen <m.andersen@cs.berkeley.edu>
  */
 
+#include <systickhardware.h>
 
 module HplSam4lClockP
 {
     provides
     {
         interface HplSam4Clock;
+        interface Init;
     }
 }
 
 implementation
 {
+
+    command error_t Init.init()
+    {
+        SYSTICK->csr.bits.clksource = 1;
+        SYSTICK->csr.bits.tickint = 0;
+        SYSTICK->rvr = 0xFFFFFF;
+        SYSTICK->csr.bits.enable = 1;
+        return SUCCESS;
+    }
+
+    async command uint32_t HplSam4Clock.getSysTicks()
+    {
+        return SYSTICK->cvr;
+    }
 
      /**
      * Select a 48Mhz clock from the PLL
@@ -71,5 +87,5 @@ implementation
     {
         return 48000;
     }
-    default async event void HplSam4Clock.mainClockChanged(){}
+
 }

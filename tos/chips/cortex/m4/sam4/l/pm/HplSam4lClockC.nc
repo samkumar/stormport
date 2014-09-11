@@ -156,6 +156,9 @@ implementation
 
 
     HplSam4Clock = HplSam4lClockP;
+    components MainC;
+
+    HplSam4lClockP.Init <- MainC.SoftwareInit;
 
     OCDCtl = CPU_OCD.Cntl;
     PDCA_HSBCtl = HSB_PDCA.Cntl;
