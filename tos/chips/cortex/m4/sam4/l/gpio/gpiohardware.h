@@ -64,6 +64,8 @@ typedef struct
     uint32_t    reserved1;
     uint32_t    ifrc;
     uint32_t    reserved2;
+    //0xE0
+    uint32_t    reserved3[8];
     //0x100
     uint32_t    odcr0;
     uint32_t    odcr0s;
@@ -74,25 +76,25 @@ typedef struct
     uint32_t    odcr1c;
     uint32_t    odcr1t;
     //0x120
-    uint32_t    reserved3[4];
+    uint32_t    reserved4[4];
     uint32_t    osrr0;
     uint32_t    osrr0s;
     uint32_t    osrr0c;
     uint32_t    osrr0t;
     //0x140
-    uint32_t    reserved4[8];
+    uint32_t    reserved5[8];
     //0x160
     uint32_t    ster;
     uint32_t    sters;
     uint32_t    sterc;
     uint32_t    stert;
-    uint32_t    reserved5[4];
+    uint32_t    reserved6[4];
     //0x180
     uint32_t    ever;
     uint32_t    evers;
     uint32_t    everc;
     uint32_t    evert;
-    uint32_t    reserved6[112];
+    uint32_t    reserved7[112];
     //0x200 end
 } gpio_port_t;
 
@@ -102,7 +104,7 @@ enum {
     GPIO_PORT2_ADDRESS = 0x400E1400
 };
 
-gpio_port_t volatile * const gpio_port_a = (gpio_port_t volatile *) 0x400E1000;
-gpio_port_t volatile * const gpio_port_b = (gpio_port_t volatile *) 0x400E1200;
-gpio_port_t volatile * const gpio_port_c = (gpio_port_t volatile *) 0x400E1400;
+gpio_port_t volatile * const GPIO_PORT_A = (gpio_port_t volatile *) 0x400E1000;
+gpio_port_t volatile * const GPIO_PORT_B = (gpio_port_t volatile *) 0x400E1200;
+gpio_port_t volatile * const GPIO_PORT_C = (gpio_port_t volatile *) 0x400E1400;
 #endif

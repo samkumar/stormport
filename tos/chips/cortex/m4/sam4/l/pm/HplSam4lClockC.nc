@@ -39,7 +39,6 @@ configuration HplSam4lClockC
     provides
     {
         interface HplSam4Clock;
-
         interface HplSam4PeripheralClockCntl as OCDCtl;
         interface HplSam4PeripheralClockCntl as PDCA_HSBCtl;
         interface HplSam4PeripheralClockCntl as FLASHCALW_HSBCtl;

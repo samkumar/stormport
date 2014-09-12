@@ -19,7 +19,7 @@ implementation
         if (tgt < 0)
         {
             tgt += 0xFFFFFF;
-            while(call HplSam4Clock.getSysTicks() >= 0);
+            while(call HplSam4Clock.getSysTicks() <= then);
         }
         while(call HplSam4Clock.getSysTicks() > tgt);
     }

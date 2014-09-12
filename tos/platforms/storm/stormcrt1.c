@@ -266,6 +266,11 @@ void Reset_Handler(void)
 	//XTA
 //	__libc_init_array();
 
+    //Workaround for SB.02 hardware bug
+    *((uint32_t volatile * ) 0x400E1004) = 1 << 14; //GPER
+    *((uint32_t volatile * ) 0x400E1054) = 1 << 14; //OVR
+    *((uint32_t volatile * ) 0x400E1044) = 1 << 14; //ODER
+
 	/* Branch to main function */
 	main();
 
