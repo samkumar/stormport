@@ -12,6 +12,7 @@ PFLAGS += -I%T/chips/cortex/m4/sam4/l/bpm
 PFLAGS += -I%T/chips/cortex/m4/sam4/l/timers
 PFLAGS += -I%T/chips/cortex/m4/sam4/l/gpio
 PFLAGS += -I%T/chips/cortex/m4/sam4/l/nvic
+PFLAGS += -I%T/chips/cortex/m4/sam4/l/spi
 PFLAGS += -I%T/lib/timer
 PFLAGS += -I%T/lib/serial
 PFLAGS += -I%T/lib/power

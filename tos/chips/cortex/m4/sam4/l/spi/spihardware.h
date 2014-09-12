@@ -178,7 +178,7 @@ typedef struct
     //0x40
     uint32_t reserved1[41];
     spi_wpcr_t wpcr;
-    spi_wpsr_t wpsr
+    spi_wpsr_t wpsr;
     //we leave out parameter and version
 } spi_t;
 

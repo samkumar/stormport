@@ -49,23 +49,23 @@ implementation
 {
     async command void Cntl.enable()
     {
-        uint32_t shadow = *((uint32_t volatile *)((void volatile *)&PM + offset));
+        uint32_t shadow = *((uint32_t volatile *)((void volatile *)PM + offset));
         shadow |= 1<<bit;
         PM->unlock = PM_UNLOCK_KEY | offset;
-        *((uint32_t volatile *)((void volatile *)&PM + offset)) = shadow;
+        *((uint32_t volatile *)((void volatile *)PM + offset)) = shadow;
     }
 
     async command void Cntl.disable()
     {
-        uint32_t shadow = *((uint32_t volatile *)((void volatile *)&PM + offset));
+        uint32_t shadow = *((uint32_t volatile *)((void volatile *)PM + offset));
         shadow &= ~(1<<bit);
         PM->unlock = PM_UNLOCK_KEY | offset;
-        *((uint32_t volatile *)((void volatile *)&PM + offset)) = shadow;
+        *((uint32_t volatile *)((void volatile *)PM + offset)) = shadow;
     }
 
     async command bool Cntl.status()
     {
-        if ( *((uint32_t volatile *)((void volatile *)&PM + offset)) & (1<<bit) )
+        if ( *((uint32_t volatile *)((void volatile *)PM + offset)) & (1<<bit) )
             return TRUE;
         else
             return FALSE;

@@ -3,7 +3,7 @@ generic module HalSam4lSPIChannelP()
     provides
     {
         interface SpiByte;
-        interface FastSPIByte;
+        interface FastSpiByte;
         //interface SpiPacket;
     }
     uses
@@ -19,38 +19,38 @@ implementation
 	 * A splitRead/splitReadWrite command must follow this command even
 	 * if the result is unimportant.
 	 */
-	async command void splitWrite(uint8_t data)
+	async command void FastSpiByte.splitWrite(uint8_t data)
 	{
 	    while (!(call ctl.isTransmitDataEmpty()))
 	    {
 	        if (call ctl.isReceiveDataFull())
 	        {
-	            uint16_t dummy = ctl.readRXReg();
+	            uint16_t dummy = call ctl.readRXReg();
 	        }
 	    }
-	    ch.writeTXReg(data, FALSE);
+	    call ch.writeTXReg(data, FALSE);
 	}
 
 	/**
 	 * Finishes the split-phase SPI data transfer by waiting till
 	 * the write command comletes and returning the received data.
 	 */
-	async command uint8_t splitRead()
+	async command uint8_t FastSpiByte.splitRead()
 	{
 	    while (!call ctl.isReceiveDataFull());
-	    return (uint8_t) ctl.readRXReg();
+	    return (uint8_t) call ctl.readRXReg();
 	}
 
 	/**
 	 * This command first reads the SPI register and then writes
 	 * there the new data, then returns.
 	 */
-	async command uint8_t splitReadWrite(uint8_t data)
+	async command uint8_t FastSpiByte.splitReadWrite(uint8_t data)
 	{
 	    uint16_t rv;
 	    while (!call ctl.isReceiveDataFull());
-	    rv = ctl.readRXReg();
-	    ch.writeTXReg(data, FALSE);
+	    rv = call ctl.readRXReg();
+	    call ch.writeTXReg(data, FALSE);
 	}
 
 	/**
@@ -58,7 +58,7 @@ implementation
 	 * faster as we should not need to adjust the power state there.
 	 * (To be consistent, this command could have be named splitWriteRead).
 	 */
-	async command uint8_t write(uint8_t data)
+	async command uint8_t FastSpiByte.write(uint8_t data)
 	{
 	    return call SpiByte.write(data);
 	}
@@ -70,8 +70,8 @@ implementation
     */
     async command uint8_t SpiByte.write( uint8_t tx )
     {
-        ch.writeTXReg(tx, FALSE);
+        call ch.writeTXReg(tx, FALSE);
 	    while (!call ctl.isReceiveDataFull());
-	    return = (uint8_t) ctl.readRXReg();
+	    return (uint8_t) call ctl.readRXReg();
     }
 }

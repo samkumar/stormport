@@ -1,13 +1,16 @@
 
 #include <spihardware.h>
 
-generic module HplSam4lSPIChannelP(uint8_t cs)
+generic module HplSam4lSPIChannelP(uint8_t id)
 {
     provides
     {
         interface HplSam4lSPIChannel;
     }
-    uses interface HplSam4lSPIControl;
+    uses
+    {
+        interface HplSam4lSPIControl;
+    }
 }
 implementation
 {
@@ -72,7 +75,7 @@ implementation
 	{
 		spi_tdr_t w;
 		w.bits.td = d;
-		w.bits.ch = (~(1<<id)) & 0xF;
+		w.bits.pcs = (~(1<<id)) & 0xF;
 		w.bits.lastxfer = (uint32_t) lastxfer;
 		SPI->tdr = w;
 	}

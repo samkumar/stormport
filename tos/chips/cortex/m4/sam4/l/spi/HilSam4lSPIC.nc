@@ -38,7 +38,7 @@
 
 #include <spihardware.h>
 
-configuration HilSam4lSpiC
+configuration HilSam4lSPIC
 {
     provides
     {
@@ -50,16 +50,17 @@ configuration HilSam4lSpiC
     }
     uses {
         interface ResourceConfigure[uint8_t];
+        interface Init as ChannelInit[uint8_t];
     }
 }
 implementation
 {
     components RealMainP;
-    RealMainP.PlatformInit -> HplSam4SPIP.Init;
+    RealMainP.PlatformInit -> HplSam4lSPIP.Init;
 
     components new FcfsArbiterC(SAM4_SPI_BUS) as ArbiterC;
     Resource = ArbiterC;
-    ArbiterC.ResourceConfigure -> ResourceConfigure;
+    ArbiterC.ResourceConfigure = ResourceConfigure;
 
     components new HplSam4lSPIChannelP(0) as ch0,
                new HplSam4lSPIChannelP(1) as ch1,
@@ -71,34 +72,55 @@ implementation
     HplSam4lSPIChannel[2] = ch2;
     HplSam4lSPIChannel[3] = ch3;
 
-    components HplSam4lIOC;
+    ch0.HplSam4lSPIControl -> HplSam4lSPIP;
+    ch1.HplSam4lSPIControl -> HplSam4lSPIP;
+    ch2.HplSam4lSPIControl -> HplSam4lSPIP;
+    ch3.HplSam4lSPIControl -> HplSam4lSPIP;
 
-    components new HplSam4lSPIP;
-    HplSam4lSPIP.MOSI = HplSam4lIOC.HplPC05;
-    HplSam4lSPIP.MISO = HplSam4lIOC.HplPC04;
-    HplSam4lSPIP.CS0 = HplSam4lIOC.HplPC03;
-    HplSam4lSPIP.CS1 = HplSam4lIOC.HplPC02;
-    HplSam4lSPIP.CS2 = HplSam4lIOC.HplPC00;
-    HplSam4lSPIP.CS3 = HplSam4lIOC.HplPC01;
+
+    components HplSam4lIOC;
+    components HplSam4lSPIP;
+
+    HplSam4lSPIP.MOSI -> HplSam4lIOC.HplPC05;
+    HplSam4lSPIP.MISO -> HplSam4lIOC.HplPC04;
+    HplSam4lSPIP.SCLK -> HplSam4lIOC.HplPC06;
+    HplSam4lSPIP.CS0 -> HplSam4lIOC.HplPC03;
+    HplSam4lSPIP.CS1 -> HplSam4lIOC.HplPC02;
+    HplSam4lSPIP.CS2 -> HplSam4lIOC.HplPC00;
+    HplSam4lSPIP.CS3 -> HplSam4lIOC.HplPC01;
+    HplSam4lSPIP.CH0Init = ChannelInit[0];
+    HplSam4lSPIP.CH1Init = ChannelInit[1];
+    HplSam4lSPIP.CH2Init = ChannelInit[2];
+    HplSam4lSPIP.CH3Init = ChannelInit[3];
+
+    HplSam4lSPIControl = HplSam4lSPIP;
+
+    components HplSam4lClockC;
+
+    HplSam4lSPIP.SPIClockCtl -> HplSam4lClockC.SPICtl;
 
     components new HalSam4lSPIChannelP() as halCH0,
                new HalSam4lSPIChannelP() as halCH1,
                new HalSam4lSPIChannelP() as halCH2,
                new HalSam4lSPIChannelP() as halCH3;
 
-    halCH0 -> ch0;
-    halCH1 -> ch1;
-    halCH2 -> ch2;
-    halCH3 -> ch3;
-    
-    SpiByte[0] -> halCH0;
-    SpiByte[1] -> halCH1;
-    SpiByte[2] -> halCH2;
-    SpiByte[3] -> halCH3;
+    halCH0.ch -> ch0;
+    halCH1.ch -> ch1;
+    halCH2.ch -> ch2;
+    halCH3.ch -> ch3;
+    halCH0.ctl -> HplSam4lSPIP;
+    halCH1.ctl -> HplSam4lSPIP;
+    halCH2.ctl -> HplSam4lSPIP;
+    halCH3.ctl -> HplSam4lSPIP;
 
-    FastSpiByte[0] -> halCH0;
-    FastSpiByte[1] -> halCH1;
-    FastSpiByte[2] -> halCH2;
-    FastSpiByte[3] -> halCH3;
+    SpiByte[0] = halCH0;
+    SpiByte[1] = halCH1;
+    SpiByte[2] = halCH2;
+    SpiByte[3] = halCH3;
+
+    FastSpiByte[0] = halCH0;
+    FastSpiByte[1] = halCH1;
+    FastSpiByte[2] = halCH2;
+    FastSpiByte[3] = halCH3;
 
 }
