@@ -3,7 +3,11 @@
 
 generic module HplSam4lSPIChannelP(uint8_t cs)
 {
-    provides interface HplSam4lSPIChannel;
+    provides
+    {
+        interface HplSam4lSPIChannel;
+    }
+    uses interface HplSam4lSPIControl;
 }
 implementation
 {
@@ -72,4 +76,5 @@ implementation
 		w.bits.lastxfer = (uint32_t) lastxfer;
 		SPI->tdr = w;
 	}
+
 }

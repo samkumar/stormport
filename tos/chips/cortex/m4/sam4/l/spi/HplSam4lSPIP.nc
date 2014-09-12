@@ -3,10 +3,18 @@ module HplSam4lSPIP
 	provides
 	{
 	    interface HplSam4lSPIControl;
+	    interface Init;
 	}
 	uses
 	{
 	    interface HplSam4PeripheralClockCntl as SPIClockCtl;
+	    interface HplSam4lGeneralIO as MOSI;
+	    interface HplSam4lGeneralIO as MISO;
+	    interface HplSam4lGeneralIO as SCLK;
+	    interface HplSam4lGeneralIO as CS0;
+	    interface HplSam4lGeneralIO as CS1;
+	    interface HplSam4lGeneralIO as CS2;
+	    interface HplSam4lGeneralIO as CS3;
 	}
 
 }
@@ -16,6 +24,10 @@ implementation
 	{
 	    SPI->sr.bits.swrst = 1;
 	}
+	async command void Init.init()
+	{
+	    call HplSam4lSPIControl.enable();
+	}
 	async command void HplSam4lSPIControl.enable()
 	{
 	    SPIClockCtl.enable();
@@ -23,6 +35,20 @@ implementation
 		SPI->mr.bits.mstr = 1; //Master mode
 		SPI->mr.rxfifoen = 0; //Disable RX fifo
 	    SPI->sr.bits.spien = 1;
+
+        //My nomenclature on storm is a little messed up
+        //CS2 on the pinout is actually CS1 internally
+        //CS1 on the pinout is actually CS2 internally
+        //radio is CS3
+        //flash is CS0
+        //Also TinyOS does not currently seem compatible with the auto-cs methods
+	    MOSI.selectPeripheralA();
+	    MISO.selectPeripheralA();
+	    SCLK.selectPeripheralA();
+	    //CS0.selectPeripheralA();
+	    //CS1.selectPeripheralA();
+	    //CS2.selectPeripheralA();
+	    //CS3.selectPeripheralA();
 
 	}
 	async command void HplSam4lSPIControl.disable()

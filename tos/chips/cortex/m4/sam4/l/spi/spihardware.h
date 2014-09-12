@@ -36,6 +36,7 @@
 #ifndef SPIHARDWARE_H //check
 #define SPIHARDWARE_H
 
+#define SAM4_SPI_BUS "HplSam4lSPIC.SPI"
 typedef union
 {
     uint32_t flat;
