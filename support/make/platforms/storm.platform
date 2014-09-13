@@ -16,6 +16,7 @@ PFLAGS += -I%T/chips/cortex/m4/sam4/l/spi
 PFLAGS += -I%T/chips/cortex/m4/sam4/l/usart
 PFLAGS += -I%T/lib/timer
 PFLAGS += -I%T/lib/serial
+PFLAGS += -I%T/lib/printf
 PFLAGS += -I%T/lib/power
 
 # Extra options for storm platform

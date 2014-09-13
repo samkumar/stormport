@@ -313,6 +313,10 @@ implementation
         }
     }
 
+    default async event void UartStream.sendDone( uint8_t* buf, uint16_t len, error_t error ){}
+    default async event void UartStream.receiveDone( uint8_t* buf, uint16_t len, error_t error ){}
+    default async event void UartStream.receivedByte( uint8_t byte ){}
+
     async event void uart.TXRdyFired()
     {
         if (tx_buf == NULL)

@@ -22,6 +22,7 @@ LIBS = -lm
 
 
 TOSMAKE_ADDITIONAL_INPUTS += $(TINYOS_OS_DIR)/platforms/$(PLATFORM)/stormcrt1.c
+
 LINKERFILE ?= stormpayload.ld
 LDFLAGS += -L$(TINYOS_OS_DIR)/platforms/$(PLATFORM) -T $(LINKERFILE)
 LDFLAGS += -L$(TOSDIR)/chips/cortex/m4/cmsis/Lib/GCC/
