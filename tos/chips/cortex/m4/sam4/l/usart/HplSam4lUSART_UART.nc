@@ -1,99 +1,32 @@
 interface HplSam4lUSART_UART
 {
-	async command void enableTX()
-	{
-		USART->cr.bits.txen = 1;
-	}
-	async command void disableTX()
-	{
-		USART->cr.bits.txdis = 1;
-	}
-	async command void resetRX()
-	{
-		USART->cr.bits.rstrx = 1;
-	}
-	async command void enableRX()
-	{
-		USART->cr.bits.rxen = 1;
-	}
-	async command void disableRX()
-	{
-		USART->cr.bits.rxdis = 1;
-	}
-	async command void resetRX()
-	{
-		USART->cr.bits.rstrx = 1;
-	}
-	async command void enableInverter()
-	{
-		USART->mr.bits.invdata = 1;
-	}
-	async command void disableInverter()
-	{
-		USART->mr.bits.invdata = 0;
-	}
-	async command void selectMSBF()
-	{
-		USART->mr.bits.msbf_cpol = 1;
-	}
-	async command void selectLSBF()
-	{
-		//A typical uart uses this mode
-		USART->mr.bits.msbf_cpol = 0;
-	}
-	async command void selectEvenParity()
-	{
-		USART->mr.bits.par = 0;
-	}
-	async command void selectOddParity()
-	{
-		USART->mr.bits.par = 1;
-	}
-	async command void selectNoParity()
-	{
-		USART->mr.bits.par = 4;
-	}
-	async command void init()
-	{
-		USART->mr.bits.chrl = 3;
-		USART->mr.bits.usclks = 0; //use clk_usart.
-		USART->mr.bits.mode = 0;
-	}
-	async command void enableRXRdyIRQ()
-	{
-		USART->ier.bits.rxrdy = 1;
-	}
-	async command void disableRXRdyIRQ()
-	{
-		USART->idr.bits.rxrdy = 1;
-	}
-	async command void enableTXRdyIRQ()
-	{
-		USART->ier.bits.txrdy = 1;
-	}
-	async command void disableTXRdyIRQ()
-	{
-		USART->idr.bits.txrdy = 1;
-	}
-	async command uint8_t readData()
-	{
-		return USART->rhr.bits.rxchr;
-	}
-	async command void sendData(uint8_t d)
-	{
-		USART->thr.bits.txchr = d;
-	}
-	async command void setBaudRate(uint32_t b)
-	{
-		//cd = clk / 16*cd
-		//   = gmclk*1000 / (16*b)
-		//   = gmclk*625 / b*10
-		uint32_t cd = (call ClockCtl.getMainClockSpeed())*625;
-		cd /= (b*10);
-		USART->brgr.bits.cd = cd;
-	}
-}
-interface HplSam4lUSART_SPI
-{
-	
+	async command void enableTX();
+	async command void disableTX();
+	async command void resetTX();
+	async command void enableRX();
+	async command void disableRX();
+	async command void resetRX();
+	async command void enableInverter();
+	async command void disableInverter();
+	async command void selectMSBF();
+	async command void selectLSBF();
+	async command void selectEvenParity();
+	async command void selectOddParity();
+	async command void selectNoParity();
+	async command void init();
+	async command void enableRXRdyIRQ();
+	async command void disableRXRdyIRQ();
+	async command bool isRXRdyIRQEnabled();
+	async command void enableTXRdyIRQ();
+	async command void disableTXRdyIRQ();
+	async command bool isTXRdyIRQEnabled();
+	async command uint8_t readData();
+	async command void sendData(uint8_t d);
+	async command void setBaudRate(uint32_t b);
+	async command uint32_t getBaudRate();
+	async command bool isTXRdy();
+	async command bool isRXRdy();
+
+	async event void RXRdyFired();
+	async event void TXRdyFired();
 }

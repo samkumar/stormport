@@ -95,6 +95,16 @@ implementation
         PORT->pmr2c = MASK;
         PORT->gperc = MASK;
     }
+    async command void HplSam4lGeneralIO.selectPeripheral(uint8_t i)
+    {
+        switch(i)
+        {
+            case 0: call HplSam4lGeneralIO.selectPeripheralA(); return;
+            case 1: call HplSam4lGeneralIO.selectPeripheralB(); return;
+            case 2: call HplSam4lGeneralIO.selectPeripheralC(); return;
+            case 3: call HplSam4lGeneralIO.selectPeripheralD(); return;
+        }
+    }
     async command bool HplSam4lGeneralIO.getOVR()
     {
         return (PORT->ovr & MASK) != 0;

@@ -1,4 +1,6 @@
 
+#ifndef NVIC_HARDWARE_H
+#define NVIC_HARDWARE_H
 
 //This information cannot be found purely in the sam4l datasheet, you also need to consult the NVID documentation in
 //the arm datasheet for armv7
@@ -285,4 +287,6 @@ nvic_x_t    iabr;       //active
 } nvic_t;
 
 nvic_t volatile * const NVIC = (nvic_t volatile *) 0xE000E100;
+
+#endif
 

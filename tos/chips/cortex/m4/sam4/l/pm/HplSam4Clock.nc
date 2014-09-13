@@ -54,6 +54,8 @@ interface HplSam4Clock
 
     async command uint32_t getSysTicks();
 
+    async command uint32_t getSysTicksWrapVal();
+
     /**
      * Fires if the main clock has been changed.
      */

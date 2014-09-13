@@ -2,6 +2,45 @@
 #ifndef USARTHARDWARE_H
 #define USARTHARDWARE_H
 
+#define SAM4L_USART0 "HalSam4lUSARTC.USART0"
+#define SAM4L_USART1 "HalSam4lUSARTC.USART0"
+#define SAM4L_USART2 "HalSam4lUSARTC.USART0"
+#define SAM4L_USART3 "HalSam4lUSARTC.USART0"
+
+enum {
+  TOS_UART_1200   = 1200,
+  TOS_UART_1800   = 1800,
+  TOS_UART_2400   = 2400,
+  TOS_UART_4800   = 4800,
+  TOS_UART_9600   = 9600,
+  TOS_UART_19200  = 19200,
+  TOS_UART_38400  = 38400,
+  TOS_UART_57600  = 57600,
+  TOS_UART_76800  = 76800,
+  TOS_UART_115200 = 115200,
+  TOS_UART_230400 = 230400,
+  TOS_UART_750000 = 750000,
+  TOS_UART_1500000 = 1500000,
+  TOS_UART_3000000 = 3000000
+};
+
+enum {
+  TOS_UART_OFF,
+  TOS_UART_RONLY,
+  TOS_UART_TONLY,
+  TOS_UART_DUPLEX
+};
+
+enum {
+  TOS_UART_PARITY_NONE,
+  TOS_UART_PARITY_EVEN,
+  TOS_UART_PARITY_ODD
+};
+
+typedef uint32_t uart_speed_t;
+typedef uint8_t uart_parity_t;
+typedef uint8_t uart_duplex_t;
+
 typedef union
 {
     uint32_t flat;
@@ -96,7 +135,7 @@ typedef union
         uint32_t linste     : 1;
         uint32_t linhte     : 1;
     } __attribute__((__packed__)) bits;
-} usart_ixe_t;
+} usart_ixr_t;
 
 typedef union
 {
@@ -159,7 +198,7 @@ typedef union
         uint32_t txsynh     : 1;
         uint32_t reserved1  : 16;
     } __attribute__((__packed__)) bits;
-} usart_rhr_t;
+} usart_thr_t;
 
 typedef union
 {

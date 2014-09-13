@@ -4,6 +4,7 @@ interface HplSam4lGeneralIO
     async command void selectPeripheralB();
     async command void selectPeripheralC();
     async command void selectPeripheralD();
+    async command void selectPeripheral(uint8_t i);
     async command bool getOVR();
     async command bool getPVR();
     async command void enablePullup();

@@ -88,4 +88,8 @@ implementation
         return 48000;
     }
 
+    async command uint32_t HplSam4Clock.getSysTicksWrapVal()
+    {
+        return 0xFFFFFF;
+    }
 }
