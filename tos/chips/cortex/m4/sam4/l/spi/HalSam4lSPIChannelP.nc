@@ -51,6 +51,7 @@ implementation
 	    while (!call ctl.isReceiveDataFull());
 	    rv = call ctl.readRXReg();
 	    call ch.writeTXReg(data, FALSE);
+	    return rv;
 	}
 
 	/**

@@ -34,6 +34,7 @@ implementation
     */
   command error_t Send.send(message_t* msg, uint8_t len)
   {
+    printf("baresend got send\n");
     return call BareSend.send(msg);
   }
 
@@ -56,6 +57,7 @@ implementation
 
   event void BareSend.sendDone(message_t* msg, error_t error)
   {
+    printf("baresend got send done\n");
     signal Send.sendDone(msg, error);
   }
 

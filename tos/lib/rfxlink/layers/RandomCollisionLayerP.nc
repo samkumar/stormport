@@ -168,7 +168,6 @@ implementation
 	tasklet_async event message_t* SubReceive.receive(message_t* msg)
 	{
 		int16_t delay;
-
 		txBarrier = call Config.getTransmitBarrier(msg);
 		delay = txBarrier - call RadioAlarm.getNow();
 

@@ -125,6 +125,7 @@ inline uint16_t RF230_CRCBYTE_COMMAND(uint16_t crc, uint8_t data)
 typedef T32khz TRadio;
 typedef uint32_t tradio_size;
 
+#define RF230_HARDWARE_ACK
 /**
  * The number of alarm ticks per one second
  */

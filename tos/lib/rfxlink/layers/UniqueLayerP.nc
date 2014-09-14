@@ -102,6 +102,7 @@ implementation
 			if( diff == 0 )
 			{
 				call UniqueConfig.reportChannelError();
+				//printf("unique doing thingy\n");
 				return msg;
 			}
 		}
@@ -109,7 +110,6 @@ implementation
 			call NeighborhoodFlag.set(idx);
 
 		receivedNumbers[idx] = dsn;
-
 		return signal RadioReceive.receive(msg);
 	}
 

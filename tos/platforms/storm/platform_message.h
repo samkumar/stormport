@@ -8,7 +8,6 @@
 
 typedef union message_header {
 	rf230packet_header_t rf230;
-	serial_header_t serial;
 } message_header_t;
 
 typedef union message_footer {

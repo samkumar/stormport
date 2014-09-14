@@ -39,7 +39,7 @@
 #include "UDPReport.h"
 #include "blip_printf.h"
 
-#define REPORT_PERIOD 10L
+#define REPORT_PERIOD 5L
 
 module UDPEchoP {
   uses {

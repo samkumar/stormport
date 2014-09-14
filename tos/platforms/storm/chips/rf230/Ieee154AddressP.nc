@@ -13,7 +13,7 @@ implementation
     ieee154_panid_t m_panid;
 
     command error_t Init.init() {
-        m_saddr = TOS_NODE_ID;
+        m_saddr = 0x01;
         m_panid = TOS_AM_GROUP;
         return SUCCESS;
     }
@@ -33,10 +33,11 @@ implementation
         uint8_t tmp;
         /* the LocalIeeeEui is big endian */
         /* however, Ieee 802.15.4 addresses are little endian */
-        for (i = 0; i < 4; i++) {
+        for (i = 0; i < 8; i++) {
           tmp = addr.data[i];
-          addr.data[i] = 0x55;
+          addr.data[i] = 0x00;
         }
+        addr.data[7] = 0x01;
         return addr;
     }
 

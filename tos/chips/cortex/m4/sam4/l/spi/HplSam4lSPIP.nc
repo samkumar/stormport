@@ -49,6 +49,7 @@ implementation
         SPI->csr[1].bits.scbr = 8;
         SPI->csr[2].bits.scbr = 8;
         SPI->csr[3].bits.scbr = 8;
+        SPI->csr[3].bits.ncpha = 1;
         //My nomenclature on storm is a little messed up
         //CS2 on the pinout is actually CS1 internally
         //CS1 on the pinout is actually CS2 internally

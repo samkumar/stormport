@@ -43,7 +43,16 @@ configuration IPDispatchC {
 
   /* IPDispatchP wiring -- fragment rassembly and lib6lowpan bindings */
   components IPDispatchP;
-  components Ieee154BareC as MessageC;
+
+ #if defined(PLATFORM_MICAZ) || defined(PLATFORM_IRIS) || defined(PLATFORM_UCMINI) || defined(PLATFORM_STORM)
+   components BareMessageC as MessageC;
+ #elif defined(PLATFORM_TELOSB) || defined (PLATFORM_EPIC) || defined (PLATFORM_TINYNODE)
+   components Ieee154BareC as MessageC;
+ #else
+   #warning "defaulting to Ieee154BareC for message"
+   components Ieee154BareC as MessageC;
+ #endif
+
   components RadioPacketMetadataC as PacketMetaC;
   components ReadLqiC;
   components new TimerMilliC() as ExpireTimer;
@@ -56,10 +65,18 @@ configuration IPDispatchC {
    * full access to raw 802.15.4 packet and require that all fields of the
    * packet be set except for the sequence number and the CRC at the end. */
   IPDispatchP.Init <- MainC.SoftwareInit;
-  IPDispatchP.RadioControl -> MessageC.SplitControl;
+  IPDispatchP.RadioControl -> MessageC;
   IPDispatchP.BarePacket -> MessageC.BarePacket;
+#if defined(PLATFORM_MICAZ) || defined(PLATFORM_IRIS) || defined(PLATFORM_UCMINI) || defined(PLATFORM_STORM)
+  IPDispatchP.BareSend -> MessageC;
+  IPDispatchP.BareReceive -> MessageC;
+#elif defined(PLATFORM_TELOSB) || defined (PLATFORM_EPIC) || defined (PLATFORM_TINYNODE)
   IPDispatchP.Ieee154Send -> MessageC.BareSend;
   IPDispatchP.Ieee154Receive -> MessageC.BareReceive;
+#else
+  IPDispatchP.Ieee154Send -> MessageC.BareSend;
+  IPDispatchP.Ieee154Receive -> MessageC.BareReceive;
+#endif
 
 #ifdef LOW_POWER_LISTENING
    IPDispatchP.LowPowerListening -> PacketMetaC.LowPowerListening;

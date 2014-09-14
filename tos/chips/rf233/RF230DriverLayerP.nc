@@ -236,11 +236,13 @@ implementation
 	command error_t SoftwareInit.init()
 	{
 		// for powering up the radio
+		printf("XX swinit called\n");
 		return call SpiResource.request();
 	}
 
 	void initRadio()
 	{
+	    printf("XX dlp initRadio called\n");
 		call BusyWait.wait(510);
 
 		call RSTN.clr();
@@ -252,6 +254,20 @@ implementation
 		writeRegister(RF230_TRX_STATE, RF230_TRX_OFF);
 
 		call BusyWait.wait(510);
+
+        //writeRegister(0x0D, 0b0101);
+        writeRegister(0x0D, 0b0101);
+        //Set long address last byte
+        writeRegister(0x2b, 0x35);
+        //Turn on promiscuous mode
+        writeRegister(0x14, 2);
+        //Switch IRQ polarity to test pin
+        //writeRegister(0x04, 0b00101110);
+
+        writeRegister(0x20,0x69);
+        writeRegister(0x21,0x00);
+        writeRegister(0x22,0x22);
+        writeRegister(0x23,0x00);
 
 		writeRegister(RF230_IRQ_MASK, RF230_IRQ_TRX_UR | RF230_IRQ_PLL_LOCK | RF230_IRQ_TRX_END | RF230_IRQ_RX_START);
 		writeRegister(RF230_CCA_THRES, RF230_CCA_THRES_VALUE);

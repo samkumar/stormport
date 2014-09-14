@@ -169,6 +169,7 @@ implementation
 
                     case 'u':
                     case 'd':
+                    case 'i':
                          len = mini_itoa(va_arg(va, unsigned int), 10, 0, bf, zero_pad);
                          {
                             unsigned int i;
@@ -182,7 +183,11 @@ implementation
                             *(pbuffer) = '\0';
                         }
                         break;
-
+                    case 'p':
+                    case 'P':
+                        *(pbuffer++) = '0';
+                        *(pbuffer++) = 'x';
+                        zero_pad = 8;
                     case 'x':
                     case 'X':
                         len = mini_itoa(va_arg(va, unsigned int), 16, (ch=='X'), bf, zero_pad);

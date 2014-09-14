@@ -251,6 +251,7 @@ implementation
 	{
 		uint16_t temp;
 
+        printf("XX driverhwackp initRadio called\n");
 		call BusyWait.wait(510);
 
 		call RSTN.clr();
@@ -263,13 +264,23 @@ implementation
 
 		call BusyWait.wait(510);
 
+        //writeRegister(0x0D, 0b0101);
         writeRegister(0x0D, 0b0101);
         //Set long address last byte
-        writeRegister(0x2b, 0x35);
+        writeRegister(0x2b, 0x01);
+        writeRegister(0x2a, 0x00);
         //Turn on promiscuous mode
-        writeRegister(0x14, 2);
+       // writeRegister(0x14, 2);
         //Switch IRQ polarity to test pin
-        writeRegister(0x04, 0b00101110);
+        //writeRegister(0x04, 0b00101110);
+
+        writeRegister(0x20,0x01);
+        writeRegister(0x21,0x00);
+        writeRegister(0x22,0x22);
+        writeRegister(0x23,0x00);
+
+        //Ack all frames, all versions
+        writeRegister(0x2E, 0b11000010);
 
 		writeRegister(RF230_IRQ_MASK, RF230_IRQ_TRX_UR | RF230_IRQ_TRX_END );
 		writeRegister(RF230_CCA_THRES, RF230_CCA_THRES_VALUE);
@@ -750,7 +761,14 @@ tasklet_async command uint8_t RadioState.getChannel()
 
 		// signal only if it has passed the CRC check
 		if( crcValid )
+		{
+		    printf("RXP okcrc\n");
 			rxMsg = signal RadioReceive.receive(rxMsg);
+        }
+        else
+        {
+            printf("RXP BADCRC\n");
+        }
 	}
 
 /*----------------- IRQ -----------------*/

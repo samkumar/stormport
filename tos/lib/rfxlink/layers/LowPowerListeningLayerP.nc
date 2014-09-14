@@ -112,7 +112,7 @@ implementation
 	{
 		error_t error;
 		uint16_t transmitInterval;
-
+        printf("transition called\n");
 		if( state == LISTEN_SUBSTART || state == SEND_SUBSTART )
 		{
 			error = call SubControl.start();
@@ -205,6 +205,7 @@ implementation
 
 	command error_t SplitControl.start()
 	{
+	    printf("SplitControl in LPL called");
 		if( state == OFF_START_END )
 			return EBUSY;
 		else if( state != OFF )

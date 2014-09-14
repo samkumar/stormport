@@ -56,8 +56,8 @@ configuration RF230RadioC
 
 #ifndef TFRAMES_ENABLED
 		interface Ieee154Send;
-		interface Receive as Ieee154Receive;
 		interface BareSend;
+		interface Receive as Ieee154Receive;
 		interface BareReceive;
 		interface SendNotifier as Ieee154Notifier;
 
@@ -65,6 +65,7 @@ configuration RF230RadioC
 
 		interface Ieee154Packet;
 		interface Packet as PacketForIeee154Message;
+		interface Packet as BarePacket;
 #endif
 
 		interface PacketAcknowledgements;
@@ -100,6 +101,12 @@ implementation
 // -------- RadioP
 
 	components RF230RadioP as RadioP;
+
+    BareSend = TinyosNetworkLayerC.Ieee154Send;
+    BareReceive = TinyosNetworkLayerC.Ieee154Receive;
+    components RF230BarePacketP as BarePacketP;
+    BarePacket = BarePacketP;
+    BarePacketP.RadioPacket -> RadioDriverLayerC.RadioPacket;
 
 #ifdef RADIO_DEBUG
 	components AssertC;
@@ -192,8 +199,6 @@ implementation
 
 	components new PacketLinkLayerC();
 	PacketLink = PacketLinkLayerC;
-	BareSend = PacketLinkLayerC;
-	BareReceive = PacketLinkLayerC;
 #ifdef RF230_HARDWARE_ACK
 	PacketLinkLayerC.PacketAcknowledgements -> RadioDriverLayerC;
 #else
@@ -212,6 +217,7 @@ implementation
 #ifdef RF230_HARDWARE_ACK
 	LowPowerListeningLayerC.PacketAcknowledgements -> RadioDriverLayerC;
 #else
+    #warning "using software ack"
 	LowPowerListeningLayerC.PacketAcknowledgements -> SoftwareAckLayerC;
 #endif
 #else
@@ -306,6 +312,7 @@ implementation
 	RadioDriverLayerC.Ieee154PacketLayer -> Ieee154PacketLayerC;
 	RadioDriverLayerC.AckReceivedFlag -> MetadataFlagsLayerC.PacketFlag[unique(UQ_METADATA_FLAGS)];
 #else
+    #warning "USING SOFTWARE ACK"
 	components RF230DriverLayerC as RadioDriverLayerC;
 #endif
 	RadioDriverLayerC.Config -> RadioP;

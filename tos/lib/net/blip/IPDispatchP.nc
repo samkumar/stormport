@@ -53,8 +53,19 @@ module IPDispatchP {
     interface SplitControl as RadioControl;
 
     interface Packet as BarePacket;
+
+
+#if defined(PLATFORM_MICAZ) || defined(PLATFORM_IRIS) || defined(PLATFORM_UCMINI) || defined(PLATFORM_STORM)
+    interface BareSend;
+    interface BareReceive;
+#elif defined(PLATFORM_TELOSB) || defined (PLATFORM_EPIC) || defined (PLATFORM_TINYNODE)
     interface Send as Ieee154Send;
     interface Receive as Ieee154Receive;
+#else
+    interface Send as Ieee154Send;
+    interface Receive as Ieee154Receive;
+#endif
+
 
     /* context lookup */
     interface NeighborDiscovery;
@@ -151,6 +162,7 @@ void SENDINFO_DECR(struct send_info *si) {
 }
 
   command error_t SplitControl.start() {
+    printf("XX ipdispatchp splitcontrol.start\n");
     return call RadioControl.start();
   }
 
@@ -167,6 +179,7 @@ void SENDINFO_DECR(struct send_info *si) {
   }
 
   event void RadioControl.startDone(error_t error) {
+    printf("XX radio control start done err: %d\n", error);
 #ifdef LPL_SLEEP_INTERVAL
     call LowPowerListening.setLocalWakeupInterval(LPL_SLEEP_INTERVAL);
 #endif
@@ -320,16 +333,34 @@ void SENDINFO_DECR(struct send_info *si) {
     return ret;
   }
 
+#if defined(PLATFORM_MICAZ) || defined(PLATFORM_IRIS) || defined(PLATFORM_UCMINI) || defined(PLATFORM_STORM)
+  event message_t *BareReceive.receive(message_t *msg) {
+    uint8_t len = call BarePacket.payloadLength(msg);
+    void *msg_payload = call BarePacket.getPayload(msg, len);
+#else
   /* Event is triggered when a packet is received fromt the radio */
   event message_t *Ieee154Receive.receive(message_t *msg,
                                           void *msg_payload,
                                           uint8_t len) {
+#endif
     struct packed_lowmsg lowmsg;
     struct ieee154_frame_addr frame_address;
     uint8_t *buf = msg_payload;
     size_t buflen = len;
     int ret;
 
+    printf("$0$");
+
+    atomic
+    {
+        uint32_t i;
+        printf("\n\nSTOP THE WORLD. OK. HERE IS THE PACKET:\n");
+        for (i=0;i<len;i++)
+        {
+            printf("%d : 0x%02x\n",i,buf[i]);
+        }
+        printf("ok, all done\n");
+    }
     BLIP_STATS_INCR(stats.rx_total);
 
     /* unpack the 802.15.4 address fields */
@@ -337,6 +368,7 @@ void SENDINFO_DECR(struct send_info *si) {
 
     if (ret < 0) {
       // If there isn't any more data this is a malformed 6LoWPAN packet
+      printf ("$1$");
       goto fail;
     }
 
@@ -345,6 +377,8 @@ void SENDINFO_DECR(struct send_info *si) {
     lowmsg.len  = buflen;
     lowmsg.headers = getHeaderBitmap(&lowmsg);
     if (lowmsg.headers == LOWMSG_NALP) {
+
+        printf("$2$");
       goto fail;
     }
 
@@ -358,9 +392,12 @@ void SENDINFO_DECR(struct send_info *si) {
       getFragDgramTag(&lowmsg, &tag);
       recon = get_reconstruct(source_key, tag);
       if (!recon) {
+
+        printf("$3$");
         goto fail;
       }
 
+      printf("$4$");
       /* fill in metadata: on fragmented packets, it applies to the
          first fragment only  */
       memcpy(&recon->r_meta.sender, &frame_address.ieee_src,
@@ -389,8 +426,10 @@ void SENDINFO_DECR(struct send_info *si) {
         recon->r_source_key = source_key;
         recon->r_tag = tag;
       }
-
+      printf("$5$");
       if (recon->r_size == recon->r_bytes_rcvd) {
+
+        printf("$8$");
         deliver(recon);
       }
 
@@ -399,6 +438,7 @@ void SENDINFO_DECR(struct send_info *si) {
       int rv;
       struct lowpan_reconstruct recon;
 
+      printf("$6$");
       /* fill in metadata */
       memcpy(&recon.r_meta.sender, &frame_address.ieee_src,
              sizeof(ieee154_addr_t));
@@ -411,6 +451,8 @@ void SENDINFO_DECR(struct send_info *si) {
       }
 
       if (recon.r_size == recon.r_bytes_rcvd) {
+
+        printf("$7$");
         deliver(&recon);
       } else {
         // printf("ip_free(%p)\n", recon.r_buf);
@@ -424,15 +466,16 @@ void SENDINFO_DECR(struct send_info *si) {
     return msg;
   }
 
-
   /*
    * Send-side functionality
    */
   task void sendTask() {
     struct send_entry *s_entry;
 
+    printf("in send task\n");
     if (radioBusy || state != S_RUNNING) return;
     if (call SendQueue.empty()) return;
+    printf("made past c1\n");
     // this does not dequeue
     s_entry = call SendQueue.head();
 
@@ -445,9 +488,12 @@ void SENDINFO_DECR(struct send_info *si) {
       dbg("Drops", "drops: sendTask: dropping failed fragment\n");
       goto fail;
     }
-
+#if defined(PLATFORM_MICAZ) || defined(PLATFORM_IRIS) || defined(PLATFORM_UCMINI) || defined(PLATFORM_STORM)
+  if (call BareSend.send(s_entry->msg) != SUCCESS) {
+#else
     if ((call Ieee154Send.send(s_entry->msg,
                      call BarePacket.payloadLength(s_entry->msg))) != SUCCESS) {
+#endif
       dbg("Drops", "drops: sendTask: send failed\n");
       goto fail;
     } else {
@@ -488,13 +534,15 @@ void SENDINFO_DECR(struct send_info *si) {
     struct send_info  *s_info;
     struct send_entry *s_entry;
     message_t *outgoing;
-
     int frag_len = 1;
+    uint8_t max_len;
     error_t rc = SUCCESS;
-
+        printf("xtag1\n");
     if (state != S_RUNNING) {
+        printf("radio is not running\n");
       return EOFF;
     }
+
 
 
     //check whether the destination address is a multicast address or not
@@ -535,11 +583,20 @@ void SENDINFO_DECR(struct send_info *si) {
       }
 
       call BarePacket.clear(outgoing);
+#if defined(PLATFORM_MICAZ) || defined(PLATFORM_IRIS) || defined(PLATFORM_UCMINI) || defined(PLATFORM_STORM)
+      max_len = call BarePacket.maxPayloadLength()-1;
+      frag_len = lowpan_frag_get(call BarePacket.getPayload(outgoing, max_len),
+                                 max_len,
+                                 msg,
+                                 frame_addr,
+                                 &ctx);
+#else
       frag_len = lowpan_frag_get(call Ieee154Send.getPayload(outgoing, 0),
                                  call BarePacket.maxPayloadLength(),
                                  msg,
                                  frame_addr,
                                  &ctx);
+#endif
       if (frag_len < 0) {
         printf(" get frag error: %i\n", frag_len);
       }
@@ -590,7 +647,11 @@ void SENDINFO_DECR(struct send_info *si) {
     return rc;
   }
 
+#if defined(PLATFORM_MICAZ) || defined(PLATFORM_IRIS) || defined(PLATFORM_UCMINI) || defined(PLATFORM_STORM)
+  event void BareSend.sendDone(message_t *msg, error_t error) {
+#else
   event void Ieee154Send.sendDone(message_t *msg, error_t error) {
+#endif
     struct send_entry *s_entry = call SendQueue.head();
 
     radioBusy = FALSE;
@@ -617,6 +678,7 @@ void SENDINFO_DECR(struct send_info *si) {
     } else if (s_entry->info->link_fragment_attempts ==
                s_entry->info->link_fragments) {
       signal IPLower.sendDone(s_entry->info);
+      printf("senddone ok\n");
     }
 
   done:
