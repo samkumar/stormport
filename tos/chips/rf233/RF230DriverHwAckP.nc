@@ -1,37 +1,36 @@
 /*
- * Copyright (c) 2007, Vanderbilt University
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *
- * - Redistributions of source code must retain the above copyright
- *   notice, this list of conditions and the following disclaimer.
- * - Redistributions in binary form must reproduce the above copyright
- *   notice, this list of conditions and the following disclaimer in the
- *   documentation and/or other materials provided with the
- *   distribution.
- * - Neither the name of the copyright holder nor the names of
- *   its contributors may be used to endorse or promote products derived
- *   from this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL
- * THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
- * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
- * OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * Author: Miklos Maroti
- * Author: Branislav Kusy (bugfixes)
- */
+* Copyright (c) 2009, University of Szeged
+* All rights reserved.
+*
+* Redistribution and use in source and binary forms, with or without
+* modification, are permitted provided that the following conditions
+* are met:
+*
+* - Redistributions of source code must retain the above copyright
+* notice, this list of conditions and the following disclaimer.
+* - Redistributions in binary form must reproduce the above
+* copyright notice, this list of conditions and the following
+* disclaimer in the documentation and/or other materials provided
+* with the distribution.
+* - Neither the name of University of Szeged nor the names of its
+* contributors may be used to endorse or promote products derived
+* from this software without specific prior written permission.
+*
+* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+* "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+* LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+* FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+* COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+* INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+* (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+* SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+* HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+* STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+* ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+* OF THE POSSIBILITY OF SUCH DAMAGE.
+*
+* Author: Miklos Maroti
+*/
 
 #include <RF230DriverLayer.h>
 #include <Tasklet.h>
@@ -39,7 +38,7 @@
 #include <TimeSyncMessageLayer.h>
 #include <RadioConfig.h>
 
-module RF230DriverLayerP
+module RF230DriverHwAckP
 {
 	provides
 	{
@@ -57,6 +56,8 @@ module RF230DriverLayerP
 		interface PacketField<uint8_t> as PacketTimeSyncOffset;
 		interface PacketField<uint8_t> as PacketLinkQuality;
 		interface LinkPacketMetadata;
+
+		interface PacketAcknowledgements;
 	}
 
 	uses
@@ -84,6 +85,10 @@ module RF230DriverLayerP
 
 		interface Tasklet;
 		interface RadioAlarm;
+
+		interface PacketFlag as AckReceivedFlag;
+		interface Ieee154PacketLayer;
+		interface ActiveMessageAddress;
 
 #ifdef RADIO_DEBUG
 		interface DiagMsg;
@@ -130,7 +135,6 @@ implementation
 		CMD_STANDBY = 2,		// goto TRX_OFF state
 		CMD_TURNON = 3,			// goto RX_ON state
 		CMD_TRANSMIT = 4,		// currently transmitting a message
-		CMD_RECEIVE = 5,		// currently receiving a message
 		CMD_CCA = 6,			// performing clear chanel assesment
 		CMD_CHANNEL = 7,		// changing the channel
 		CMD_SIGNAL_DONE = 8,		// signal the end of the state transition
@@ -146,9 +150,6 @@ implementation
 	message_t rxMsgBuffer;
 
 	uint16_t capturedTime;	// the current time when the last interrupt has occured
-
-	tasklet_norace uint8_t rssiClear;
-	tasklet_norace uint8_t rssiBusy;
 
 /*----------------- REGISTER -----------------*/
 
@@ -183,16 +184,27 @@ implementation
 	enum
 	{
 		SLEEP_WAKEUP_TIME = (uint16_t)(880 * RADIO_ALARM_MICROSEC),
+		PLL_CALIBRATION_TIME = (uint16_t)(180 * RADIO_ALARM_MICROSEC),
 		CCA_REQUEST_TIME = (uint16_t)(140 * RADIO_ALARM_MICROSEC),
 
-		TX_SFD_DELAY = (uint16_t)(176 * RADIO_ALARM_MICROSEC),
-		RX_SFD_DELAY = (uint16_t)(8 * RADIO_ALARM_MICROSEC),
+		// 8 undocumented delay, 128 for CSMA, 16 for delay, 5*32 for preamble and SFD
+		TX_SFD_DELAY = (uint16_t)((8 + 128 + 16 + 5*32) * RADIO_ALARM_MICROSEC),
+
+		// 32 for frame length, 16 for delay
+		RX_SFD_DELAY = (uint16_t)((32 + 16) * RADIO_ALARM_MICROSEC),
 	};
 
 	tasklet_async event void RadioAlarm.fired()
 	{
 		if( state == STATE_SLEEP_2_TRX_OFF )
 			state = STATE_TRX_OFF;
+		else if( state == STATE_TRX_OFF_2_RX_ON )
+		{
+			RADIO_ASSERT( cmd == CMD_TURNON || cmd == CMD_CHANNEL );
+
+			state = STATE_RX_ON;
+			cmd = CMD_SIGNAL_DONE;
+		}
 		else if( cmd == CMD_CCA )
 		{
 			uint8_t cca;
@@ -202,7 +214,7 @@ implementation
 			cmd = CMD_NONE;
 			cca = readRegister(RF230_TRX_STATUS);
 
-			RADIO_ASSERT( (cca & RF230_TRX_STATUS_MASK) == RF230_RX_ON );
+			RADIO_ASSERT( (cca & RF230_TRX_STATUS_MASK) == RF230_RX_AACK_ON );
 
 			signal RadioCCA.done( (cca & RF230_CCA_DONE) ? ((cca & RF230_CCA_STATUS) ? SUCCESS : EBUSY) : FAIL );
 		}
@@ -226,10 +238,6 @@ implementation
 
 		rxMsg = &rxMsgBuffer;
 
-		// these are just good approximates
-		rssiClear = 0;
-		rssiBusy = 90;
-
 		return SUCCESS;
 	}
 
@@ -241,6 +249,8 @@ implementation
 
 	void initRadio()
 	{
+		uint16_t temp;
+
 		call BusyWait.wait(510);
 
 		call RSTN.clr();
@@ -254,13 +264,27 @@ implementation
 		call BusyWait.wait(510);
 
         writeRegister(0x0D, 0b0101);
-		writeRegister(RF230_IRQ_MASK, RF230_IRQ_TRX_UR | RF230_IRQ_PLL_LOCK | RF230_IRQ_TRX_END | RF230_IRQ_RX_START);
+        //Set long address last byte
+        writeRegister(0x2b, 0x35);
+        //Turn on promiscuous mode
+        writeRegister(0x14, 2);
+        //Switch IRQ polarity to test pin
+        writeRegister(0x04, 0b00101110);
+
+		writeRegister(RF230_IRQ_MASK, RF230_IRQ_TRX_UR | RF230_IRQ_TRX_END );
 		writeRegister(RF230_CCA_THRES, RF230_CCA_THRES_VALUE);
 		writeRegister(RF230_PHY_TX_PWR, RF230_TX_AUTO_CRC_ON | (RF230_DEF_RFPOWER & RF230_TX_PWR_MASK));
 
 		txPower = RF230_DEF_RFPOWER & RF230_TX_PWR_MASK;
 		channel = RF230_DEF_CHANNEL & RF230_CHANNEL_MASK;
 		writeRegister(RF230_PHY_CC_CCA, RF230_CCA_MODE_VALUE | channel);
+
+		writeRegister(RF230_XAH_CTRL, 0);
+		writeRegister(RF230_CSMA_SEED_1, 0);
+
+		temp = call ActiveMessageAddress.amGroup();
+		writeRegister(RF230_PAN_ID_0, temp);
+		writeRegister(RF230_PAN_ID_1, temp >> 8);
 
 		call SLP_TR.set();
 		state = STATE_SLEEP;
@@ -301,7 +325,7 @@ implementation
 
 /*----------------- CHANNEL -----------------*/
 
-	tasklet_async command uint8_t RadioState.getChannel()
+tasklet_async command uint8_t RadioState.getChannel()
 	{
 		return channel;
 	}
@@ -327,12 +351,15 @@ implementation
 		RADIO_ASSERT( cmd == CMD_CHANNEL );
 		RADIO_ASSERT( state == STATE_SLEEP || state == STATE_TRX_OFF || state == STATE_RX_ON );
 
-		if( isSpiAcquired() )
+		if( isSpiAcquired() && call RadioAlarm.isFree() )
 		{
 			writeRegister(RF230_PHY_CC_CCA, RF230_CCA_MODE_VALUE | channel);
 
 			if( state == STATE_RX_ON )
+			{
+				call RadioAlarm.wait(PLL_CALIBRATION_TIME);
 				state = STATE_TRX_OFF_2_RX_ON;
+			}
 			else
 				cmd = CMD_SIGNAL_DONE;
 		}
@@ -350,8 +377,11 @@ implementation
 			call RadioAlarm.wait(SLEEP_WAKEUP_TIME);
 			state = STATE_SLEEP_2_TRX_OFF;
 		}
-		else if( cmd == CMD_TURNON && state == STATE_TRX_OFF && isSpiAcquired() )
+		else if( cmd == CMD_TURNON && state == STATE_TRX_OFF
+			&& isSpiAcquired() && call RadioAlarm.isFree() )
 		{
+			uint16_t temp;
+
 			RADIO_ASSERT( ! radioIrq );
 
 			readRegister(RF230_IRQ_STATUS); // clear the interrupt register
@@ -360,20 +390,13 @@ implementation
 			// setChannel was ignored in SLEEP because the SPI was not working, so do it here
 			writeRegister(RF230_PHY_CC_CCA, RF230_CCA_MODE_VALUE | channel);
 
-			writeRegister(RF230_TRX_STATE, RF230_RX_ON);
-			state = STATE_TRX_OFF_2_RX_ON;
+			temp = call ActiveMessageAddress.amAddress();
+			writeRegister(RF230_SHORT_ADDR_0, temp);
+			writeRegister(RF230_SHORT_ADDR_1, temp >> 8);
 
-#ifdef RADIO_DEBUG_PARTNUM
-			if( call DiagMsg.record() )
-			{
-				call DiagMsg.str("partnum");
-				call DiagMsg.hex8(readRegister(RF230_PART_NUM));
-				call DiagMsg.hex8(readRegister(RF230_VERSION_NUM));
-				call DiagMsg.hex8(readRegister(RF230_MAN_ID_0));
-				call DiagMsg.hex8(readRegister(RF230_MAN_ID_1));
-				call DiagMsg.send();
-			}
-#endif
+			call RadioAlarm.wait(PLL_CALIBRATION_TIME);
+			writeRegister(RF230_TRX_STATE, RF230_RX_AACK_ON);
+			state = STATE_TRX_OFF_2_RX_ON;
 		}
 		else if( (cmd == CMD_TURNOFF || cmd == CMD_STANDBY)
 			&& state == STATE_RX_ON && isSpiAcquired() )
@@ -437,7 +460,30 @@ implementation
 
 	default tasklet_async event void RadioState.done() { }
 
+	task void changeAddress()
+	{
+		call Tasklet.suspend();
+
+		if( isSpiAcquired() )
+		{
+			uint16_t temp = call ActiveMessageAddress.amAddress();
+			writeRegister(RF230_SHORT_ADDR_0, temp);
+			writeRegister(RF230_SHORT_ADDR_1, temp >> 8);
+		}
+		else
+			post changeAddress();
+
+		call Tasklet.resume();
+	}
+
+	async event void ActiveMessageAddress.changed()
+	{
+		post changeAddress();
+	}
+
 /*----------------- TRANSMIT -----------------*/
+
+	tasklet_norace message_t* txMsg;
 
 	tasklet_async command error_t RadioSend.send(message_t* msg)
 	{
@@ -460,14 +506,7 @@ implementation
 			writeRegister(RF230_PHY_TX_PWR, RF230_TX_AUTO_CRC_ON | txPower);
 		}
 
-		if( call Config.requiresRssiCca(msg)
-			&& (readRegister(RF230_PHY_RSSI) & RF230_RSSI_MASK) > ((rssiClear + rssiBusy) >> 3) )
-		{
-			call SpiResource.release();
-			return EBUSY;
-		}
-
-		writeRegister(RF230_TRX_STATE, RF230_PLL_ON);
+		writeRegister(RF230_TRX_STATE, RF230_TX_ARET_ON);
 
 		// do something useful, just to wait a little
 		time32 = call LocalTime.get();
@@ -493,11 +532,11 @@ implementation
 		RADIO_ASSERT( upload1 >= 1 && upload1 <= 127 );
 
 		// we have missed an incoming message in this short amount of time
-		if( (readRegister(RF230_TRX_STATUS) & RF230_TRX_STATUS_MASK) != RF230_PLL_ON )
+		if( (readRegister(RF230_TRX_STATUS) & RF230_TRX_STATUS_MASK) != RF230_TX_ARET_ON )
 		{
-			RADIO_ASSERT( (readRegister(RF230_TRX_STATUS) & RF230_TRX_STATUS_MASK) == RF230_BUSY_RX );
+			RADIO_ASSERT( (readRegister(RF230_TRX_STATUS) & RF230_TRX_STATUS_MASK) == RF230_BUSY_RX_AACK );
 
-			writeRegister(RF230_TRX_STATE, RF230_RX_ON);
+			writeRegister(RF230_TRX_STATE, RF230_RX_AACK_ON);
 			call SpiResource.release();
 			return EBUSY;
 		}
@@ -567,7 +606,7 @@ implementation
 		 */
 
 		// go back to RX_ON state when finished
-		writeRegister(RF230_TRX_STATE, RF230_RX_ON);
+		writeRegister(RF230_TRX_STATE, RF230_RX_AACK_ON);
 
 		call PacketTimeStamp.set(msg, time32);
 
@@ -584,6 +623,7 @@ implementation
 #endif
 
 		// wait for the TRX_END interrupt
+		txMsg = msg;
 		state = STATE_BUSY_TX_2_RX_ON;
 		cmd = CMD_TRANSMIT;
 
@@ -602,7 +642,7 @@ implementation
 
 		// see Errata B7 of the datasheet
 		// writeRegister(RF230_TRX_STATE, RF230_PLL_ON);
-		// writeRegister(RF230_TRX_STATE, RF230_RX_ON);
+		// writeRegister(RF230_TRX_STATE, RF230_RX_AACK_ON);
 
 		writeRegister(RF230_PHY_CC_CCA, RF230_CCA_REQUEST | RF230_CCA_MODE_VALUE | channel);
 		call RadioAlarm.wait(CCA_REQUEST_TIME);
@@ -618,7 +658,7 @@ implementation
 	inline void downloadMessage()
 	{
 		uint8_t length;
-		uint16_t crc;
+		bool crcValid = FALSE;
 
 		call SELN.clr();
 		call FastSpiByte.write(RF230_CMD_FRAME_READ);
@@ -637,7 +677,6 @@ implementation
 
 			data = getPayload(rxMsg);
 			getHeader(rxMsg)->length = length;
-			crc = 0;
 
 			// we do not store the CRC field
 			length -= 2;
@@ -649,31 +688,46 @@ implementation
 			length -= read;
 
 			do {
-				crc = RF230_CRCBYTE_COMMAND(crc, *(data++) = call FastSpiByte.splitReadWrite(0));
+				*(data++) = call FastSpiByte.splitReadWrite(0);
 			}
 			while( --read != 0  );
 
 			if( signal RadioReceive.header(rxMsg) )
 			{
 				while( length-- != 0 )
-					crc = RF230_CRCBYTE_COMMAND(crc, *(data++) = call FastSpiByte.splitReadWrite(0));
+					*(data++) = call FastSpiByte.splitReadWrite(0);
 
-				crc = RF230_CRCBYTE_COMMAND(crc, call FastSpiByte.splitReadWrite(0));
-				crc = RF230_CRCBYTE_COMMAND(crc, call FastSpiByte.splitReadWrite(0));
+				call FastSpiByte.splitReadWrite(0);	// two CRC bytes
+				call FastSpiByte.splitReadWrite(0);
 
 				call PacketLinkQuality.set(rxMsg, call FastSpiByte.splitRead());
+
+				// we should have no other incoming message or buffer underflow
+				crcValid = ! radioIrq;
 			}
 			else
-			{
 				call FastSpiByte.splitRead(); // finish the SPI transfer
-				crc = 1;
-			}
 		}
-		else
-			crc = 1;
 
 		call SELN.set();
-		state = STATE_RX_ON;
+
+		if( crcValid && call PacketTimeStamp.isValid(rxMsg) )
+		{
+			uint32_t time32 = call PacketTimeStamp.timestamp(rxMsg);
+			length = getHeader(rxMsg)->length;
+
+/*
+ * If you hate floating point arithmetics and do not care of up to 400 microsecond time stamping errors,
+ * then define RF230_HWACK_SLOPPY_TIMESTAMP, which will be significantly faster.
+ */
+#ifdef RF230_HWACK_SLOPPY_TIMESTAMP
+			time32 -= (uint16_t)(RX_SFD_DELAY) + ((uint16_t)(length) << (RADIO_ALARM_MILLI_EXP - 5));
+#else
+			time32 -= (uint16_t)(RX_SFD_DELAY) + (uint16_t)(32.0 * RADIO_ALARM_MICROSEC * (uint16_t)length);
+#endif
+
+			call PacketTimeStamp.set(rxMsg, time32);
+		}
 
 #ifdef RADIO_DEBUG_MESSAGES
 		if( call DiagMsg.record() )
@@ -683,7 +737,7 @@ implementation
 			call DiagMsg.chr('r');
 			call DiagMsg.uint32(call PacketTimeStamp.isValid(rxMsg) ? call PacketTimeStamp.timestamp(rxMsg) : 0);
 			call DiagMsg.uint16(call RadioAlarm.getNow());
-			call DiagMsg.int8(crc == 0 ? length : -length);
+			call DiagMsg.int8(crcValid ? length : -length);
 			call DiagMsg.hex8s(getPayload(rxMsg), length - 2);
 			call DiagMsg.int8(call PacketRSSI.isSet(rxMsg) ? call PacketRSSI.get(rxMsg) : -1);
 			call DiagMsg.uint8(call PacketLinkQuality.isSet(rxMsg) ? call PacketLinkQuality.get(rxMsg) : 0);
@@ -691,10 +745,11 @@ implementation
 		}
 #endif
 
+		state = STATE_RX_ON;
 		cmd = CMD_NONE;
 
 		// signal only if it has passed the CRC check
-		if( crc == 0 )
+		if( crcValid )
 			rxMsg = signal RadioReceive.receive(rxMsg);
 	}
 
@@ -744,100 +799,43 @@ implementation
 			}
 #endif
 
-#ifdef RF230_RSSI_ENERGY
-			if( irq & RF230_IRQ_TRX_END )
-			{
-				if( irq == RF230_IRQ_TRX_END ||
-					(irq == (RF230_IRQ_RX_START | RF230_IRQ_TRX_END) && cmd == CMD_NONE) )
-					call PacketRSSI.set(rxMsg, readRegister(RF230_PHY_ED_LEVEL));
-				else
-					call PacketRSSI.clear(rxMsg);
-			}
-#endif
-
-			// sometimes we miss a PLL lock interrupt after turn on
-			if( cmd == CMD_TURNON || cmd == CMD_CHANNEL )
-			{
-				RADIO_ASSERT( irq & RF230_IRQ_PLL_LOCK );
-				RADIO_ASSERT( state == STATE_TRX_OFF_2_RX_ON );
-
-				state = STATE_RX_ON;
-				cmd = CMD_SIGNAL_DONE;
-			}
-			else if( irq & RF230_IRQ_PLL_LOCK )
-			{
-				RADIO_ASSERT( cmd == CMD_TRANSMIT );
-				RADIO_ASSERT( state == STATE_BUSY_TX_2_RX_ON );
-			}
-
-			if( irq & RF230_IRQ_RX_START )
-			{
-				if( cmd == CMD_CCA )
-				{
-					signal RadioCCA.done(FAIL);
-					cmd = CMD_NONE;
-				}
-
-				if( cmd == CMD_NONE )
-				{
-					RADIO_ASSERT( state == STATE_RX_ON );
-
-					// the most likely place for busy channel, with no TRX_END interrupt
-					if( irq == RF230_IRQ_RX_START )
-					{
-						temp = readRegister(RF230_PHY_RSSI) & RF230_RSSI_MASK;
-						rssiBusy += temp - (rssiBusy >> 2);
-#ifndef RF230_RSSI_ENERGY
-						call PacketRSSI.set(rxMsg, temp);
-					}
-					else
-					{
-						call PacketRSSI.clear(rxMsg);
-#endif
-					}
-
-					/*
-					 * The timestamp corresponds to the first event which could not
-					 * have been a PLL_LOCK because then cmd != CMD_NONE, so we must
-					 * have received a message (and could also have received the
-					 * TRX_END interrupt in the mean time, but that is fine. Also,
-					 * we could not be after a transmission, because then cmd =
-					 * CMD_TRANSMIT.
-					 */
-					if( irq == RF230_IRQ_RX_START ) // just to be cautious
-					{
-						time32 = call LocalTime.get();
-						time32 += (int16_t)(time - RX_SFD_DELAY) - (int16_t)(time32);
-						call PacketTimeStamp.set(rxMsg, time32);
-					}
-					else
-						call PacketTimeStamp.clear(rxMsg);
-
-					cmd = CMD_RECEIVE;
-				}
-				else
-					RADIO_ASSERT( cmd == CMD_TURNOFF );
-			}
-
 			if( irq & RF230_IRQ_TRX_END )
 			{
 				if( cmd == CMD_TRANSMIT )
 				{
 					RADIO_ASSERT( state == STATE_BUSY_TX_2_RX_ON );
 
+					temp = readRegister(RF230_TRX_STATE) & RF230_TRAC_STATUS_MASK;
+
+					if( call Ieee154PacketLayer.getAckRequired(txMsg) )
+						call AckReceivedFlag.setValue(txMsg, temp != RF230_TRAC_NO_ACK);
+
 					state = STATE_RX_ON;
 					cmd = CMD_NONE;
-					signal RadioSend.sendDone(SUCCESS);
+
+					signal RadioSend.sendDone(temp != RF230_TRAC_CHANNEL_ACCESS_FAILURE ? SUCCESS : EBUSY);
 
 					// TODO: we could have missed a received message
 					RADIO_ASSERT( ! (irq & RF230_IRQ_RX_START) );
 				}
-				else if( cmd == CMD_RECEIVE )
+				else if( cmd == CMD_NONE )
 				{
 					RADIO_ASSERT( state == STATE_RX_ON );
 
-					// the most likely place for clear channel (hope to avoid acks)
-					rssiClear += (readRegister(RF230_PHY_RSSI) & RF230_RSSI_MASK) - (rssiClear >> 2);
+					if( irq == RF230_IRQ_TRX_END )
+					{
+						call PacketRSSI.set(rxMsg, readRegister(RF230_PHY_ED_LEVEL));
+
+						// TODO: compensate for packet transmission time when downloading
+						time32 = call LocalTime.get();
+						time32 += (int16_t)(time) - (int16_t)(time32);
+						call PacketTimeStamp.set(rxMsg, time32);
+					}
+					else
+					{
+						call PacketRSSI.clear(rxMsg);
+						call PacketTimeStamp.clear(rxMsg);
+					}
 
 					cmd = CMD_DOWNLOAD;
 				}
@@ -1023,6 +1021,27 @@ implementation
 	async command void PacketLinkQuality.set(message_t* msg, uint8_t value)
 	{
 		getMeta(msg)->lqi = value;
+	}
+
+/*----------------- PacketAcknowledgements -----------------*/
+
+	async command error_t PacketAcknowledgements.requestAck(message_t* msg)
+	{
+		call Ieee154PacketLayer.setAckRequired(msg, TRUE);
+
+		return SUCCESS;
+	}
+
+	async command error_t PacketAcknowledgements.noAck(message_t* msg)
+	{
+		call Ieee154PacketLayer.setAckRequired(msg, FALSE);
+
+		return SUCCESS;
+	}
+
+	async command bool PacketAcknowledgements.wasAcked(message_t* msg)
+	{
+		return call AckReceivedFlag.get(msg);
 	}
 
 /*----------------- LinkPacketMetadata -----------------*/

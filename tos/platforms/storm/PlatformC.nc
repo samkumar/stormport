@@ -53,11 +53,16 @@ implementation
   components PlatformP, MoteClockC;
   // HplSam4TCC as MoteTimerC;
   components McuSleepC;
-
+  components NoInitC;
   Init = PlatformP;
 
+  components PlatformLedsC;
   PlatformP.MoteClockInit -> MoteClockC;
   PlatformP.IRQInit -> MoteClockC;
+  PlatformP.RadioInit -> NoInitC;
+  PlatformP.Led0 -> PlatformLedsC.Led0;
+  PlatformP.Led1 -> PlatformLedsC.Led1;
+  PlatformP.Led2 -> PlatformLedsC.Led2;
   //PlatformP.MoteTimerInit -> MoteTimerC;
 
   // Used so we can initialize the platform in a state where it would draw

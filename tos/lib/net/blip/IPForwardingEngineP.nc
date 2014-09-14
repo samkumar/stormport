@@ -346,7 +346,7 @@ module IPForwardingEngineP {
         printf("%-5i", ctr++);
 
         buf += inet_ntop6(&routing_table[i].prefix, print_buf, 44) - 1;
-        sprintf(buf, "/%i", routing_table[i].prefixlen);
+        snprintf(buf, (44 - (buf - print_buf)), "/%i", routing_table[i].prefixlen);
         printf("%-43s", print_buf);
 
         inet_ntop6(&routing_table[i].next_hop, print_buf, 30);

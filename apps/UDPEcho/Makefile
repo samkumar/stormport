@@ -63,10 +63,10 @@ PFLAGS += -DRPL_OF_MRHOF=0
 ### Configure LPL
 ################################################################################
 
-PFLAGS += -DLOW_POWER_LISTENING
-PFLAGS += -DLPL_SLEEP_INTERVAL=512
-PFLAGS += -DLPL_DEF_LOCAL_WAKEUP=512
-PFLAGS += -DLPL_DEF_REMOTE_WAKEUP=512
+# PFLAGS += -DLOW_POWER_LISTENING
+# PFLAGS += -DLPL_SLEEP_INTERVAL=512
+# PFLAGS += -DLPL_DEF_LOCAL_WAKEUP=512
+# PFLAGS += -DLPL_DEF_REMOTE_WAKEUP=512
 
 ################################################################################
 ### Configure printf() output

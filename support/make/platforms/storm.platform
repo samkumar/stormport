@@ -1,7 +1,6 @@
 #-*-Makefile-*- vim:syntax=make
 
 # Include directories for storm platform
-PFLAGS += -I%T/platforms/storm
 PFLAGS += -I%T/chips/cortex/m4
 PFLAGS += -I%T/chips/cortex/m4/sam4
 PFLAGS += -I%T/chips/cortex/m4/sam4/l
@@ -14,9 +13,15 @@ PFLAGS += -I%T/chips/cortex/m4/sam4/l/gpio
 PFLAGS += -I%T/chips/cortex/m4/sam4/l/nvic
 PFLAGS += -I%T/chips/cortex/m4/sam4/l/spi
 PFLAGS += -I%T/chips/cortex/m4/sam4/l/usart
+PFLAGS += -I%T/platforms/storm/
+PFLAGS += -I%T/platforms/storm/chips/rf230/
+PFLAGS += -I%T/platforms/storm/lib/printf
+PFLAGS += -I%T/lib/rfxlink/layers
+PFLAGS += -I%T/lib/rfxlink/util
+PFLAGS += -I%T/chips/rf233/
 PFLAGS += -I%T/lib/timer
 PFLAGS += -I%T/lib/serial
-PFLAGS += -I%T/lib/printf
+
 PFLAGS += -I%T/lib/power
 
 # Extra options for storm platform

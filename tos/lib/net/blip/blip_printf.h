@@ -10,6 +10,7 @@
  */
 
 #ifdef PRINTFUART_ENABLED
+#warning "blip printf including printf.h"
 #include "printf.h"
 #include <lib6lowpan/iovec.h>
 #include <lib6lowpan/ip.h>

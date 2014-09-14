@@ -253,7 +253,6 @@ implementation
 
 		call BusyWait.wait(510);
 
-        writeRegister(0x0D, 0b0101);
 		writeRegister(RF230_IRQ_MASK, RF230_IRQ_TRX_UR | RF230_IRQ_PLL_LOCK | RF230_IRQ_TRX_END | RF230_IRQ_RX_START);
 		writeRegister(RF230_CCA_THRES, RF230_CCA_THRES_VALUE);
 		writeRegister(RF230_PHY_TX_PWR, RF230_TX_AUTO_CRC_ON | (RF230_DEF_RFPOWER & RF230_TX_PWR_MASK));

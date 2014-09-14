@@ -77,7 +77,7 @@ module UDPEchoP {
     call StatusTimer.startOneShot(call Random.rand16() % (1024 * REPORT_PERIOD));
 #endif
 
-    dbg("Boot", "booted: %i\n", TOS_NODE_ID);
+    printf("booted: %i\n", TOS_NODE_ID);
     call Echo.bind(7);
     call Status.bind(7001);
 

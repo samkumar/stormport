@@ -43,9 +43,13 @@ module PlatformP
     }
 	uses
 	{
+	    interface GeneralIO as Led0;
+	    interface GeneralIO as Led1;
+	    interface GeneralIO as Led2;
 		interface Init as LedsInit;
         interface Init as MoteClockInit;
         interface Init as IRQInit;
+        interface Init as RadioInit;
       //  interface Init as MoteTimerInit;
         interface Sam4LowPower;
 	}
@@ -62,6 +66,7 @@ implementation
         call MoteClockInit.init();
       //  call MoteTimerInit.init();
 		call LedsInit.init();
+		call RadioInit.init();
 
 		return SUCCESS;
 	}
@@ -72,6 +77,9 @@ implementation
 
 	default command error_t LedsInit.init()
 	{
+        call Led0.makeOutput();
+        call Led1.makeOutput();
+        call Led2.makeOutput();
 		return SUCCESS;
 	}
 }

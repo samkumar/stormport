@@ -45,7 +45,10 @@ implementation
 		SPI->mr.bits.rxfifoen = 0; //Disable RX fifo
 		SPI->mr.bits.modfdis = 1; //Disable mode fault
 	    SPI->cr.bits.spien = 1;
-
+        SPI->csr[0].bits.scbr = 8;
+        SPI->csr[1].bits.scbr = 8;
+        SPI->csr[2].bits.scbr = 8;
+        SPI->csr[3].bits.scbr = 8;
         //My nomenclature on storm is a little messed up
         //CS2 on the pinout is actually CS1 internally
         //CS1 on the pinout is actually CS2 internally
