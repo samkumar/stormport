@@ -13,7 +13,7 @@ implementation
     ieee154_panid_t m_panid;
 
     command error_t Init.init() {
-        m_saddr = 0x01;
+        m_saddr = 0x37;
         m_panid = TOS_AM_GROUP;
         return SUCCESS;
     }
@@ -35,9 +35,9 @@ implementation
         /* however, Ieee 802.15.4 addresses are little endian */
         for (i = 0; i < 8; i++) {
           tmp = addr.data[i];
-          addr.data[i] = 0x00;
+          addr.data[i] = 0x55;
         }
-        addr.data[7] = 0x01;
+        addr.data[7] = 0x57;
         return addr;
     }
 

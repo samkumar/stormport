@@ -42,7 +42,7 @@
 
 #else
 
-	#define RADIO_ASSERT(COND) for(;0;)
+	#define RADIO_ASSERT(COND) if(!(COND)){atomic{while(1)printf("fail %s:%d\n",__FILE__,__LINE__);}}
 
 #endif
 

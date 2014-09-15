@@ -264,14 +264,21 @@ implementation
         //Switch IRQ polarity to test pin
         //writeRegister(0x04, 0b00101110);
 
-        writeRegister(0x20,0x69);
-        writeRegister(0x21,0x00);
+        writeRegister(RF230_IEEE_ADDR_0, 0x55);
+        writeRegister(RF230_IEEE_ADDR_1, 0x55);
+        writeRegister(RF230_IEEE_ADDR_2, 0x55);
+        writeRegister(RF230_IEEE_ADDR_3, 0x55);
+        writeRegister(RF230_IEEE_ADDR_4, 0x55);
+        writeRegister(RF230_IEEE_ADDR_5, 0x55);
+        writeRegister(RF230_IEEE_ADDR_6, 0x55);
+        writeRegister(RF230_IEEE_ADDR_7, 0x57);
+
         writeRegister(0x22,0x22);
         writeRegister(0x23,0x00);
 
 		writeRegister(RF230_IRQ_MASK, RF230_IRQ_TRX_UR | RF230_IRQ_PLL_LOCK | RF230_IRQ_TRX_END | RF230_IRQ_RX_START);
 		writeRegister(RF230_CCA_THRES, RF230_CCA_THRES_VALUE);
-		writeRegister(RF230_PHY_TX_PWR, RF230_TX_AUTO_CRC_ON | (RF230_DEF_RFPOWER & RF230_TX_PWR_MASK));
+		writeRegister(RF230_PHY_TX_PWR, (RF230_DEF_RFPOWER & RF230_TX_PWR_MASK));
 
 		txPower = RF230_DEF_RFPOWER & RF230_TX_PWR_MASK;
 		channel = RF230_DEF_CHANNEL & RF230_CHANNEL_MASK;
@@ -472,7 +479,7 @@ implementation
 		if( length != txPower )
 		{
 			txPower = length;
-			writeRegister(RF230_PHY_TX_PWR, RF230_TX_AUTO_CRC_ON | txPower);
+			writeRegister(RF230_PHY_TX_PWR, txPower);
 		}
 
 		if( call Config.requiresRssiCca(msg)

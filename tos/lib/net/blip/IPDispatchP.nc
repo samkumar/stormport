@@ -350,10 +350,11 @@ void SENDINFO_DECR(struct send_info *si) {
     int ret;
 
     printf("$0$");
-
+    /*
     atomic
     {
         uint32_t i;
+
         printf("\n\nSTOP THE WORLD. OK. HERE IS THE PACKET:\n");
         for (i=0;i<len;i++)
         {
@@ -361,6 +362,7 @@ void SENDINFO_DECR(struct send_info *si) {
         }
         printf("ok, all done\n");
     }
+    */
     BLIP_STATS_INCR(stats.rx_total);
 
     /* unpack the 802.15.4 address fields */
@@ -602,13 +604,15 @@ void SENDINFO_DECR(struct send_info *si) {
       }
 
       printf("fragment length: %i offset: %i\n", frag_len, ctx.offset);
-      call BarePacket.setPayloadLength(outgoing, frag_len);
+
 
       if (frag_len <= 0) {
         call FragPool.put(outgoing);
         call SendEntryPool.put(s_entry);
         goto done;
       }
+
+      call BarePacket.setPayloadLength(outgoing, frag_len);
 
       if (call SendQueue.enqueue(s_entry) != SUCCESS) {
         BLIP_STATS_INCR(stats.encfail);

@@ -36,8 +36,7 @@ module IPAddressP {
     interface Ieee154Address;
   }
 } implementation {
-//XTAG TODO
-  bool m_valid_addr = FALSE, m_short_addr = TRUE;
+  bool m_valid_addr = FALSE, m_short_addr = FALSE;
   struct in6_addr m_addr;
 
   command bool IPAddress.getLLAddr(struct in6_addr *addr) {

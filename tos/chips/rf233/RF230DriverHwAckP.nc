@@ -262,15 +262,25 @@ implementation
 		writeRegister(RF230_TRX_CTRL_0, RF230_TRX_CTRL_0_VALUE);
 		writeRegister(RF230_TRX_STATE, RF230_TRX_OFF);
 
-		call BusyWait.wait(510);
+		call BusyWait.wait(1000);
 
         //writeRegister(0x0D, 0b0101);
         writeRegister(0x0D, 0b0101);
         //Set long address last byte
-        writeRegister(0x2b, 0x01);
-        writeRegister(0x2a, 0x00);
+        writeRegister(RF230_IEEE_ADDR_0, 0x55);
+        writeRegister(RF230_IEEE_ADDR_1, 0x55);
+        writeRegister(RF230_IEEE_ADDR_2, 0x55);
+        writeRegister(RF230_IEEE_ADDR_3, 0x55);
+        writeRegister(RF230_IEEE_ADDR_4, 0x55);
+        writeRegister(RF230_IEEE_ADDR_5, 0x55);
+        writeRegister(RF230_IEEE_ADDR_6, 0x55);
+        writeRegister(RF230_IEEE_ADDR_7, 0x57);
+
+
+        //writeRegister(0x2b, 0x01);
+        //writeRegister(0x2a, 0x00);
         //Turn on promiscuous mode
-       // writeRegister(0x14, 2);
+        //writeRegister(0x14, 2);
         //Switch IRQ polarity to test pin
         //writeRegister(0x04, 0b00101110);
 
@@ -279,18 +289,21 @@ implementation
         writeRegister(0x22,0x22);
         writeRegister(0x23,0x00);
 
+        //disable scrambler
+        //writeRegister(0x0c, 0);
+
         //Ack all frames, all versions
-        writeRegister(0x2E, 0b11000010);
+        //writeRegister(0x2E, 0b11000010);
 
 		writeRegister(RF230_IRQ_MASK, RF230_IRQ_TRX_UR | RF230_IRQ_TRX_END );
 		writeRegister(RF230_CCA_THRES, RF230_CCA_THRES_VALUE);
-		writeRegister(RF230_PHY_TX_PWR, RF230_TX_AUTO_CRC_ON | (RF230_DEF_RFPOWER & RF230_TX_PWR_MASK));
+		writeRegister(RF230_PHY_TX_PWR, RF230_DEF_RFPOWER);
 
 		txPower = RF230_DEF_RFPOWER & RF230_TX_PWR_MASK;
 		channel = RF230_DEF_CHANNEL & RF230_CHANNEL_MASK;
 		writeRegister(RF230_PHY_CC_CCA, RF230_CCA_MODE_VALUE | channel);
 
-		writeRegister(RF230_XAH_CTRL, 0);
+		writeRegister(RF230_XAH_CTRL_0, 0);
 		writeRegister(RF230_CSMA_SEED_1, 0);
 
 		temp = call ActiveMessageAddress.amGroup();
@@ -514,7 +527,7 @@ tasklet_async command uint8_t RadioState.getChannel()
 		if( length != txPower )
 		{
 			txPower = length;
-			writeRegister(RF230_PHY_TX_PWR, RF230_TX_AUTO_CRC_ON | txPower);
+			writeRegister(RF230_PHY_TX_PWR, txPower);
 		}
 
 		writeRegister(RF230_TRX_STATE, RF230_TX_ARET_ON);
@@ -834,7 +847,7 @@ tasklet_async command uint8_t RadioState.getChannel()
 					signal RadioSend.sendDone(temp != RF230_TRAC_CHANNEL_ACCESS_FAILURE ? SUCCESS : EBUSY);
 
 					// TODO: we could have missed a received message
-					RADIO_ASSERT( ! (irq & RF230_IRQ_RX_START) );
+					//RADIO_ASSERT( ! (irq & RF230_IRQ_RX_START) );
 				}
 				else if( cmd == CMD_NONE )
 				{

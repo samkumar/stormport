@@ -81,7 +81,7 @@ PFLAGS += -DNEW_PRINTF_SEMANTICS -DPRINTFUART_ENABLED
 # if this is set, motes will send debugging information to the address
 # listed.  BLIP_STATS causes blip to record statistics.
 # you can log this information using the util/Listener.py script
-#PFLAGS += -DREPORT_DEST=\"fe80::212:6d45:5058:753\"
+#PFLAGS += -DREPORT_DEST=\"fe80::212:6d45:5085:753\"
 PFLAGS += -DREPORT_DEST=\"ff02::1\"
 
 GOALS += blip rpl
