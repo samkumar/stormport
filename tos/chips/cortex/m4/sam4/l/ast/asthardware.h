@@ -30,9 +30,7 @@
  */
 
 /**
- * This file is copied/adapted from the sam3s tinyos port
  * @author Michael Andersen
- * @author Thomas Schmid
  */
 
 #ifndef ASTHARDWARE_H

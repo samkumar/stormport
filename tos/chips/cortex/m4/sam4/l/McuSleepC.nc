@@ -37,11 +37,6 @@
  */
 
 #include "hardware.h"
-//#include "sam3snvichardware.h"
-//#include "sam3spmchardware.h"
-//#include "sam3ssupchardware.h"
-//#include "sam3rtthardware.h"
-//#include "sam3stchardware.h"
 
 module McuSleepC
 {

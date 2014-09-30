@@ -33,13 +33,6 @@
  * @author Michael Andersen <m.andersen@cs.berkeley.edu>
  */
 
-#if 0
-#include "sam3spmchardware.h"
-#include "sam3ssupchardware.h"
-#include "sam3eefchardware.h"
-#include "sam4wdtchardware.h"
-#include "sam3matrixhardware.h"
-#endif
 
 module MoteClockP
 {

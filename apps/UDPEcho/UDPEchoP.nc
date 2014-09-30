@@ -39,7 +39,7 @@
 #include "UDPReport.h"
 #include "blip_printf.h"
 
-#define REPORT_PERIOD 5L
+#define REPORT_PERIOD 10L
 
 module UDPEchoP {
   uses {
@@ -77,7 +77,7 @@ module UDPEchoP {
     call StatusTimer.startOneShot(call Random.rand16() % (1024 * REPORT_PERIOD));
 #endif
 
-    printf("booted: %i\n", TOS_NODE_ID);
+    dbg("Boot", "booted: %i\n", TOS_NODE_ID);
     call Echo.bind(7);
     call Status.bind(7001);
 
