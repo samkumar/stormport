@@ -6,6 +6,7 @@ r
 h
 loadbin main.bin, 0x10000
 verifybin main.bin, 0x10000
+exec device
 r
 g
 q

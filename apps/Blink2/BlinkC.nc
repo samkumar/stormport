@@ -47,12 +47,15 @@
 
 #include "Timer.h"
 #include "printf.h"
+#include <usarthardware.h>
 
 module BlinkC @safe()
 {
   uses interface Timer<TMilli> as Timer0;
   uses interface GeneralIO as Led;
   uses interface Boot;
+  uses interface HplSam4lUSART as SpiHPL;
+  uses interface FastSpiByte;
 }
 implementation
 {
@@ -60,13 +63,29 @@ implementation
   {
     call Timer0.startPeriodic( 500 );
     call Led.makeOutput();
-    printf("Booted\n");
+
+    printf("Configuring SPI\n");
+    //Because you can have one usart present on multiple pins (like multiple TX pins)
+    //you need to speak to the HPL directly. Not sure what the best way to implement
+    //this is.
+    call SpiHPL.enableUSARTPin(USART2_TX_PC12);
+    call SpiHPL.enableUSARTPin(USART2_RX_PC11);
+    call SpiHPL.enableUSARTPin(USART2_CLK_PA18);
+    call SpiHPL.enableUSARTPin(USART2_RTS_PC07);
+    call SpiHPL.initSPIMaster();
+    call SpiHPL.setSPIMode(0,0);
+    call SpiHPL.setSPIBaudRate(20000);
+    call SpiHPL.enableTX();
+    call SpiHPL.enableRX();
+
   }
 
   event void Timer0.fired()
   {
+    uint8_t b;
     call Led.toggle();
-    printf("LED toggled\n");
+    b = call FastSpiByte.write(0x55);
+    printf("0x%02x", b);
   }
 }
 

@@ -62,5 +62,10 @@ implementation
   BlinkC.Timer0 -> Timer0;
   BlinkC.Led -> HplSam4lIOC.PC10;
   components SerialPrintfC;
+
+  //SPI stuff
+  components new Sam4lUSART2C();
+  BlinkC.FastSpiByte -> Sam4lUSART2C.FastSpiByte;
+  BlinkC.SpiHPL -> Sam4lUSART2C;
 }
 

@@ -18,6 +18,7 @@ GCC = arm-none-eabi-gcc
 OBJCOPY = arm-none-eabi-objcopy
 OBJDUMP = arm-none-eabi-objdump
 SIZE = arm-none-eabi-size
+NM = arm-none-eabi-nm
 LIBS = -lm
 
 

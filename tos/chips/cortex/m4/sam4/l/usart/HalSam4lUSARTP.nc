@@ -6,10 +6,13 @@ generic module HalSam4lUSARTP()
         interface UartByte;
         interface UartControl;
         interface UartStream;
+        interface SpiByte;
+        interface FastSpiByte;
     }
     uses
     {
-        interface HplSam4lUSART_UART as uart;
+        interface HplSam4lUSART as usart;
+        interface HplSam4lUSART_IRQ as usart_irq;
         interface HplSam4Clock as sysclock;
     }
 }
@@ -38,8 +41,8 @@ implementation
     */
     async command error_t UartByte.send( uint8_t byte )
     {
-        while (! call uart.isTXRdy());
-        call uart.sendData(byte);
+        while (! call usart.isTXRdy());
+        call usart.sendData(byte);
     }
 
     /**
@@ -53,9 +56,9 @@ implementation
     async command error_t UartByte.receive( uint8_t* byte, uint8_t timeout )
     {
         int32_t tgt, tmp, delta = 0;
-        if (call uart.isRXRdy())
+        if (call usart.isRXRdy())
         {
-            *byte = call uart.readData();
+            *byte = call usart.readData();
             return SUCCESS;
         }
         tgt = call sysclock.getSysTicks();
@@ -66,13 +69,13 @@ implementation
         tgt += delta;
         //timeout (ticks) = (ticks/sec) * bits / (bits/sec)
         tmp = call sysclock.getMainClockSpeed() * timeout * 8;
-        tmp /= call uart.getBaudRate();
+        tmp /= call usart.getUartBaudRate();
         tgt -= tmp;
         while ((call sysclock.getSysTicks() + delta) > tgt)
         {
-            if (call uart.isRXRdy())
+            if (call usart.isRXRdy())
             {
-                *byte = call uart.readData();
+                *byte = call usart.readData();
                 return SUCCESS;
             }
         }
@@ -92,7 +95,7 @@ implementation
     */
     async command error_t UartControl.setSpeed(uart_speed_t speed)
     {
-        call uart.setBaudRate((uint32_t)speed);
+        call usart.setUartBaudRate((uint32_t)speed);
         return SUCCESS;
     }
 
@@ -101,7 +104,7 @@ implementation
     */
     async command uart_speed_t UartControl.speed()
     {
-        return (uart_speed_t) call uart.getBaudRate();
+        return (uart_speed_t) call usart.getUartBaudRate();
     }
 
     /**
@@ -119,23 +122,23 @@ implementation
         switch (duplex)
         {
             case TOS_UART_OFF:
-                call uart.disableRX();
-                call uart.disableTX();
+                call usart.disableRX();
+                call usart.disableTX();
                 break;
             case TOS_UART_RONLY:
-                call uart.init();
-                call uart.disableTX();
-                call uart.enableRX();
+                call usart.initUART();
+                call usart.disableTX();
+                call usart.enableRX();
                 break;
             case TOS_UART_TONLY:
-                call uart.init();
-                call uart.enableTX();
-                call uart.disableRX();
+                call usart.initUART();
+                call usart.enableTX();
+                call usart.disableRX();
                 break;
             case TOS_UART_DUPLEX:
-                call uart.init();
-                call uart.enableTX();
-                call uart.enableRX();
+                call usart.initUART();
+                call usart.enableTX();
+                call usart.enableRX();
                 break;
         }
         return SUCCESS;
@@ -167,13 +170,13 @@ implementation
         switch(parity)
         {
             case TOS_UART_PARITY_NONE:
-                call uart.selectNoParity();
+                call usart.selectNoParity();
                 break;
             case TOS_UART_PARITY_EVEN:
-                call uart.selectEvenParity();
+                call usart.selectEvenParity();
                 break;
             case TOS_UART_PARITY_ODD:
-                call uart.selectOddParity();
+                call usart.selectOddParity();
                 break;
         }
         return SUCCESS;
@@ -236,7 +239,7 @@ implementation
         tx_buf = buf;
         tx_len = len;
         tx_ptr = 0;
-        call uart.enableTXRdyIRQ();
+        call usart_irq.enableTXRdyIRQ();
     }
 
     /**
@@ -257,7 +260,7 @@ implementation
     async command error_t UartStream.enableReceiveInterrupt()
     {
         forwardRXIRQ = TRUE;
-        call uart.enableRXRdyIRQ();
+        call usart_irq.enableRXRdyIRQ();
     }
 
 
@@ -292,9 +295,9 @@ implementation
 
     }
 
-    async event void uart.RXRdyFired()
+    async event void usart_irq.RXRdyFired()
     {
-        uint8_t data = call uart.readData();
+        uint8_t data = call usart.readData();
         if (forwardRXIRQ)
         {
             signal UartStream.receivedByte(data);
@@ -317,27 +320,84 @@ implementation
     default async event void UartStream.receiveDone( uint8_t* buf, uint16_t len, error_t error ){}
     default async event void UartStream.receivedByte( uint8_t byte ){}
 
-    async event void uart.TXRdyFired()
+    async event void usart_irq.TXRdyFired()
     {
         if (tx_buf == NULL)
         {
-            call uart.disableTXRdyIRQ();
+            call usart_irq.disableTXRdyIRQ();
             return;
         }
         atomic
         {
 
-            call uart.sendData(tx_buf[tx_ptr++]);
+            call usart.sendData(tx_buf[tx_ptr++]);
             if (tx_ptr == tx_len)
             {
                 uint8_t * bufcpy;
                 bufcpy = tx_buf;
                 tx_buf = NULL;
-                call uart.disableTXRdyIRQ();
+                call usart_irq.disableTXRdyIRQ();
                 signal UartStream.sendDone(bufcpy, tx_ptr, SUCCESS);
             }
         }
     }
 
+    /**
+	 * Starts a split-phase SPI data transfer with the given data.
+	 * A splitRead/splitReadWrite command must follow this command even
+	 * if the result is unimportant.
+	 */
+	async command void FastSpiByte.splitWrite(uint8_t data)
+	{
+	    while (!call usart.isTXRdy());
+        call usart.sendData(data);
+	}
+
+	/**
+	 * Finishes the split-phase SPI data transfer by waiting till
+	 * the write command comletes and returning the received data.
+	 */
+	async command uint8_t FastSpiByte.splitRead()
+	{
+	    while (!call usart.isRXRdy());
+	    return call usart.readData();
+	}
+
+	/**
+	 * This command first reads the SPI register and then writes
+	 * there the new data, then returns.
+	 */
+	async command uint8_t FastSpiByte.splitReadWrite(uint8_t data)
+	{
+	    uint8_t rv;
+	    while (!call usart.isRXRdy());
+	    rv = call usart.readData();
+	    while (!call usart.isTXRdy());
+        call usart.sendData(data);
+	    return rv;
+	}
+
+	/**
+	 * This is the standard SpiByte.write command but a little
+	 * faster as we should not need to adjust the power state there.
+	 * (To be consistent, this command could have be named splitWriteRead).
+	 */
+	async command uint8_t FastSpiByte.write(uint8_t data)
+	{
+	    return call SpiByte.write(data);
+	}
+
+    /**
+    * Synchronous transmit and receive (can be in interrupt context)
+    * @param tx Byte to transmit
+    * @param rx Received byte is stored here.
+    */
+    async command uint8_t SpiByte.write( uint8_t tx )
+    {
+        while (!call usart.isTXRdy());
+        call usart.sendData(tx);
+        while (!call usart.isRXRdy());
+        return call usart.readData();
+    }
 
 }

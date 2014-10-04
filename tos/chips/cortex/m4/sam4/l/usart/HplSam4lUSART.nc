@@ -1,5 +1,11 @@
-interface HplSam4lUSART_UART
+#include <usarthardware.h>
+interface HplSam4lUSART
 {
+    async command void initUART();
+    async command void initSPIMaster();
+
+    async command void enableUSARTPin(usart_pin_t pin);
+
 	async command void enableTX();
 	async command void disableTX();
 	async command void resetTX();
@@ -13,20 +19,18 @@ interface HplSam4lUSART_UART
 	async command void selectEvenParity();
 	async command void selectOddParity();
 	async command void selectNoParity();
-	async command void init();
-	async command void enableRXRdyIRQ();
-	async command void disableRXRdyIRQ();
-	async command bool isRXRdyIRQEnabled();
-	async command void enableTXRdyIRQ();
-	async command void disableTXRdyIRQ();
-	async command bool isTXRdyIRQEnabled();
+
+    async command void forceChipSelect();
+    async command void releaseChipSelect();
+    async command void setSPIMode(uint8_t cpol, uint8_t cpha);
+
 	async command uint8_t readData();
 	async command void sendData(uint8_t d);
-	async command void setBaudRate(uint32_t b);
-	async command uint32_t getBaudRate();
+	async command void setUartBaudRate(uint32_t b);
+	async command void setSPIBaudRate(uint32_t b);
+	async command uint32_t getUartBaudRate();
+	async command uint32_t getSPIBaudRate();
 	async command bool isTXRdy();
 	async command bool isRXRdy();
 
-	async event void RXRdyFired();
-	async event void TXRdyFired();
 }

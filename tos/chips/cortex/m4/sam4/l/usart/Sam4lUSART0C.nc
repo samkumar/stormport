@@ -7,6 +7,9 @@ generic configuration Sam4lUSART0C()
         interface UartByte;
         interface UartControl;
         interface UartStream;
+        interface SpiByte;
+        interface FastSpiByte;
+        interface HplSam4lUSART;
     }
     uses
     {
@@ -23,9 +26,12 @@ implementation
 
     components HilSam4lUSARTC;
     Resource = HilSam4lUSARTC.usart0_Resource[USART0_ID];
+    HplSam4lUSART = HilSam4lUSARTC.usart0_hpl;
     UartByte = HilSam4lUSARTC.usart0_UartByte;
     UartControl = HilSam4lUSARTC.usart0_UartControl;
     UartStream = HilSam4lUSARTC.usart0_UartStream;
+    SpiByte = HilSam4lUSARTC.usart0_SpiByte;
+    FastSpiByte = HilSam4lUSARTC.usart0_FastSpiByte;
     HilSam4lUSARTC.usart0_ResourceConfigure[USART0_ID] = ResourceConfigure;
     HilSam4lUSARTC.usart0_Init = UsartInit;
 }

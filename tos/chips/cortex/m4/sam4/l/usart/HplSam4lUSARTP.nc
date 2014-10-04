@@ -1,148 +1,154 @@
 #include <usarthardware.h>
 #include <nvichardware.h>
-generic module HplSam4lUSARTP(uint32_t address, uint8_t peripheral, uint8_t usartnumber)
+generic module HplSam4lUSARTP(uint32_t address, uint8_t usartnumber)
 {
     provides
     {
-        interface HplSam4lUSART_UART as uart;
+        interface HplSam4lUSART as usart;
     }
     uses
     {
         interface HplSam4PeripheralClockCntl as ClockCtl;
         interface HplSam4Clock as MainClock;
-        interface HplSam4lGeneralIO as TX;
-        interface HplSam4lGeneralIO as RX;
-
-        interface HplSam4lUSART_UARTIRQ as irq;
     }
 }
 implementation
 {
     #define USART ((volatile usart_t *)address)
 
-    async command void uart.enableTX()
+    async command void usart.enableUSARTPin(usart_pin_t pin)
+    {
+        volatile uint32_t fooa;
+        fooa = 510;
+        //Vodoo incantation :-p
+        //           GPIO BASE       PORT SIZE        REG      VALUE               PIN NUMBER
+        *(uint32_t volatile*)(0x400E1000 + (pin >> 16)*0x200 + 0x008) = (1              << ((pin >> 8)&0xFF)); //GPERC
+        fooa = 1;
+        *(uint32_t volatile*)(0x400E1000 + (pin >> 16)*0x200 + 0x014) = ((pin & 1)      << ((pin >> 8)&0xFF)); //PMR0S
+        fooa = 2;
+        *(uint32_t volatile*)(0x400E1000 + (pin >> 16)*0x200 + 0x018) = (((pin & 1)^1)  << ((pin >> 8)&0xFF)); //PMR0C
+        fooa = 3;
+        *(uint32_t volatile*)(0x400E1000 + (pin >> 16)*0x200 + 0x024) = ((pin & 2)      << ((pin >> 8)&0xFF)); //PMR1S
+        fooa = 4;
+        *(uint32_t volatile*)(0x400E1000 + (pin >> 16)*0x200 + 0x028) = (((pin & 2)^2)  << ((pin >> 8)&0xFF)); //PMR1C
+        fooa = 5;
+        *(uint32_t volatile*)(0x400E1000 + (pin >> 16)*0x200 + 0x034) = ((pin & 4)      << ((pin >> 8)&0xFF)); //PMR2S
+        fooa = 6;
+        *(uint32_t volatile*)(0x400E1000 + (pin >> 16)*0x200 + 0x038) = (((pin & 4)^4)  << ((pin >> 8)&0xFF)); //PMR2C
+    }
+    async command void usart.enableTX()
 	{
-	    call TX.selectPeripheral(peripheral);
 		USART->cr.bits.txen = 1;
-
 	}
-	async command void uart.disableTX()
+	async command void usart.disableTX()
 	{
 		USART->cr.bits.txdis = 1;
 	}
-	async command void uart.resetTX()
+	async command void usart.resetTX()
 	{
 		USART->cr.bits.rsttx = 1;
 	}
-	async command void uart.enableRX()
+	async command void usart.enableRX()
 	{
-	    call RX.selectPeripheral(peripheral);
 		USART->cr.bits.rxen = 1;
 	}
-	async command void uart.disableRX()
+	async command void usart.disableRX()
 	{
 		USART->cr.bits.rxdis = 1;
 	}
-	async command void uart.resetRX()
+	async command void usart.resetRX()
 	{
 		USART->cr.bits.rstrx = 1;
 	}
-	async command void uart.enableInverter()
+	async command void usart.enableInverter()
 	{
 		USART->mr.bits.invdata = 1;
 	}
-	async command void uart.disableInverter()
+	async command void usart.disableInverter()
 	{
 		USART->mr.bits.invdata = 0;
 	}
-	async command void uart.selectMSBF()
+	async command void usart.selectMSBF()
 	{
 		USART->mr.bits.msbf_cpol = 1;
 	}
-	async command void uart.selectLSBF()
+	async command void usart.selectLSBF()
 	{
-		//A typical uart uses this mode
+		//A typical usart uses this mode
 		USART->mr.bits.msbf_cpol = 0;
 	}
-	async command void uart.selectEvenParity()
+	async command void usart.selectEvenParity()
 	{
 		USART->mr.bits.par = 0;
 	}
-	async command void uart.selectOddParity()
+	async command void usart.selectOddParity()
 	{
 		USART->mr.bits.par = 1;
 	}
-	async command void uart.selectNoParity()
+	async command void usart.selectNoParity()
 	{
 		USART->mr.bits.par = 4;
 	}
-	async command void uart.init()
+	async command void usart.initUART()
 	{
-	    volatile uint32_t x0 = (uint32_t) USART;
-	    volatile uint32_t x1 = (uint32_t) (&(USART->mr));
-	    volatile uint32_t y = 50;
 	    call ClockCtl.enable();
-		USART->mr.bits.chrl = 3;
+		USART->mr.bits.chrl = 3; //8 bits
 		USART->mr.bits.usclks = 0; //use clk_usart.
-		USART->mr.bits.mode = 0;
-		USART->mr.bits.nbstop = 0;
-		USART->mr.bits.par = 4;
+		USART->mr.bits.mode = 0; //UART
+		USART->mr.bits.nbstop = 0; //1 stop
+		USART->mr.bits.par = 4; //No parity
+		USART->ttgr = 4; //Space between bytes: 4 bits
+	}
+	async command void usart.initSPIMaster()
+	{
+	    call ClockCtl.enable();
+	    USART->mr.bits.chrl = 3; //8 bits
+	    USART->mr.bits.usclks = 0; //use clk_usart.
+		USART->mr.bits.mode = 0b1110; //SPI Master
+		USART->mr.bits.clko = 1;
 		USART->ttgr = 4;
 	}
-	async command void uart.enableRXRdyIRQ()
-	{
-		USART->ier.bits.rxrdy = 1;
-		NVIC->iser.flat[2] = 1 << (1+usartnumber);
-	}
-	async command void uart.disableRXRdyIRQ()
-	{
-		USART->idr.bits.rxrdy = 1;
-	}
-	async command bool uart.isRXRdyIRQEnabled()
-	{
-	    return USART->imr.bits.rxrdy == 1;
-	}
-	async command void uart.enableTXRdyIRQ()
-	{
-		USART->ier.bits.txrdy = 1;
-		NVIC->iser.flat[2] = 1 << (1+usartnumber);
-	}
-	async command void uart.disableTXRdyIRQ()
-	{
-		USART->idr.bits.txrdy = 1;
-	}
-	async command bool uart.isTXRdyIRQEnabled()
-	{
-	    return USART->imr.bits.txrdy == 1;
-	}
-	async command uint8_t uart.readData()
+	async command uint8_t usart.readData()
 	{
 		return USART->rhr.bits.rxchr;
 	}
-	async command void uart.sendData(uint8_t d)
+	async command void usart.sendData(uint8_t d)
 	{
 		USART->thr.bits.txchr = d;
 	}
-	async command bool uart.isTXRdy()
+	async command bool usart.isTXRdy()
 	{
 	    return USART->csr.bits.txrdy == 1;
 	}
-	async command bool uart.isRXRdy()
+	async command bool usart.isRXRdy()
 	{
 	    return USART->csr.bits.rxrdy == 1;
 	}
-	async command void uart.setBaudRate(uint32_t b)
+	async command void usart.setUartBaudRate(uint32_t b)
 	{
-		//cd = clk / 16*cd
+		//cd = clk / 16*baud
 		//   = gmclk*1000 / (16*b)
 		//   = gmclk*625 / b*10
 		uint32_t cd = (call MainClock.getMainClockSpeed())*625;
 		cd /= (b*10);
 		USART->brgr.bits.cd = cd;
 	}
-    async command uint32_t uart.getBaudRate()
+	async command void usart.setSPIBaudRate(uint32_t b)
+	{
+		//cd = clk / baud
+		//   = gmclk*1000 / b
+		uint32_t cd = (call MainClock.getMainClockSpeed())*1000;
+		cd /= b;
+		USART->brgr.bits.cd = cd;
+	}
+    async command uint32_t usart.getUartBaudRate()
     {
-        uint32_t br = (call MainClock.getMainClockSpeed()) / (16 * (USART->brgr.bits.cd));
+        uint32_t br = (call MainClock.getMainClockSpeed()*1000) / (16 * (USART->brgr.bits.cd));
+        return br;
+    }
+    async command uint32_t usart.getSPIBaudRate()
+    {
+        uint32_t br = (call MainClock.getMainClockSpeed()*1000) / (USART->brgr.bits.cd);
         return br;
     }
 	async event void MainClock.mainClockChanged()
@@ -150,15 +156,20 @@ implementation
 	    //This is probably significant lol?
 	}
 
-	async event void irq.RXRdyFired()
-	{
-	    signal uart.RXRdyFired();
-	}
-	async event void irq.TXRdyFired()
-	{
-	    signal uart.TXRdyFired();
-	}
-
-
+    async command void usart.forceChipSelect()
+    {
+        USART->cr.bits.rtsen_fcs = 1;
+    }
+    async command void usart.releaseChipSelect()
+    {
+        USART->cr.bits.rtsdis_rcs = 1;
+    }
+    async command void usart.setSPIMode(uint8_t cpol, uint8_t cpha)
+    {
+        USART->mr.bits.msbf_cpol = (cpol != 0);
+        //ATMEL's definition of CPHA is different from everyone else, so we invert it.
+        //Don't hate, appreciate.
+        USART->mr.bits.sync_cpha = (cpha == 0);
+    }
 
 }
