@@ -8,6 +8,7 @@ configuration HilSam4lUSARTC
         interface UartStream as usart0_UartStream;
         interface SpiByte as usart0_SpiByte;
         interface FastSpiByte as usart0_FastSpiByte;
+        interface SpiPacket as usart0_SpiPacket;
         interface HplSam4lUSART as usart0_hpl;
         interface Resource as usart0_Resource[uint8_t id];
 
@@ -16,6 +17,7 @@ configuration HilSam4lUSARTC
         interface UartStream as usart1_UartStream;
         interface SpiByte as usart1_SpiByte;
         interface FastSpiByte as usart1_FastSpiByte;
+        interface SpiPacket as usart1_SpiPacket;
         interface HplSam4lUSART as usart1_hpl;
         interface Resource as usart1_Resource[uint8_t id];
 
@@ -24,6 +26,7 @@ configuration HilSam4lUSARTC
         interface UartStream as usart2_UartStream;
         interface SpiByte as usart2_SpiByte;
         interface FastSpiByte as usart2_FastSpiByte;
+        interface SpiPacket as usart2_SpiPacket;
         interface HplSam4lUSART as usart2_hpl;
         interface Resource as usart2_Resource[uint8_t id];
 
@@ -32,6 +35,7 @@ configuration HilSam4lUSARTC
         interface UartStream as usart3_UartStream;
         interface SpiByte as usart3_SpiByte;
         interface FastSpiByte as usart3_FastSpiByte;
+        interface SpiPacket as usart3_SpiPacket;
         interface HplSam4lUSART as usart3_hpl;
         interface Resource as usart3_Resource[uint8_t id];
     }
@@ -73,25 +77,16 @@ implementation
 
     components HplSam4lIOC, HplSam4lUSARTIRQP, McuSleepC;
 
-  //  HplSam4lUSARTIRQP.usart0irq <- usart0;
-  //  HplSam4lUSARTIRQP.usart1irq <- usart1;
-   // HplSam4lUSARTIRQP.usart2irq <- usart2;
-    //HplSam4lUSARTIRQP.usart3irq <- usart3;
     HplSam4lUSARTIRQP.usart0 -> usart0;
     HplSam4lUSARTIRQP.usart1 -> usart1;
     HplSam4lUSARTIRQP.usart2 -> usart2;
     HplSam4lUSARTIRQP.usart3 -> usart3;
     HplSam4lUSARTIRQP.IRQWrapper -> McuSleepC;
 
-    //These are the storm platform defaults. This needs to be rewritten.
-    //usart0.TX -> HplSam4lIOC.HplPB15;
-    //usart0.RX -> HplSam4lIOC.HplPB14;
-    //usart1.TX -> HplSam4lIOC.HplPB05;
-    //usart1.RX -> HplSam4lIOC.HplPB04;
-    //usart2.TX -> HplSam4lIOC.HplPC12;
-    //usart2.RX -> HplSam4lIOC.HplPC11;
-    //usart3.TX -> HplSam4lIOC.HplPB10;
-    //usart3.RX -> HplSam4lIOC.HplPB09;
+    hal_usart0.usart_irq -> HplSam4lUSARTIRQP.usart0irq;
+    hal_usart1.usart_irq -> HplSam4lUSARTIRQP.usart1irq;
+    hal_usart2.usart_irq -> HplSam4lUSARTIRQP.usart2irq;
+    hal_usart3.usart_irq -> HplSam4lUSARTIRQP.usart3irq;
 
     components new HalSam4lUSARTP() as hal_usart0;
     components new HalSam4lUSARTP() as hal_usart1;
@@ -147,4 +142,9 @@ implementation
     usart1_FastSpiByte = hal_usart1;
     usart2_FastSpiByte = hal_usart2;
     usart3_FastSpiByte = hal_usart3;
+
+    usart0_SpiPacket = hal_usart0;
+    usart1_SpiPacket = hal_usart1;
+    usart2_SpiPacket = hal_usart2;
+    usart3_SpiPacket = hal_usart3;
 }

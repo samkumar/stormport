@@ -325,9 +325,9 @@ enum
     USART_BASE_ADDRESS = 0x40024000
 };
 
-usart_t volatile * const USART0 = (usart_t volatile *) USART_BASE_ADDRESS + (USART_SIZE * 0);
-usart_t volatile * const USART1 = (usart_t volatile *) USART_BASE_ADDRESS + (USART_SIZE * 1);
-usart_t volatile * const USART2 = (usart_t volatile *) USART_BASE_ADDRESS + (USART_SIZE * 2);
-usart_t volatile * const USART3 = (usart_t volatile *) USART_BASE_ADDRESS + (USART_SIZE * 3);
+usart_t volatile * const USART0 = (usart_t volatile *) (USART_BASE_ADDRESS + (USART_SIZE * 0));
+usart_t volatile * const USART1 = (usart_t volatile *) (USART_BASE_ADDRESS + (USART_SIZE * 1));
+usart_t volatile * const USART2 = (usart_t volatile *) (USART_BASE_ADDRESS + (USART_SIZE * 2));
+usart_t volatile * const USART3 = (usart_t volatile *) (USART_BASE_ADDRESS + (USART_SIZE * 3));
 
 #endif

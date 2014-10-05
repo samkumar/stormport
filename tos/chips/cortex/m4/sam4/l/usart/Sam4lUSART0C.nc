@@ -9,6 +9,7 @@ generic configuration Sam4lUSART0C()
         interface UartStream;
         interface SpiByte;
         interface FastSpiByte;
+        interface SpiPacket;
         interface HplSam4lUSART;
     }
     uses
@@ -32,6 +33,7 @@ implementation
     UartStream = HilSam4lUSARTC.usart0_UartStream;
     SpiByte = HilSam4lUSARTC.usart0_SpiByte;
     FastSpiByte = HilSam4lUSARTC.usart0_FastSpiByte;
+    SpiPacket = HilSam4lUSARTC.usart0_SpiPacket;
     HilSam4lUSARTC.usart0_ResourceConfigure[USART0_ID] = ResourceConfigure;
     HilSam4lUSARTC.usart0_Init = UsartInit;
 }

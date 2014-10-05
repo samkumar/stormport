@@ -55,7 +55,7 @@ module BlinkC @safe()
   uses interface GeneralIO as Led;
   uses interface Boot;
   uses interface HplSam4lUSART as SpiHPL;
-  uses interface FastSpiByte;
+  uses interface SpiPacket;
 }
 implementation
 {
@@ -79,13 +79,19 @@ implementation
     call SpiHPL.enableRX();
 
   }
-
+  async event void SpiPacket.sendDone(uint8_t* txBuf, uint8_t* rxBuf, uint16_t len, error_t error)
+  {
+    printf("got: '%s'",rxBuf);
+  }
+  uint8_t txbuf [80];
+  uint8_t rxbuf [80];
   event void Timer0.fired()
   {
-    uint8_t b;
+
+    uint8_t txlen;
+    txlen = snprintf(txbuf, 80, "Toggled LED") + 1;
+    call SpiPacket.send(txbuf, rxbuf, txlen);
     call Led.toggle();
-    b = call FastSpiByte.write(0x55);
-    printf("0x%02x", b);
   }
 }
 

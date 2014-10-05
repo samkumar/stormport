@@ -65,7 +65,7 @@ implementation
 
   //SPI stuff
   components new Sam4lUSART2C();
-  BlinkC.FastSpiByte -> Sam4lUSART2C.FastSpiByte;
+  BlinkC.SpiPacket -> Sam4lUSART2C.SpiPacket;
   BlinkC.SpiHPL -> Sam4lUSART2C;
 }
 

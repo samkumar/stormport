@@ -8,6 +8,7 @@ generic module HalSam4lUSARTP()
         interface UartStream;
         interface SpiByte;
         interface FastSpiByte;
+        interface SpiPacket;
     }
     uses
     {
@@ -27,6 +28,7 @@ implementation
     uint16_t norace rx_ptr;
 
     bool forwardRXIRQ = FALSE;
+    bool norace irqmode_spi = FALSE;
 
     async event void sysclock.mainClockChanged()
     {
@@ -236,6 +238,7 @@ implementation
         {
             return FAIL;
         }
+        irqmode_spi = FALSE;
         tx_buf = buf;
         tx_len = len;
         tx_ptr = 0;
@@ -289,29 +292,45 @@ implementation
         {
             return FAIL;
         }
+        irqmode_spi = FALSE;
         rx_buf = buf;
         rx_len = len;
         rx_ptr = 0;
-
     }
 
     async event void usart_irq.RXRdyFired()
     {
         uint8_t data = call usart.readData();
-        if (forwardRXIRQ)
+        if (!irqmode_spi)
         {
-            signal UartStream.receivedByte(data);
-        }
-        if (rx_buf != NULL)
-        {
-            rx_buf[rx_ptr++] = data;
-            if (rx_ptr == rx_len)
+            if (forwardRXIRQ)
             {
-                uint8_t *bufcpy = rx_buf;
-                uint8_t rx_ptr_cpy = rx_ptr;
-                rx_buf = NULL;
+                signal UartStream.receivedByte(data);
+            }
+            if (rx_buf != NULL)
+            {
+                rx_buf[rx_ptr++] = data;
+                if (rx_ptr == rx_len)
+                {
+                    uint8_t *bufcpy = rx_buf;
+                    rx_buf = NULL;
 
-                signal UartStream.receiveDone(bufcpy, rx_ptr_cpy, SUCCESS);
+                    signal UartStream.receiveDone(bufcpy, rx_ptr, SUCCESS);
+                }
+            }
+        }
+        else
+        {
+            if (rx_buf != NULL) rx_buf[rx_ptr] = data;
+            rx_ptr++;
+            if (rx_ptr == tx_len)
+            {
+                uint8_t *txbufcpy = tx_buf;
+                uint8_t *rxbufcpy = rx_buf;
+                rx_buf = NULL;
+                tx_buf = NULL;
+                call usart_irq.disableRXRdyIRQ();
+                signal SpiPacket.sendDone(txbufcpy, rxbufcpy, tx_len, SUCCESS);
             }
         }
     }
@@ -322,22 +341,46 @@ implementation
 
     async event void usart_irq.TXRdyFired()
     {
-        if (tx_buf == NULL)
+        if (!irqmode_spi)
         {
-            call usart_irq.disableTXRdyIRQ();
-            return;
-        }
-        atomic
-        {
-
-            call usart.sendData(tx_buf[tx_ptr++]);
-            if (tx_ptr == tx_len)
+            if (tx_buf == NULL)
             {
-                uint8_t * bufcpy;
-                bufcpy = tx_buf;
-                tx_buf = NULL;
                 call usart_irq.disableTXRdyIRQ();
-                signal UartStream.sendDone(bufcpy, tx_ptr, SUCCESS);
+                return;
+            }
+            atomic
+            {
+
+                call usart.sendData(tx_buf[tx_ptr++]);
+                if (tx_ptr == tx_len)
+                {
+                    uint8_t * bufcpy;
+                    bufcpy = tx_buf;
+                    tx_buf = NULL;
+                    call usart_irq.disableTXRdyIRQ();
+                    signal UartStream.sendDone(bufcpy, tx_ptr, SUCCESS);
+                }
+            }
+        }
+        else
+        {
+            atomic
+            {
+                if (tx_buf == NULL)
+                {
+                    call usart.sendData(0);
+                    tx_ptr++;
+                }
+                else
+                {
+                    call usart.sendData(tx_buf[tx_ptr]);
+                    tx_ptr++;
+                }
+                if (tx_ptr == tx_len)
+                {
+                    call usart_irq.disableTXRdyIRQ();
+                    return;
+                }
             }
         }
     }
@@ -399,5 +442,48 @@ implementation
         while (!call usart.isRXRdy());
         return call usart.readData();
     }
+
+    /**
+    * Send a message over the SPI bus.
+    *
+    * @param 'uint8_t* COUNT_NOK(len) txBuf' A pointer to the buffer to send over the bus. If this
+    *              parameter is NULL, then the SPI will send zeroes.
+    * @param 'uint8_t* COUNT_NOK(len) rxBuf' A pointer to the buffer where received data should
+    *              be stored. If this parameter is NULL, then the SPI will
+    *              discard incoming bytes.
+    * @param len   Length of the message.  Note that non-NULL rxBuf and txBuf
+    *              parameters must be AT LEAST as large as len, or the SPI
+    *              will overflow a buffer.
+    *
+    * @return SUCCESS if the request was accepted for transfer
+    */
+    async command error_t SpiPacket.send( uint8_t* txBuf, uint8_t* rxBuf, uint16_t len )
+    {
+        if (tx_buf != NULL && rx_buf != NULL)
+        {
+            return FAIL;
+        }
+        irqmode_spi = TRUE;
+        tx_buf = txBuf;
+        rx_buf = rxBuf;
+        tx_len = len;
+        tx_ptr = 0;
+        rx_ptr = 0;
+        call usart_irq.enableTXRdyIRQ();
+        call usart_irq.enableRXRdyIRQ();
+    }
+
+  /**
+   * Notification that the send command has completed.
+   *
+   * @param 'uint8_t* COUNT_NOK(len) txBuf' The buffer used for transmission
+   * @param 'uint8_t* COUNT_NOK(len) rxBuf' The buffer used for reception
+   * @param len    The request length of the transfer, but not necessarily
+   *               the number of bytes that were actually transferred
+   * @param error  SUCCESS if the operation completed successfully, FAIL
+   *               otherwise
+   */
+  default async event void SpiPacket.sendDone( uint8_t* txBuf, uint8_t* rxBuf, uint16_t len,
+                             error_t error ) {}
 
 }
