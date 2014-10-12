@@ -46,23 +46,31 @@
  **/
 
 #include "Timer.h"
-#define ENABLE_TRACE 1
-
 #include "printf.h"
 #include <usarthardware.h>
 
-
-
 module BlinkC @safe()
 {
-  uses interface Timer<TMilli> as Timer0;
-  uses interface GeneralIO as Led;
-  uses interface Boot;
-  uses interface HplSam4lUSART as SpiHPL;
-  uses interface SpiPacket;
+      uses interface Timer<TMilli> as Timer0;
+      uses interface GeneralIO as Led;
+      uses interface Boot;
+      uses interface HplSam4lUSART as SpiHPL;
+    uses
+    {
+        interface Boot;
+        interface Hpl
+    }
+    provides
+    {
+        interface Init;
+    }
 }
 implementation
 {
+    event void Init.init()
+    {
+
+    }
   event void Boot.booted()
   {
     call Timer0.startPeriodic( 500 );
@@ -82,17 +90,6 @@ implementation
     call SpiHPL.enableTX();
     call SpiHPL.enableRX();
 
-    //edfc was 1<<24
-    //*((volatile uint32_t*) 0xE000EDFC) = 1<<24; //Enable debug port
-    //*((volatile uint32_t*) 0xE00400F0) = 0x00000002; //Wire protocol
-    //*((volatile uint32_t*) 0xE0000FB0) = 0xC5ACCE55; //Access code
-    //*((volatile uint32_t*) 0xE0000E80) = 0x00010015; //Forgot what this does but it seems NB
-    //*((volatile uint32_t*) 0xE0040010) = 7; //Set speed to 6 Mhz
-    //*((volatile uint32_t*) 0xE0000E00) = 0b11; //Enable stim0 and stim1
-    //*((volatile uint32_t*) 0xE0000E40) = 0x0; //Disable priorities
-	//*((volatile uint32_t*) 0xE0040304) = 0x00000100; // Formatter and Flush Control Register
-
-
   }
   async event void SpiPacket.sendDone(uint8_t* txBuf, uint8_t* rxBuf, uint16_t len, error_t error)
   {
@@ -104,9 +101,6 @@ implementation
   {
 
     uint8_t txlen;
-    trace("hello world\n");
-    trace16(500);
-    trace32(501);
     txlen = snprintf(txbuf, 80, "Toggled LED") + 1;
     call SpiPacket.send(txbuf, rxbuf, txlen);
     call Led.toggle();

@@ -349,7 +349,6 @@ void SENDINFO_DECR(struct send_info *si) {
     size_t buflen = len;
     int ret;
 
-    printf("$0$");
     /*
     atomic
     {
@@ -370,7 +369,6 @@ void SENDINFO_DECR(struct send_info *si) {
 
     if (ret < 0) {
       // If there isn't any more data this is a malformed 6LoWPAN packet
-      printf ("$1$");
       goto fail;
     }
 
@@ -394,12 +392,9 @@ void SENDINFO_DECR(struct send_info *si) {
       getFragDgramTag(&lowmsg, &tag);
       recon = get_reconstruct(source_key, tag);
       if (!recon) {
-
-        printf("$3$");
         goto fail;
       }
 
-      printf("$4$");
       /* fill in metadata: on fragmented packets, it applies to the
          first fragment only  */
       memcpy(&recon->r_meta.sender, &frame_address.ieee_src,
@@ -428,10 +423,8 @@ void SENDINFO_DECR(struct send_info *si) {
         recon->r_source_key = source_key;
         recon->r_tag = tag;
       }
-      printf("$5$");
       if (recon->r_size == recon->r_bytes_rcvd) {
 
-        printf("$8$");
         deliver(recon);
       }
 
@@ -440,7 +433,6 @@ void SENDINFO_DECR(struct send_info *si) {
       int rv;
       struct lowpan_reconstruct recon;
 
-      printf("$6$");
       /* fill in metadata */
       memcpy(&recon.r_meta.sender, &frame_address.ieee_src,
              sizeof(ieee154_addr_t));
@@ -454,7 +446,6 @@ void SENDINFO_DECR(struct send_info *si) {
 
       if (recon.r_size == recon.r_bytes_rcvd) {
 
-        printf("$7$");
         deliver(&recon);
       } else {
         // printf("ip_free(%p)\n", recon.r_buf);
@@ -474,10 +465,8 @@ void SENDINFO_DECR(struct send_info *si) {
   task void sendTask() {
     struct send_entry *s_entry;
 
-    printf("in send task\n");
     if (radioBusy || state != S_RUNNING) return;
     if (call SendQueue.empty()) return;
-    printf("made past c1\n");
     // this does not dequeue
     s_entry = call SendQueue.head();
 
@@ -539,7 +528,6 @@ void SENDINFO_DECR(struct send_info *si) {
     int frag_len = 1;
     uint8_t max_len;
     error_t rc = SUCCESS;
-        printf("xtag1\n");
     if (state != S_RUNNING) {
         printf("radio is not running\n");
       return EOFF;
@@ -682,7 +670,7 @@ void SENDINFO_DECR(struct send_info *si) {
     } else if (s_entry->info->link_fragment_attempts ==
                s_entry->info->link_fragments) {
       signal IPLower.sendDone(s_entry->info);
-      printf("senddone ok\n");
+      printf("senddone ok (%d retries)\n", call PacketLink.getRetries(msg));
     }
 
   done:

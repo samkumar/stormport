@@ -321,7 +321,7 @@ module IPForwardingEngineP {
     struct in6_iid *iid = (struct in6_iid *)status->upper_data;
     memset(next.s6_addr, 0, 16);
     next.s6_addr16[0] = htons(0xfe80);
-    printf("sendDone: iface: %i key: %p\n", ifindex, iid);
+    printf("sendDone: iface: %d key: %p\n", ifindex, iid);
 
     if (iid != NULL) {
       memcpy(&next.s6_addr[8], iid->data, 8);

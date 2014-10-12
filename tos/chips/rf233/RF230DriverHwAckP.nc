@@ -90,6 +90,8 @@ module RF230DriverHwAckP
 		interface Ieee154PacketLayer;
 		interface ActiveMessageAddress;
 
+        interface Ieee154Address;
+
 #ifdef RADIO_DEBUG
 		interface DiagMsg;
 #endif
@@ -250,8 +252,14 @@ implementation
 	void initRadio()
 	{
 		uint16_t temp;
+        ieee154_laddr_t eaddr;
+        ieee154_panid_t pan;
+        ieee154_saddr_t saddr;
 
-        printf("XX driverhwackp initRadio called\n");
+        pan = call Ieee154Address.getPanId();
+        saddr = call Ieee154Address.getShortAddr();
+        eaddr = call Ieee154Address.getExtAddr();
+
 		call BusyWait.wait(510);
 
 		call RSTN.clr();
@@ -265,8 +273,21 @@ implementation
 		call BusyWait.wait(1000);
 
         //writeRegister(0x0D, 0b0101);
+
+        //I think this the U.FL connector (with 98% certainty)
         writeRegister(0x0D, 0b0101);
-        //Set long address last byte
+
+        //I think this is the trace
+        //writeRegister(0x0D, 0b0110);
+
+        //Set long address
+        for (temp = 0; temp < 8; temp++)
+        {
+           uint16_t reg = (RF230_IEEE_ADDR_0) + temp;
+           printf("at addr byte 0x%02x, setting 0x%02x\n", reg, eaddr.data[temp]);
+           writeRegister((RF230_IEEE_ADDR_0) + temp, eaddr.data[temp]);
+        }
+
         writeRegister(RF230_IEEE_ADDR_0, 0x55);
         writeRegister(RF230_IEEE_ADDR_1, 0x55);
         writeRegister(RF230_IEEE_ADDR_2, 0x55);
@@ -276,6 +297,10 @@ implementation
         writeRegister(RF230_IEEE_ADDR_6, 0x55);
         writeRegister(RF230_IEEE_ADDR_7, 0x57);
 
+        //External crystal, add load capacitance
+        //This is primarily because the storm uses the trim
+        //caps as the xtals load caps
+        writeRegister(0x12, 0xFF);
 
         //writeRegister(0x2b, 0x01);
         //writeRegister(0x2a, 0x00);
@@ -288,6 +313,11 @@ implementation
         writeRegister(0x21,0x00);
         writeRegister(0x22,0x22);
         writeRegister(0x23,0x00);
+
+        //writeRegister(0x20,saddr & 0xFF);
+        //writeRegister(0x21,saddr >> 8);
+        //writeRegister(0x22,pan & 0xFF);
+        //writeRegister(0x23,pan >> 8);
 
         //disable scrambler
         //writeRegister(0x0c, 0);
@@ -303,17 +333,23 @@ implementation
 		channel = RF230_DEF_CHANNEL & RF230_CHANNEL_MASK;
 		writeRegister(RF230_PHY_CC_CCA, RF230_CCA_MODE_VALUE | channel);
 
-		writeRegister(RF230_XAH_CTRL_0, 0);
+        //Enable four CSMA retries and three packet retries
+		writeRegister(RF230_XAH_CTRL_0, 0b00111000);
 		writeRegister(RF230_CSMA_SEED_1, 0);
 
-		temp = call ActiveMessageAddress.amGroup();
-		writeRegister(RF230_PAN_ID_0, temp);
-		writeRegister(RF230_PAN_ID_1, temp >> 8);
+        //MPA: favouring 15.4
+		//temp = call ActiveMessageAddress.amGroup();
+		//writeRegister(RF230_PAN_ID_0, temp);
+		//writeRegister(RF230_PAN_ID_1, temp >> 8);
 
 		call SLP_TR.set();
 		state = STATE_SLEEP;
 	}
 
+    event void Ieee154Address.changed()
+    {
+        //TODO
+    }
 /*----------------- SPI -----------------*/
 
 	event void SpiResource.granted()
@@ -588,6 +624,7 @@ tasklet_async command uint8_t RadioState.getChannel()
 		while( --upload1 != 0 );
 
 #ifdef RF230_SLOW_SPI
+#error I will not stand for this
 		atomic
 		{
 			call SLP_TR.set();
@@ -630,6 +667,8 @@ tasklet_async command uint8_t RadioState.getChannel()
 		 */
 
 		// go back to RX_ON state when finished
+		//MPA Why would we want to do this? This is TX_ARET... it's supposed
+		//to do retries and wait for acks and shit.
 		writeRegister(RF230_TRX_STATE, RF230_RX_AACK_ON);
 
 		call PacketTimeStamp.set(msg, time32);

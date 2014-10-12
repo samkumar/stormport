@@ -18,22 +18,14 @@ implementation
 
     async command void usart.enableUSARTPin(usart_pin_t pin)
     {
-        volatile uint32_t fooa;
-        fooa = 510;
         //Vodoo incantation :-p
         //           GPIO BASE       PORT SIZE        REG      VALUE               PIN NUMBER
         *(uint32_t volatile*)(0x400E1000 + (pin >> 16)*0x200 + 0x008) = (1              << ((pin >> 8)&0xFF)); //GPERC
-        fooa = 1;
         *(uint32_t volatile*)(0x400E1000 + (pin >> 16)*0x200 + 0x014) = ((pin & 1)      << ((pin >> 8)&0xFF)); //PMR0S
-        fooa = 2;
         *(uint32_t volatile*)(0x400E1000 + (pin >> 16)*0x200 + 0x018) = (((pin & 1)^1)  << ((pin >> 8)&0xFF)); //PMR0C
-        fooa = 3;
         *(uint32_t volatile*)(0x400E1000 + (pin >> 16)*0x200 + 0x024) = ((pin & 2)      << ((pin >> 8)&0xFF)); //PMR1S
-        fooa = 4;
         *(uint32_t volatile*)(0x400E1000 + (pin >> 16)*0x200 + 0x028) = (((pin & 2)^2)  << ((pin >> 8)&0xFF)); //PMR1C
-        fooa = 5;
         *(uint32_t volatile*)(0x400E1000 + (pin >> 16)*0x200 + 0x034) = ((pin & 4)      << ((pin >> 8)&0xFF)); //PMR2S
-        fooa = 6;
         *(uint32_t volatile*)(0x400E1000 + (pin >> 16)*0x200 + 0x038) = (((pin & 4)^4)  << ((pin >> 8)&0xFF)); //PMR2C
     }
     async command void usart.enableTX()

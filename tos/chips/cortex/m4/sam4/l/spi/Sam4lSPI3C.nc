@@ -1,6 +1,7 @@
 
 #include <spihardware.h>
 
+//CS3 = PC01 = RADIO_CS
 generic configuration Sam4lSPI3C()
 {
     provides

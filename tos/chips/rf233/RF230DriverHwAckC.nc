@@ -77,6 +77,10 @@ implementation
 	components RF230DriverHwAckP as DriverLayerP, 
 		HplRF230C, BusyWaitMicroC, MainC, ActiveMessageAddressC;
 
+    components Ieee154AddressC;
+
+    DriverLayerP.Ieee154Address -> Ieee154AddressC;
+
 	RadioState = DriverLayerP;
 	RadioSend = DriverLayerP;
 	RadioReceive = DriverLayerP;

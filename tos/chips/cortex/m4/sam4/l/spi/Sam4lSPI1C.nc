@@ -1,6 +1,7 @@
 
 #include <spihardware.h>
 
+//CS = PC02 = SPI_CS2
 generic configuration Sam4lSPI1C()
 {
     provides

@@ -98,6 +98,11 @@ implementation
     hal_usart2.usart -> usart2;
     hal_usart3.usart -> usart3;
 
+    hal_usart0.sysclock -> HplSam4lClockC;
+    hal_usart1.sysclock -> HplSam4lClockC;
+    hal_usart2.sysclock -> HplSam4lClockC;
+    hal_usart3.sysclock -> HplSam4lClockC;
+
     components HplSam4lClockC;
     usart0.ClockCtl -> HplSam4lClockC.USART0Ctl;
     usart1.ClockCtl -> HplSam4lClockC.USART1Ctl;

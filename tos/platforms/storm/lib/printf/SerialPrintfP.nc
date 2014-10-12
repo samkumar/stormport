@@ -282,5 +282,38 @@ implementation
         return SUCCESS;
     }
 
+    static uint32_t volatile * const stim0_32 = ((volatile uint32_t*) 0xE0000000);
+    static uint8_t volatile * const stim0_8 = ((volatile uint8_t*)    0xE0000000);
+
+    static uint32_t volatile * const stim1_32 = ((volatile uint32_t*)  0xE0000004);
+    static uint16_t volatile * const stim1_16 = ((volatile uint16_t*)  0xE0000004);
+    static uint8_t volatile * const stim1_8 = ((volatile uint8_t*)     0xE0000004);
+
+    //These functions write to the ITM, so are much faster than printf, for
+    //hotpath debugging
+    void storm_trace(const char* s) @C() @spontaneous()
+    {
+        while(*s != 0)
+        {
+            while( *stim0_32 == 0 );
+            *stim0_8 = *s;
+            s++;
+        }
+    }
+    void storm_trace8(uint8_t v) @C() @spontaneous()
+    {
+        while( *stim1_32 == 0 );
+        *stim1_8 = v;
+    }
+    void storm_trace16(uint16_t v) @C() @spontaneous()
+    {
+        while( *stim1_32 == 0 );
+        *stim1_16 = v;
+    }
+    void storm_trace32(uint32_t v) @C() @spontaneous()
+    {
+        while( *stim1_32 == 0 );
+        *stim1_32 = v;
+    }
 
 }

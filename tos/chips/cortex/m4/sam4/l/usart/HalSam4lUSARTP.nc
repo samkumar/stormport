@@ -64,7 +64,7 @@ implementation
             return SUCCESS;
         }
         tgt = call sysclock.getSysTicks();
-        if (tgt < (call sysclock.getSysTicks()>>1))
+        if (tgt < (call sysclock.getSysTicksWrapVal()>>1))
         {
             delta = call sysclock.getSysTicksWrapVal() >> 1;
         }
@@ -72,8 +72,10 @@ implementation
         //timeout (ticks) = (ticks/sec) * bits / (bits/sec)
         tmp = call sysclock.getMainClockSpeed() * timeout * 8;
         tmp /= call usart.getUartBaudRate();
+        tmp *= 1000;
         tgt -= tmp;
-        while ((call sysclock.getSysTicks() + delta) > tgt)
+        //Yeah so the math here is slow, but seeing as though this is a delay loop... bohoo..
+        while ( ((call sysclock.getSysTicks() + delta)%(call sysclock.getSysTicksWrapVal())) > tgt)
         {
             if (call usart.isRXRdy())
             {
@@ -263,6 +265,7 @@ implementation
     async command error_t UartStream.enableReceiveInterrupt()
     {
         forwardRXIRQ = TRUE;
+        irqmode_spi = FALSE;
         call usart_irq.enableRXRdyIRQ();
     }
 

@@ -112,7 +112,7 @@ implementation
 	{
 		error_t error;
 		uint16_t transmitInterval;
-        printf("transition called\n");
+        //printf("transition called\n");
 		if( state == LISTEN_SUBSTART || state == SEND_SUBSTART )
 		{
 			error = call SubControl.start();

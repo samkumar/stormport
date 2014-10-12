@@ -39,7 +39,7 @@
 #include "UDPReport.h"
 #include "blip_printf.h"
 
-#define REPORT_PERIOD 10L
+#define REPORT_PERIOD 60L
 
 module UDPEchoP {
   uses {
@@ -72,8 +72,8 @@ module UDPEchoP {
     call IPStats.clear();
 
 #ifdef REPORT_DEST
-    route_dest.sin6_port = htons(7000);
-    inet_pton6(REPORT_DEST, &route_dest.sin6_addr);
+    route_dest.sin6_port = htons(7);
+    inet_pton6("fe80::5555:5555:5555:5556", &route_dest.sin6_addr);
     call StatusTimer.startOneShot(call Random.rand16() % (1024 * REPORT_PERIOD));
 #endif
 
@@ -92,7 +92,7 @@ module UDPEchoP {
 
   event void Status.recvfrom(struct sockaddr_in6 *from, void *data,
                              uint16_t len, struct ip6_metadata *meta) {
-
+        //printf("\033[33;1mGOT A MOTHUFUCKING REPLY BITCHES\033[0m\n");
   }
 
   event void Echo.recvfrom(struct sockaddr_in6 *from, void *data,
@@ -111,6 +111,7 @@ module UDPEchoP {
   }
 
   event void StatusTimer.fired() {
+    char *f = "\x7A\x7A\x7A\x7A\x7A\x7A\x7A\x7A\x7A";
     if (!timerStarted) {
       call StatusTimer.startPeriodic(1024 * REPORT_PERIOD);
       timerStarted = TRUE;
@@ -123,6 +124,7 @@ module UDPEchoP {
     call IPStats.get(&stats.ip);
     call UDPStats.get(&stats.udp);
     call Leds.led1Toggle();
-    call Status.sendto(&route_dest, &stats, sizeof(stats));
+    printf("sending");
+    call Status.sendto(&route_dest, &f[0], 10);
   }
 }

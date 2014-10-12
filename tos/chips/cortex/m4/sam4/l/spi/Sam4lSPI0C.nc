@@ -1,6 +1,7 @@
 
 #include <spihardware.h>
 
+//CS = PC03 = FL_CS
 generic configuration Sam4lSPI0C()
 {
     provides
@@ -8,6 +9,7 @@ generic configuration Sam4lSPI0C()
         interface Resource;
         interface SpiByte;
         interface FastSpiByte;
+        interface SpiPacket;
         interface HplSam4lSPIChannel;
         interface HplSam4lSPIControl;
     }
@@ -15,6 +17,7 @@ generic configuration Sam4lSPI0C()
     {
         interface ResourceConfigure;
         interface Init as ChannelInit;
+        interface DMAChannel;
     }
 }
 implementation

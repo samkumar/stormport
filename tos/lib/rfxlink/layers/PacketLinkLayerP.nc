@@ -77,7 +77,6 @@ implementation
 	task void send()
 	{
 		uint16_t retries;
-	    printf("in pllp send task\n");
 		RADIO_ASSERT( state != STATE_READY );
 
 		retries = call PacketLink.getRetries(currentMsg);
@@ -160,7 +159,6 @@ implementation
 		currentMsg = msg;
 		totalRetries = 0;
 		state = STATE_SENDING;
-		printf ("XX posting pllp send()\n");
 		post send();
 
 		return SUCCESS;

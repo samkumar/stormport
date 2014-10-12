@@ -37,6 +37,59 @@
 #ifndef PDCAHARDWARE_H
 #define PDCAHARDWARE_H
 
+enum {MAX_DMA_CHANNELS = 16};
+
+enum
+{
+    // Peripheral ID definitions for the SAM4L
+    SAM4L_PID_USART0_RX    = ( 0),
+    SAM4L_PID_USART1_RX    = ( 1),
+    SAM4L_PID_USART2_RX    = ( 2),
+    SAM4L_PID_USART3_RX    = ( 3),
+    SAM4L_PID_SPI_RX       = ( 4),
+    SAM4L_PID_TWIM0_RX     = ( 5),
+    SAM4L_PID_TWIM1_RX     = ( 6),
+    SAM4L_PID_TWIM2_RX     = ( 7),
+    SAM4L_PID_TWIM3_RX     = ( 8),
+    SAM4L_PID_TWIS0_RX     = ( 9),
+    SAM4L_PID_TWIS1_RX     = (10),
+    SAM4L_PID_ADCIFE_RX    = (11),
+    SAM4L_PID_CATB_RX      = (12),
+    //There is no PID 13,
+    SAM4L_PID_IISC_RX_CH0  = (14),
+    SAM4L_PID_IISC_RX_CH1  = (15),
+    SAM4L_PID_PARC_RX      = (16),
+    SAM4L_PID_AESA_RX      = (17),
+    SAM4L_PID_USART0_TX    = (18),
+    SAM4L_PID_USART1_TX    = (19),
+    SAM4L_PID_USART2_TX    = (20),
+    SAM4L_PID_USART3_TX    = (21),
+    SAM4L_PID_SPI_TX       = (22),
+    SAM4L_PID_TWIM0_TX     = (23),
+    SAM4L_PID_TWIM1_TX     = (24),
+    SAM4L_PID_TWIM2_TX     = (25),
+    SAM4L_PID_TWIM3_TX     = (26),
+    SAM4L_PID_TWIS0_TX     = (27),
+    SAM4L_PID_TWIS1_TX     = (28),
+    SAM4L_PID_ADCIFE       = (29),
+    SAM4L_PID_CATB         = (30),
+    SAM4L_PID_ABDACB_SDR0  = (31),
+    SAM4L_PID_ABDACB_SDR1  = (32),
+    SAM4L_PID_IISC_TX_CH0  = (33),
+    SAM4L_PID_IISC_TX_CH1  = (34),
+    SAM4L_PID_DACC_TX      = (35),
+    SAM4L_PID_AESA_TX      = (36),
+    SAM4L_PID_LCDCA_ACMDR  = (37),
+    SAM4L_PID_LCDCA_ABMDR  = (38)
+};
+
+enum
+{
+    PDCA_SIZE_BYTE,
+    PDCA_SIZE_HALFWORD,
+    PDCA_SIZE_WORD
+};
+
 typedef union
 {
     uint32_t flat;
@@ -50,6 +103,30 @@ typedef union
     } __attribute__((__packed__)) bits;
 } pdca_cr_t;
 
+typedef union
+{
+    uint32_t flat;
+    struct
+    {
+        uint32_t size        : 2;
+        uint32_t etrig       : 1;
+        uint32_t ring        : 1;
+        uint32_t reserved1   : 28;
+    } __attribute__((__packed__)) bits;
+} pdca_mr_t;
+
+typedef union
+{
+    uint32_t flat;
+    struct
+    {
+        uint32_t rcz         : 1;
+        uint32_t trc         : 1;
+        uint32_t terr        : 1;
+        uint32_t reserved1   : 29;
+    } __attribute__((__packed__)) bits;
+} pdca_ixr_t;
+
 typedef struct
 {
     uint32_t        mar;
@@ -58,14 +135,21 @@ typedef struct
     uint32_t        marr;
     uint32_t        tcrr;
     pdca_cr_t       cr;
-    uint32_t        mr;
+    pdca_mr_t       mr;
     uint32_t        sr;
     ///0x20
-    uint32_t        ier;
-    uint32_t        idr;
-    uint32_t        imr;
-    uint32_t        isr;
+    pdca_ixr_t      ier;
+    pdca_ixr_t      idr;
+    pdca_ixr_t      imr;
+    pdca_ixr_t      isr;
     //leaving out version
-} pdca_t
+} pdca_channel_t;
+
+typedef struct
+{
+    pdca_channel_t [MAX_DMA_CHANNELS] ch;
+} pdca_t;
+
+pdca_t volatile * const PDCA = (pdca_t volatile *) 0x400A2000;
 
 #endif // PDCAHARDWARE_H
