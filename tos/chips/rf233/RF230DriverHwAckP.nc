@@ -283,19 +283,8 @@ implementation
         //Set long address
         for (temp = 0; temp < 8; temp++)
         {
-           uint16_t reg = (RF230_IEEE_ADDR_0) + temp;
-           printf("at addr byte 0x%02x, setting 0x%02x\n", reg, eaddr.data[temp]);
            writeRegister((RF230_IEEE_ADDR_0) + temp, eaddr.data[temp]);
         }
-
-        writeRegister(RF230_IEEE_ADDR_0, 0x55);
-        writeRegister(RF230_IEEE_ADDR_1, 0x55);
-        writeRegister(RF230_IEEE_ADDR_2, 0x55);
-        writeRegister(RF230_IEEE_ADDR_3, 0x55);
-        writeRegister(RF230_IEEE_ADDR_4, 0x55);
-        writeRegister(RF230_IEEE_ADDR_5, 0x55);
-        writeRegister(RF230_IEEE_ADDR_6, 0x55);
-        writeRegister(RF230_IEEE_ADDR_7, 0x57);
 
         //External crystal, add load capacitance
         //This is primarily because the storm uses the trim

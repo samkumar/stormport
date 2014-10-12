@@ -73,7 +73,7 @@ module UDPEchoP {
 
 #ifdef REPORT_DEST
     route_dest.sin6_port = htons(7);
-    inet_pton6("fe80::5555:5555:5555:5556", &route_dest.sin6_addr);
+    inet_pton6("fe80::4", &route_dest.sin6_addr);
     call StatusTimer.startOneShot(call Random.rand16() % (1024 * REPORT_PERIOD));
 #endif
 

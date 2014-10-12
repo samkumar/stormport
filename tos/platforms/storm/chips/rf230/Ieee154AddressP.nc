@@ -44,11 +44,20 @@ implementation
        //addr.data[6] = 0x12;
        //addr.data[7] = 0x00;
        //addr.data[7] ^= 0x02; //for the u bit
-        for (i = 0; i < 8; i++)
-        {
-            addr.data[i] = 0x55;
-        }
-        addr.data[7] = 0x57;
+       //1234:5678:1324:3648
+       addr.data[0] = 0x48;
+       addr.data[1] = 0x36;
+       addr.data[2] = 0x24;
+       addr.data[3] = 0x13;
+       addr.data[4] = 0x78;
+       addr.data[5] = 0x56;
+       addr.data[6] = 0x34;
+       addr.data[7] = 0x10;
+      //  for (i = 0; i < 8; i++)
+      //  {
+      //      addr.data[i] = 0x44;
+      //  }
+      //  addr.data[7] = 0x46;
         return addr;
     }
 
