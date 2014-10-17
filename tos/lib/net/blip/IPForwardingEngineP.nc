@@ -343,16 +343,16 @@ module IPForwardingEngineP {
       if (routing_table[i].valid) {
         buf = print_buf;
 
-        printf("%-5i", ctr++);
+        printf("%d ", ctr++);
 
         buf += inet_ntop6(&routing_table[i].prefix, print_buf, 44) - 1;
         snprintf(buf, (44 - (buf - print_buf)), "/%i", routing_table[i].prefixlen);
-        printf("%-43s", print_buf);
+        printf("%s ", print_buf);
 
         inet_ntop6(&routing_table[i].next_hop, print_buf, 30);
-        printf("%-26s", print_buf);
+        printf("%s ", print_buf);
 
-        printf("%i\n", routing_table[i].ifindex);
+        printf("%d \n", routing_table[i].ifindex);
       }
     }
     printf("\n");

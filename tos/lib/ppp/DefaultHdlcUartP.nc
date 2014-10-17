@@ -95,6 +95,7 @@ module DefaultHdlcUartP {
      * fail but things are still good. */
     (void)call SerialControl.start();
     atomic rbStore_ = rbLoad_ = ringBuffer;
+    call UartStream.enableReceiveInterrupt();
     return SUCCESS;
   }
 
@@ -183,7 +184,6 @@ module DefaultHdlcUartP {
   {
     bool wake_feeder;
     bool signal_drop;
-
     atomic {
       /* Signal loss of data if we were supposed to store data but
        * couldn't because of an existing or new overflow or error

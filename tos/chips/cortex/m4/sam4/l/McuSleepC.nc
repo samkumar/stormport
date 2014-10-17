@@ -75,12 +75,12 @@ implementation{
 
   uint32_t getPowerState() {
     return S_WAIT;
-    /*
-    if ((PMC->pc.pcsr.flat > 0) || (PMC->pc1.pcsr.flat > 0))
+    //return S_SLEEP;
+   /* if ((PMC->pc.pcsr.flat > 0) || (PMC->pc1.pcsr.flat > 0))
       return S_SLEEP;
     else 
-      return S_WAIT;
-    */
+      return S_WAIT;*/
+
   }
 
   void commonSleep() {
@@ -226,11 +226,9 @@ implementation{
      * We need to disable sleep while debugging. Else, the GDB connection gets
      * disconnected.
      */
-#ifndef DEBUG_CORE
     // Enter appropriate idle mode
     if(ps != S_AWAKE)
       __asm volatile ("wfe");
-#endif
 
     // Normally, at this point we can only be woken up by an interrupt, so execution continues
     // in the body of the InterruptWrapper.preamble() command before returning to here

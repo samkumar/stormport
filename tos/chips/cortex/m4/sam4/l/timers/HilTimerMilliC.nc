@@ -1,4 +1,4 @@
-
+#include <sam4ltimer.h>
 configuration HilTimerMilliC
 {
     provides
@@ -6,6 +6,7 @@ configuration HilTimerMilliC
         interface Init;
         interface Timer<TMilli> as TimerMilli [uint8_t id];
         interface LocalTime<TMilli>;
+        interface Alarm<TMilli, uint32_t> as AlarmMilli32 [uint8_t id];
     }
 }
 implementation
@@ -17,12 +18,18 @@ implementation
                new CounterToLocalTimeC(TMilli),
                new VirtualizeTimerC(TMilli, uniqueCount(UQ_TIMER_MILLI)),
                NoInitC;
+    components new VirtualizeAlarmC(TMilli, uint32_t, uniqueCount(UQ_ALARM_MILLI));
 
     Init = NoInitC;
     TransformAlarmCounterC.CounterFrom -> HalSam4lASTC.Counter;
     TransformAlarmCounterC.AlarmFrom -> Alarm32khzC;
     CounterToLocalTimeC.Counter -> TransformAlarmCounterC.Counter;
-    AlarmToTimerC.Alarm -> TransformAlarmCounterC.Alarm;
+
+    VirtualizeAlarmC.AlarmFrom -> TransformAlarmCounterC.Alarm;
+
+    AlarmToTimerC.Alarm -> VirtualizeAlarmC.Alarm[unique(UQ_ALARM_MILLI)];
+    AlarmMilli32 = VirtualizeAlarmC.Alarm;
+
     VirtualizeTimerC.TimerFrom -> AlarmToTimerC.Timer;
 
     TimerMilli = VirtualizeTimerC.Timer;

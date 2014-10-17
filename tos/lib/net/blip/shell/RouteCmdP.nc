@@ -40,7 +40,7 @@ module RouteCmdP {
   uses interface Timer<TMilli>;
 } implementation {
   
-  char *header = "key\tdestination\t\tgateway\t\tiface\n";
+  char *header = "key\tdestinAtion\t\tgateway\t\tiface\n";
   struct {
     int ifindex;
     char *name;

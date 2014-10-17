@@ -5,6 +5,9 @@ configuration Ieee154AddressC {
 } implementation {
   components Ieee154AddressP;
   components MainC;
+  components LocalIeeeEui64C;
+
+  Ieee154AddressP.LocalIeeeEui64 -> LocalIeeeEui64C;
   Ieee154Address = Ieee154AddressP;
 
   MainC.SoftwareInit -> Ieee154AddressP;

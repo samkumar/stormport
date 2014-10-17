@@ -298,15 +298,10 @@ implementation
         //Switch IRQ polarity to test pin
         //writeRegister(0x04, 0b00101110);
 
-        writeRegister(0x20,0x01);
-        writeRegister(0x21,0x00);
-        writeRegister(0x22,0x22);
-        writeRegister(0x23,0x00);
-
-        //writeRegister(0x20,saddr & 0xFF);
-        //writeRegister(0x21,saddr >> 8);
-        //writeRegister(0x22,pan & 0xFF);
-        //writeRegister(0x23,pan >> 8);
+        writeRegister(0x20,saddr & 0xFF);
+        writeRegister(0x21,saddr >> 8);
+        writeRegister(0x22,pan & 0xFF);
+        writeRegister(0x23,pan >> 8);
 
         //disable scrambler
         //writeRegister(0x0c, 0);

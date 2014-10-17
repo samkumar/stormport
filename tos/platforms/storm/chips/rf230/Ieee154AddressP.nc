@@ -1,7 +1,5 @@
 
-#ifndef LONG_ADDR_SUFFIX
-#define LONG_ADDR_SUFFIX 0xDEAD
-#endif
+
 
 module Ieee154AddressP
 {
@@ -9,6 +7,10 @@ module Ieee154AddressP
   {
     interface Init;
     interface Ieee154Address;
+  }
+  uses
+  {
+    interface LocalIeeeEui64;
   }
 }
 implementation
@@ -30,37 +32,37 @@ implementation
     {
         return m_saddr;
     }
+    command ieee154_laddr_t Ieee154Address.getExtAddr() {
+    ieee154_laddr_t addr = call LocalIeeeEui64.getId();
+    int i;
+    uint8_t tmp;
+    /* the LocalIeeeEui is big endian */
+    /* however, Ieee 802.15.4 addresses are little endian */
+    for (i = 0; i < 4; i++) {
+      tmp = addr.data[i];
+      addr.data[i] = addr.data[7 - i];
+      addr.data[7 - i] = tmp;
+    }
+    return addr;
+  }
+  /*
     command ieee154_laddr_t Ieee154Address.getExtAddr()
     {
         ieee154_laddr_t addr;
         int i;
         uint8_t tmp;
-       //addr.data[0] = (LONG_ADDR_SUFFIX) & 0xFF;
-       //addr.data[1] = (LONG_ADDR_SUFFIX >> 8) & 0xFF;
-       //addr.data[2] = 0x00;
-       //addr.data[3] = 0x00;
-       //addr.data[4] = 0x02; //Storm B.02
-       //addr.data[5] = 0x6D; //Berkeley's OUI
-       //addr.data[6] = 0x12;
-       //addr.data[7] = 0x00;
-       //addr.data[7] ^= 0x02; //for the u bit
-       //1234:5678:1324:3648
-       addr.data[0] = 0x48;
-       addr.data[1] = 0x36;
-       addr.data[2] = 0x24;
-       addr.data[3] = 0x13;
-       addr.data[4] = 0x78;
-       addr.data[5] = 0x56;
-       addr.data[6] = 0x34;
-       addr.data[7] = 0x10;
-      //  for (i = 0; i < 8; i++)
-      //  {
-      //      addr.data[i] = 0x44;
-      //  }
-      //  addr.data[7] = 0x46;
+       addr.data[0] = (LONG_ADDR_SUFFIX) & 0xFF;
+       addr.data[1] = (LONG_ADDR_SUFFIX >> 8) & 0xFF;
+       addr.data[2] = 0x00;
+       addr.data[3] = 0x00;
+       addr.data[4] = 0x02; //Storm B.02
+       addr.data[5] = 0x6D; //Berkeley's OUI
+       addr.data[6] = 0x12;
+       addr.data[7] = 0x00;
+
         return addr;
     }
-
+    */
     command error_t Ieee154Address.setShortAddr(ieee154_saddr_t addr) {
         m_saddr = addr;
         signal Ieee154Address.changed();

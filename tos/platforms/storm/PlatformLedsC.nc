@@ -9,11 +9,10 @@ implementation
 {
   components HplSam4lIOC;
   components PlatformP;
-
+  components NoGPIOP;
   Init = PlatformP.LedsInit;
-
-  Led0 = HplSam4lIOC.PA16;
-  Led1 = HplSam4lIOC.PA13;
-  Led2 = HplSam4lIOC.PA11;
+  Led0 = NoGPIOP;
+  Led1 = NoGPIOP;
+  Led2 = NoGPIOP;
 
 }
