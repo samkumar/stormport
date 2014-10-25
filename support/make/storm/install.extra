@@ -1,0 +1,6 @@
+#-*-Makefile-*- vim:syntax=make
+
+# Set the NODEID equal to the command line arg install.<nodeid>
+NODEID ?= $(INSTALL)
+BUILD_DEPS += program
+
