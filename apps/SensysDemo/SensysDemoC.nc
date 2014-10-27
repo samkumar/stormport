@@ -66,4 +66,7 @@ implementation
     components SerialPrintfC;
     components FlashAttrC;
     SensysDemoP.FlashAttr -> FlashAttrC;
+
+    SensysDemoP.FSIlluminance -> FireStormSensorsC;
+    SensysDemoP.FSAccelerometer -> FireStormSensorsC;
 }

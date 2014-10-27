@@ -275,10 +275,10 @@ implementation
         //writeRegister(0x0D, 0b0101);
 
         //I think this the U.FL connector (with 98% certainty)
-        writeRegister(0x0D, 0b0101);
+        //writeRegister(0x0D, 0b0101);
 
         //I think this is the trace
-        //writeRegister(0x0D, 0b0110);
+        writeRegister(0x0D, 0b0110);
 
         //Set long address
         for (temp = 0; temp < 8; temp++)

@@ -32,6 +32,7 @@ void sleep()
         call CS.makeOutput();
 
         /*
+        printf("idx is %d\n", idx);
         //In case we were in (deep) power down
         call CS.clr();
         call FastSpiByte.write(0xAB);
@@ -43,7 +44,6 @@ void sleep()
         sleep();
         call FastSpiByte.write(0x1B);
         addr = idx*64;
-        printf("addr is %d\n",addr);
         call FastSpiByte.write((uint8_t)(addr >> 16));
         call FastSpiByte.write((uint8_t)(addr >> 8));
         call FastSpiByte.write((uint8_t)(addr));
@@ -61,7 +61,6 @@ void sleep()
             call Resource.release();
             return FAIL;
         }
-        printf("len is %d\n",len);
         for (i = 0; i<len; i++)
         {
             val_buf[i] = call FastSpiByte.write(0x00);

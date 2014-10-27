@@ -2,7 +2,8 @@ COMPONENT=SensysDemoC
 # uncomment this for network programming support
 # BOOTLOADER=tosboot
 
-PFLAGS += -DLONG_ADDR_SUFFIX=0x40
+SDB_PUBLISH_NAME=mpa:sensys-0.2
+SDB_PUBLISH_KEY=118E434B
 
 # radio options
 # CFLAGS += -DCC2420_DEF_CHANNEL=26

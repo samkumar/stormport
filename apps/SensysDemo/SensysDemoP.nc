@@ -51,12 +51,15 @@ module SensysDemoP
         interface SplitControl as SensorControl;
         interface FlashAttr;
         interface RootControl;
+        interface FSIlluminance;
+        interface FSAccelerometer;
     }
 }
 implementation
 {
     struct sockaddr_in6 data_dest;
 
+    bool do_data_tx;
 
     bool shouldBeRoot()
     {
@@ -65,14 +68,35 @@ implementation
         uint8_t val_len;
         error_t e;
 
-        e = call FlashAttr.getAttr(0, key, val, &val_len);
+        e = call FlashAttr.getAttr(1, key, val, &val_len);
+        if (e != SUCCESS)
+        {
+            printf ("failed to get attr\n");
+        }
         return (e == SUCCESS && val_len == 1 && (val[0] == 1 || val[0] == '1'));
+    }
+    void loadDataTarget()
+    {
+        uint8_t key [10];
+        uint8_t val [65];
+        uint8_t val_len;
+        error_t e;
+
+        e = call FlashAttr.getAttr(2, key, val, &val_len);
+        if (e != SUCCESS || val_len < 4)
+        {
+            printf ("failed to get data target\n");
+            do_data_tx = FALSE;
+            return;
+        }
+        val[val_len] = 0;
+        printf("sending data to %s\n", val);
+        inet_pton6(val, &data_dest.sin6_addr);
+        do_data_tx = TRUE;
     }
     event void Boot.booted()
     {
-
         data_dest.sin6_port = htons(4410);;
-        inet_pton6("fec0::1", &data_dest.sin6_addr);
         call Timer.startPeriodic(DATA_TX_PERIOD);
         call Sock.bind(4410);
         call Led.makeOutput();
@@ -88,6 +112,7 @@ implementation
         {
             printf("Node is not DODAG root\n");
         }
+        loadDataTarget();
         call RadioControl.start();
 
     }
@@ -97,20 +122,62 @@ implementation
     event void SensorControl.startDone(error_t e) {}
     event void SensorControl.stopDone(error_t e) {}
 
+    typedef struct
+    {
+        int16_t acc_x;
+        int16_t acc_y;
+        int16_t acc_z;
+        int16_t mag_x;
+        int16_t mag_y;
+        int16_t mag_z;
+        uint16_t lux;
+    } __attribute__((__packed__))  node_data_t;
+
+    void print_dstruct(node_data_t *v)
+    {
+        printf("  ACC_X: %d\n",v->acc_x);
+        printf("  ACC_Y: %d\n",v->acc_y);
+        printf("  ACC_Z: %d\n",v->acc_z);
+        printf("  MAG_X: %d\n",v->mag_x);
+        printf("  MAG_Y: %d\n",v->mag_y);
+        printf("  MAG_Z: %d\n",v->mag_z);
+        printf("    LUX: %d\n",v->lux);
+    }
     event void Sock.recvfrom(struct sockaddr_in6 *from, void *data,
                              uint16_t len, struct ip6_metadata *meta)
     {
-        printf("Got data on sock\n");
+        node_data_t *rx;
+        uint16_t from_serial;
+        from_serial = from->sin6_addr.s6_addr[14];
+        from_serial = (from_serial << 8) + from->sin6_addr.s6_addr[15];
+        if (len == sizeof(node_data_t))
+        {
+            printf("Got a data struct from 0x%04x\n", from_serial);
+            rx = (node_data_t*) data;
+            print_dstruct(rx);
+            printf("\n");
+        }
+        else
+        {
+            printf("Got random data\n");
+        }
     }
 
 
     event void Timer.fired()
     {
-
+        node_data_t tx;
+        if (!do_data_tx) return;
         call Led.toggle();
 
-
-
-        //call Sock.sendto(&data_dest, &dat[0], 2);
+        tx.acc_x = call FSAccelerometer.getAccelX();
+        tx.acc_y = call FSAccelerometer.getAccelY();
+        tx.acc_z = call FSAccelerometer.getAccelZ();
+        tx.mag_x = call FSAccelerometer.getMagnX();
+        tx.mag_y = call FSAccelerometer.getMagnY();
+        tx.mag_z = call FSAccelerometer.getMagnZ();
+        tx.lux = (uint16_t) call FSIlluminance.getVisibleLux();
+        printf("sending\n");
+        call Sock.sendto(&data_dest, &tx, sizeof(node_data_t));
     }
 }
