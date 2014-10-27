@@ -145,7 +145,6 @@ implementation
 
 	command error_t Send.send(message_t *msg)
 	{
-	    printf("XX in pllp send\n");
 		if( state != STATE_READY )
 		{
             printf("XX returning ebusy\n");

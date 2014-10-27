@@ -9,7 +9,6 @@ generic configuration Sam4lSPI0C()
         interface Resource;
         interface SpiByte;
         interface FastSpiByte;
-        interface SpiPacket;
         interface HplSam4lSPIChannel;
         interface HplSam4lSPIControl;
     }
@@ -17,7 +16,6 @@ generic configuration Sam4lSPI0C()
     {
         interface ResourceConfigure;
         interface Init as ChannelInit;
-        interface DMAChannel;
     }
 }
 implementation

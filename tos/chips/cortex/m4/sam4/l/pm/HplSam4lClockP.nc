@@ -37,7 +37,7 @@
  */
 
 #include <systickhardware.h>
-
+#include <sam4lpmhardware.h>
 module HplSam4lClockP
 {
     provides

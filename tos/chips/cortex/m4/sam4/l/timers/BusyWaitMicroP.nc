@@ -8,10 +8,10 @@ implementation
 {
     async command void BusyWait.wait(uint16_t m)
     {
-        uint32_t then = call HplSam4Clock.getSysTicks();
-        uint32_t req_ticks = m;
-        int32_t tgt;
-        int32_t delta = 0;
+        volatile uint32_t then = call HplSam4Clock.getSysTicks();
+        volatile uint32_t req_ticks = m;
+        volatile int32_t tgt;
+        volatile int32_t delta = 0;
         //multiply required microseconds by number of ticks per ms
         req_ticks *= call HplSam4Clock.getMainClockSpeed();
         //but we want ticks per microsecond

@@ -8,4 +8,8 @@ configuration LocalIeeeEui64C {
 implementation {
   components LocalIeeeEui64P;
   LocalIeeeEui64 = LocalIeeeEui64P.LocalIeeeEui64;
+  components FlashAttrC;
+  LocalIeeeEui64P.FlashAttr -> FlashAttrC;
+  components RealMainP;
+  RealMainP.PlatformInit -> LocalIeeeEui64P;
 }

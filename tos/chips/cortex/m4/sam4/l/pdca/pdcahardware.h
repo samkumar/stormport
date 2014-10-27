@@ -39,6 +39,8 @@
 
 enum {MAX_DMA_CHANNELS = 16};
 
+#define DMA_CHANNEL_UQ "Sam4lDMAChannels"
+
 enum
 {
     // Peripheral ID definitions for the SAM4L
@@ -142,13 +144,14 @@ typedef struct
     pdca_ixr_t      idr;
     pdca_ixr_t      imr;
     pdca_ixr_t      isr;
+    uint32_t        reserved[4];
     //leaving out version
-} pdca_channel_t;
+} __attribute__((__packed__)) pdca_channel_t;
 
 typedef struct
 {
-    pdca_channel_t [MAX_DMA_CHANNELS] ch;
-} pdca_t;
+    pdca_channel_t ch [MAX_DMA_CHANNELS];
+} __attribute__((__packed__)) pdca_t;
 
 pdca_t volatile * const PDCA = (pdca_t volatile *) 0x400A2000;
 
