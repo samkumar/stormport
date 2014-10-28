@@ -377,8 +377,6 @@ void SENDINFO_DECR(struct send_info *si) {
     lowmsg.len  = buflen;
     lowmsg.headers = getHeaderBitmap(&lowmsg);
     if (lowmsg.headers == LOWMSG_NALP) {
-
-        printf("$2$");
       goto fail;
     }
 

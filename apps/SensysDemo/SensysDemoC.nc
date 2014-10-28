@@ -60,13 +60,14 @@ implementation
     SensysDemoP.SensorControl -> FireStormSensorsC;
     components RPLRoutingC;
     SensysDemoP.RootControl -> RPLRoutingC;
+    SensysDemoP.RplControl -> RPLRoutingC.StdControl;
     components UDPShellC;
     components RouteCmdC;
     components StaticIPAddressC;
     components SerialPrintfC;
     components FlashAttrC;
     SensysDemoP.FlashAttr -> FlashAttrC;
-
+    SensysDemoP.ForwardingTable -> IPStackC;
     SensysDemoP.FSIlluminance -> FireStormSensorsC;
     SensysDemoP.FSAccelerometer -> FireStormSensorsC;
 }

@@ -23,17 +23,14 @@ module IPStackControlP {
   bool blip_started = FALSE;
 
   command error_t SplitControl.start() {
-    printf("XX doing splitcontrol start\n");
     if (blip_started)
     {
-        printf("XX EALREADY\n");
         return EALREADY;
     }
     return call SubSplitControl.start();
   }
 
   event void SubSplitControl.startDone(error_t error) {
-    printf("XX sub split control sd. returned err: %d\n", error);
     if (error == SUCCESS) {
       blip_started = TRUE;
       call StdControl.start();

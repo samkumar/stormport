@@ -272,8 +272,6 @@ implementation
 
 		call BusyWait.wait(1000);
 
-        //writeRegister(0x0D, 0b0101);
-
         //I think this the U.FL connector (with 98% certainty)
         //writeRegister(0x0D, 0b0101);
 
@@ -318,7 +316,11 @@ implementation
 		writeRegister(RF230_PHY_CC_CCA, RF230_CCA_MODE_VALUE | channel);
 
         //Enable four CSMA retries and three packet retries
-		writeRegister(RF230_XAH_CTRL_0, 0b00111000);
+		//writeRegister(RF230_XAH_CTRL_0, 0b00111000);
+
+		//For sensys demo, try fix ETX by not doing hardware retries:
+		writeRegister(RF230_XAH_CTRL_0, 0b00001000);
+
 		writeRegister(RF230_CSMA_SEED_1, 0);
 
         //MPA: favouring 15.4
@@ -798,12 +800,7 @@ tasklet_async command uint8_t RadioState.getChannel()
 		// signal only if it has passed the CRC check
 		if( crcValid )
 		{
-		    printf("RXP okcrc\n");
 			rxMsg = signal RadioReceive.receive(rxMsg);
-        }
-        else
-        {
-            printf("RXP BADCRC\n");
         }
 	}
 

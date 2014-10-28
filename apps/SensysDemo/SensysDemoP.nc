@@ -53,12 +53,14 @@ module SensysDemoP
         interface RootControl;
         interface FSIlluminance;
         interface FSAccelerometer;
+        interface ForwardingTable;
+        interface StdControl as RplControl;
     }
 }
 implementation
 {
     struct sockaddr_in6 data_dest;
-
+    struct sockaddr_in6 nhop;
     bool do_data_tx;
 
     bool shouldBeRoot()
@@ -94,6 +96,7 @@ implementation
         inet_pton6(val, &data_dest.sin6_addr);
         do_data_tx = TRUE;
     }
+
     event void Boot.booted()
     {
         data_dest.sin6_port = htons(4410);;
@@ -115,6 +118,7 @@ implementation
         loadDataTarget();
         call RadioControl.start();
 
+
     }
 
     event void RadioControl.startDone(error_t e) {}
@@ -131,10 +135,15 @@ implementation
         int16_t mag_y;
         int16_t mag_z;
         uint16_t lux;
+        uint16_t fdest[8];
+        uint16_t fnhop[8];
+        uint8_t pfxlen[8];
+        uint8_t ftable_len;
     } __attribute__((__packed__))  node_data_t;
 
     void print_dstruct(node_data_t *v)
     {
+        int i, mx;
         printf("  ACC_X: %d\n",v->acc_x);
         printf("  ACC_Y: %d\n",v->acc_y);
         printf("  ACC_Z: %d\n",v->acc_z);
@@ -142,6 +151,14 @@ implementation
         printf("  MAG_Y: %d\n",v->mag_y);
         printf("  MAG_Z: %d\n",v->mag_z);
         printf("    LUX: %d\n",v->lux);
+        printf("  FTLEN: %d\n",v->ftable_len);
+        mx = v->ftable_len;
+        if (mx > 8) mx = 8;
+        for (i = 0; i<mx; i++)
+        {
+            printf("    - [%d]: X::%04x/%d via X::%04x\n", i, v->fdest[i], v->pfxlen[i], v->fnhop[i]);
+        }
+
     }
     event void Sock.recvfrom(struct sockaddr_in6 *from, void *data,
                              uint16_t len, struct ip6_metadata *meta)
@@ -152,10 +169,11 @@ implementation
         from_serial = (from_serial << 8) + from->sin6_addr.s6_addr[15];
         if (len == sizeof(node_data_t))
         {
+            printf("\033[32;1m");
             printf("Got a data struct from 0x%04x\n", from_serial);
             rx = (node_data_t*) data;
             print_dstruct(rx);
-            printf("\n");
+            printf("\033[0m\n");
         }
         else
         {
@@ -167,6 +185,11 @@ implementation
     event void Timer.fired()
     {
         node_data_t tx;
+        struct route_entry *ft;
+        int i;
+        int max_size;
+        int valid_size;
+
         if (!do_data_tx) return;
         call Led.toggle();
 
@@ -177,7 +200,23 @@ implementation
         tx.mag_y = call FSAccelerometer.getMagnY();
         tx.mag_z = call FSAccelerometer.getMagnZ();
         tx.lux = (uint16_t) call FSIlluminance.getVisibleLux();
-        printf("sending\n");
+        ft = call ForwardingTable.getTable(&max_size);
+        valid_size = 0;
+        for (i = 0; i < max_size; i++)
+        {
+            if (!ft[i].valid) continue;
+            if (valid_size < 8)
+            {
+                struct in6_addr ad;
+                ad = ft[i].prefix;
+                tx.fdest[valid_size] = ((uint16_t)ad.s6_addr[14] << 8) + ad.s6_addr[15];
+                ad = ft[i].next_hop;
+                tx.fnhop[valid_size] = ((uint16_t)ad.s6_addr[14] << 8) + ad.s6_addr[15];
+                tx.pfxlen[valid_size] = ft[i].prefixlen;
+            }
+            valid_size++;
+        }
+        tx.ftable_len = valid_size;
         call Sock.sendto(&data_dest, &tx, sizeof(node_data_t));
     }
 }

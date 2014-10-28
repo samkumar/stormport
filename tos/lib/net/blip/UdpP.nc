@@ -100,7 +100,6 @@ module UdpP {
     v.iov_next = NULL;
 
     my_cksum = msg_cksum(iph, &v, IANA_UDP);
-    printf("rx_cksum: 0x%x my_cksum: 0x%x\n", rx_cksum, my_cksum);
     if (rx_cksum != my_cksum) {
       BLIP_STATS_INCR(stats.cksum);
       printf("udp ckecksum computation failed: mine: 0x%x theirs: 0x%x [0x%x]\n",

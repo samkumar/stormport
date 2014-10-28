@@ -177,9 +177,14 @@ implementation
     event void Timer.fired()
     {
         uint32_t x;
-        printf("Timer fired\n");
         read_accel(&acdat);
 
+        x = i2c_read_reg(LI, 0x03);
+        x <<= 8;
+        x |= i2c_read_reg(LI, 0x02);
+        li = (uint16_t) x;
+
+        #ifdef PRINT_LOCAL_SENSORS
         printf ("ACCELEROMETER: \n");
         printf ("    X= %d \n", (acdat.acc_x));
         printf ("    Y= %d \n", (acdat.acc_y));
@@ -188,13 +193,9 @@ implementation
         printf ("    X= %d \n", (acdat.mag_x));
         printf ("    Y= %d \n", (acdat.mag_y));
         printf ("    Z= %d \n\n", (acdat.mag_z));
-
-        x = i2c_read_reg(LI, 0x03);
-        x <<= 8;
-        x |= i2c_read_reg(LI, 0x02);
-        li = (uint16_t) x;
         printf ("LIGHT INTENSITY:\n");
         printf ("  LUX= %d\n\n", li);
+        #endif
     }
 
     async event void I2CPacket.readDone(error_t error, uint16_t addr, uint8_t length, uint8_t* data)
