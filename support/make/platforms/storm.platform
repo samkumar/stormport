@@ -15,6 +15,7 @@ PFLAGS += -I%T/chips/cortex/m4/sam4/l/spi
 PFLAGS += -I%T/chips/cortex/m4/sam4/l/usart
 PFLAGS += -I%T/chips/cortex/m4/sam4/l/pdca
 PFLAGS += -I%T/chips/cortex/m4/sam4/l/twim
+PFLAGS += -I%T/chips/cortex/m4/sam4/l/wdt
 PFLAGS += -I%T/platforms/storm/
 PFLAGS += -I%T/platforms/storm/lib/softi2c
 PFLAGS += -I%T/platforms/storm/lib/firestorm

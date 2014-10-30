@@ -276,7 +276,10 @@ implementation
         //writeRegister(0x0D, 0b0101);
 
         //I think this is the trace
-        writeRegister(0x0D, 0b0110);
+        //writeRegister(0x0D, 0b0110);
+
+        //This is full autonomous diversity
+        writeRegister(0x0D, 0b1100);
 
         //Set long address
         for (temp = 0; temp < 8; temp++)
@@ -800,7 +803,12 @@ tasklet_async command uint8_t RadioState.getChannel()
 		// signal only if it has passed the CRC check
 		if( crcValid )
 		{
+            //printf("\033[31;1mRX MESSAGE\n\033[0m");
 			rxMsg = signal RadioReceive.receive(rxMsg);
+        }
+        else
+        {
+            printf("BAD CRC\n");
         }
 	}
 
