@@ -469,6 +469,8 @@ implementation
         {
             return FAIL;
         }
+        atomic
+        {
         irqmode_spi = TRUE;
         tx_buf = txBuf;
         rx_buf = rxBuf;
@@ -477,6 +479,7 @@ implementation
         rx_ptr = 0;
         call usart_irq.enableTXRdyIRQ();
         call usart_irq.enableRXRdyIRQ();
+        }
         return SUCCESS;
     }
 
