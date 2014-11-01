@@ -220,9 +220,9 @@ module IPNeighborDiscoveryP {
     pkt.ip6_hdr.ip6_plen = htons(length);
 
     pkt.ip6_data = &v[0];
-
+#ifndef BLIP_STFU
     printf("ND: Sending router solicitation\n");
-
+#endif
     memcpy(&pkt.ip6_hdr.ip6_dst, &ALL_ROUTERS_ADDR, 16);
     call IPAddress.getLLAddr(&pkt.ip6_hdr.ip6_src);
     call IP_RS.send(&pkt);
@@ -239,9 +239,9 @@ module IPNeighborDiscoveryP {
     uint8_t data[120];
     uint8_t* cur = data;
     uint16_t length = 0;
-
+#ifndef BLIP_STFU
     printf("IPNeighborDiscovery - RA - send\n");
-
+#endif
     ra.icmpv6.type = ICMP_TYPE_ROUTER_ADV;
     ra.icmpv6.code = ICMPV6_CODE_RA;
     ra.icmpv6.checksum = 0;
@@ -330,9 +330,9 @@ module IPNeighborDiscoveryP {
     uint8_t* cur = (uint8_t*) packet;
     uint8_t type;
     uint8_t olen;
-
+#ifndef BLIP_STFU
     printf("IPNeighborDiscovery - RS - recv\n");
-
+#endif
     if (len <= sizeof(struct nd_router_solicitation_t)) {
       // There needs to be at least one option attached to this RS
       return;
@@ -385,9 +385,9 @@ module IPNeighborDiscoveryP {
     uint8_t* cur = (uint8_t*) packet;
     uint8_t type;
     uint8_t olen;
-
+#ifndef BLIP_STFU
     printf("IPNeighborDiscovery - RA recv\n");
-
+#endif
     if (len < sizeof(struct nd_router_advertisement_t)) return;
     ra = (struct nd_router_advertisement_t*) packet;
 
@@ -443,9 +443,9 @@ module IPNeighborDiscoveryP {
           struct nd_option_prefix_info_t* pio;
           uint8_t A;
           pio = (struct nd_option_prefix_info_t*) cur;
-
+#ifndef BLIP_STFU
           printf("IPNeighborDiscovery - RA - got prefix\n");
-
+#endif
   //        L currently unused
   //        L = (pio->flags_reserved & ND6_OPT_PREFIX_L_MASK) >>
   //            ND6_OPT_PREFIX_L_SHIFT;
@@ -502,11 +502,13 @@ module IPNeighborDiscoveryP {
     fr_addr.ieee_dstpan = call Ieee154Address.getPanId();
     call IPAddress.getLLAddr(&local_addr);
 
+#ifndef BLIP_STFU
     printf("IPNeighborDiscovery - send - next: ");
     printf_in6addr(next);
     printf(" - ll source: ");
     printf_in6addr(&local_addr);
     printf("\n");
+#endif
     // iov_print(msg->ip6_data);
 
     if (call NeighborDiscovery.resolveAddress(&local_addr, &fr_addr.ieee_src) !=
@@ -520,10 +522,12 @@ module IPNeighborDiscoveryP {
       printf("IPND - next-hop address resolution failed\n");
       return FAIL;
     }
+#ifndef BLIP_STFU
     printf("l2 source: "); printf_ieee154addr(&fr_addr.ieee_src);
     printf("\n");
     printf("l2 dest: "); printf_ieee154addr(&fr_addr.ieee_dst);
     printf("\n");
+#endif
 
     return call IPLower.send(&fr_addr, msg, ptr);
   }

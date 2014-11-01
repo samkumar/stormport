@@ -44,7 +44,9 @@ module IPProtocolsP {
     // find the transport header and deliver -- nxt_hdr is updated by findHeader
     nxt_hdr = IP6PKT_TRANSPORT;
     payload_off = call IPPacket.findHeader(&v, iph->ip6_nxt, &nxt_hdr);
+#ifndef BLIP_STFU
     printf("IPProtocols - deliver -- off: %i\n", payload_off);
+#endif
     if (payload_off >= 0) {
       signal IP.recv[nxt_hdr](iph, ((uint8_t *)payload) + payload_off,
                               len - payload_off, meta);
@@ -54,8 +56,10 @@ module IPProtocolsP {
   command error_t IP.send[uint8_t nxt_hdr](struct ip6_packet *msg) {
     msg->ip6_hdr.ip6_vfc = IPV6_VERSION;
     msg->ip6_hdr.ip6_hops = 16;
+#ifndef BLIP_STFU
     printf("IP Protocol send - nxt_hdr: %i iov_len: %i plen: %u\n",
                nxt_hdr, iov_len(msg->ip6_data), ntohs(msg->ip6_hdr.ip6_plen));
+#endif
     return call SubIP.send(msg);
   }
 
