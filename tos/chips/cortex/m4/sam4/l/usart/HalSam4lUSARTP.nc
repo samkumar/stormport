@@ -474,6 +474,7 @@ implementation
         rx_ptr = 0;
         call usart_irq.enableTXRdyIRQ();
         call usart_irq.enableRXRdyIRQ();
+        return SUCCESS;
     }
 
   /**
