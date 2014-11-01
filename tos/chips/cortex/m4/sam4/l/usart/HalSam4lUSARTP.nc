@@ -328,12 +328,15 @@ implementation
             rx_ptr++;
             if (rx_ptr == tx_len)
             {
-                uint8_t *txbufcpy = tx_buf;
-                uint8_t *rxbufcpy = rx_buf;
-                rx_buf = NULL;
-                tx_buf = NULL;
-                call usart_irq.disableRXRdyIRQ();
-                signal SpiPacket.sendDone(txbufcpy, rxbufcpy, tx_len, SUCCESS);
+                atomic
+                {
+                    uint8_t *txbufcpy = tx_buf;
+                    uint8_t *rxbufcpy = rx_buf;
+                    rx_buf = NULL;
+                    tx_buf = NULL;
+                    call usart_irq.disableRXRdyIRQ();
+                    signal SpiPacket.sendDone(txbufcpy, rxbufcpy, tx_len, SUCCESS);
+                }
             }
         }
     }
