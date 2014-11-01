@@ -258,7 +258,7 @@ implementation
         return ret;
     }
 
-    uint8_t storm_printf_buffer [256];
+    uint8_t storm_printf_buffer [1024];
 
     int storm_printf(const char* fmt, ...) @C() @spontaneous()
     {
