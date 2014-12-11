@@ -58,3 +58,30 @@ and then emulate the behavior in the arduino ethernet library in order to speak 
     Write the gateway ip to GAR = Gateway IP Address Register, 4 bytes at 0x0001 - 0x0004
 * set subnet mask
     Write subnet maks to SUBR = Subnet Mask Register 0x0005 - 0x0008, 4 bytes at 0x0005 - 0x0008
+
+### Client Connecting
+
+Connects to an IP and port (no DNS resolution, at least yet).
+
+`SnSR` refers to the status of each socket on the W5200 chip.
+
+Status register is `SnSR`, where n is 0..7, at address 0x4n03 (need to check)
+
+* loop through each of the sockets and check the Status. If it is `CLOSED`,
+  `FIN_WAIT` or `CLOSE_WAIT`, then we can use it
+* open a clientside socket using W5200 sock num, protocol (TCP, UDP, etc) and sourceport.
+    * Sourceport (`_srcport`) seems to be arbitrary
+    * supports TCP, UDP, IPRAW, MACRAW, PPPOE
+    * write `protocol | 0` to socket mode register `SnMR` at 0x4n00
+    * write the sourceport to `SnPORT` at 0x4n04 (or 0x4n05? there are two)
+    * write the `Sock_OPEN` command to socket command register `SnCR` at 0x4n01
+      and wait for it to complete. The arduino code does this by running
+      `while(readSnCR(sock_num))`
+* once we have the socket object, we *connect* do a dest port and dest ip
+    * check that the dest ip isn't 0xffffffff or 0x00000000
+    * write dest address to `SnDIPR` at 0x4n0C to 0x4nOF
+    * write dest port to `SnDPORT` at 0x4n10, 0x4n11
+    * send a `Sock_CONNECT` to the socket command register `SnCR` at 0x4n01
+      and wait for it to complete
+* the socket state at `SnSR` should be `ESTABLISHED`. We return when it becomes `CLOSED`
+    
