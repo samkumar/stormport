@@ -117,7 +117,7 @@ implementation
                 writeEthAddress(0x0000, 1); // Reset the chip by writing RST to the mode register
                 break;
             case state_reset:
-                state = state_write;
+                state = state_write_ipaddress;
                 // the following 6 bytes are the MAC address
                 // DE:AD:BE:EF:FE:ED
                 txbuf[0] = 0xde;
@@ -127,22 +127,7 @@ implementation
                 txbuf[4] = 0xfe;
                 txbuf[5] = 0xed;
                 writeEthAddress(0x0009, 6);
-                break;
-            case state_write:
-                state = state_check_presence;
-                readEthAddress(0x0009, 6);
-                break;
-            case state_check_presence:
-                readEthAddress(0x0009, 1);
-                state = state_check_presence2;
-                break;
-            case state_check_presence2:
-                if (*rxbuf != 0x03)
-                    printf("ETHERNET SHIELD NOT DETECTED!! (Expected 0x03, got 0x%02x)\n",*rxbuf);
-                else
-                    printf("Ethernet shield detected (W5200)\n");
-
-                state = state_write_ipaddress;
+                printf("Wrote MAC address\n");
                 break;
             case state_write_ipaddress:
                 // the following 4 bytes are the IP address of the Ethernet shield
@@ -152,7 +137,7 @@ implementation
                 txbuf[2] = 0x01;
                 txbuf[3] = 0xb1;
                 writeEthAddress(0x000F, 4);
-
+                printf("Wrote IP address\n");
                 state = state_write_gatewayip;
                 break;
             case state_write_gatewayip:
@@ -162,6 +147,7 @@ implementation
                 txbuf[2] = 0x01;
                 txbuf[3] = 0x01;
                 writeEthAddress(0x0001, 4);
+                printf("Wrote gateway ip\n");
                 state = state_write_subnetmask;
                 break;
             case state_write_subnetmask:
@@ -171,6 +157,7 @@ implementation
                 txbuf[2] = 0xff;
                 txbuf[3] = 0x00;
                 writeEthAddress(0x0005, 4);
+                printf("Wrote subnet mask\n");
                 state = state_initialize_sockets_tx;
                 break;
             case state_initialize_sockets_tx:
@@ -181,6 +168,7 @@ implementation
                 if (write_idx == 8) { // means we are done
                     write_idx = 0;
                     state = state_initialize_sockets_rx;
+                    printf("Initialized TX sockets\n");
                 }
                 break;
             case state_initialize_sockets_rx:
@@ -191,6 +179,7 @@ implementation
                 if (write_idx == 8) { // means we are done
                     write_idx = 0;
                     state = state_finished;
+                    printf("Initialized RX sockets\n");
                 }
                 break;
             case state_finished:
@@ -198,6 +187,7 @@ implementation
                     TXBASE[idx] = TXBUF_BASE + TXBUF_SIZE * idx;
                     RXBASE[idx] = RXBUF_BASE + RXBUF_SIZE * idx;
                 }
+                printf("Finished initialization\n");
                 break;
         }
     }
