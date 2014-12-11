@@ -22,10 +22,16 @@ implementation
         state_write,
         state_read,
         state_foo,
-        state_bar
+        state_bar,
+        state_write_ipaddress,
+        state_write_gatewayip,
+        state_write_subnetmask,
+        state_initialize_sockets_tx,
+        state_initialize_sockets_rx,
+        state_finished
     } state;
 
-    int write_idx;
+    int write_idx = 0; // use this to loop writes (see state_initialize_sockets_{tx,rx})
 
     void check_presence();
     bool ssd;
@@ -54,6 +60,13 @@ implementation
 
     }
 
+    const uint16_t TXBUF_SIZE = 2048;
+    const uint16_t RXBUF_SIZE = 2048;
+    const uint16_t TXBUF_BASE = 0x8000;
+    const uint16_t RXBUF_BASE = 0xC000;
+
+    uint16_t TXBASE[8];
+    uint16_t RXBASE[8];
 
     uint8_t _txbuf [260];
     uint8_t * const txbuf = &_txbuf[4];
@@ -87,6 +100,8 @@ implementation
 
     task void switch_state()
     {
+        uint8_t idx;
+
         if (ssd)
         {
             call EthernetSS.set();
@@ -99,10 +114,12 @@ implementation
             case state_init:
                 state = state_reset;
                 txbuf[0] = 0x80;
-                writeEthAddress(0x0000, 1);
+                writeEthAddress(0x0000, 1); // Reset the chip by writing RST to the mode register
                 break;
             case state_reset:
                 state = state_write;
+                // the following 6 bytes are the MAC address
+                // DE:AD:BE:EF:FE:ED
                 txbuf[0] = 0xde;
                 txbuf[1] = 0xad;
                 txbuf[2] = 0xbe;
@@ -116,15 +133,71 @@ implementation
                 readEthAddress(0x0009, 6);
                 break;
             case state_check_presence:
-                state = state_check_presence2;
                 readEthAddress(0x0009, 1);
+                state = state_check_presence2;
                 break;
             case state_check_presence2:
                 if (*rxbuf != 0x03)
                     printf("ETHERNET SHIELD NOT DETECTED!! (Expected 0x03, got 0x%02x)\n",*rxbuf);
                 else
                     printf("Ethernet shield detected (W5200)\n");
-                //choose next state etc.
+
+                state = state_write_ipaddress;
+                break;
+            case state_write_ipaddress:
+                // the following 4 bytes are the IP address of the Ethernet shield
+                // SIBR: 192.168.1.177
+                txbuf[0] = 0xc0;
+                txbuf[1] = 0xa8;
+                txbuf[2] = 0x01;
+                txbuf[3] = 0xb1;
+                writeEthAddress(0x000F, 4);
+
+                state = state_write_gatewayip;
+                break;
+            case state_write_gatewayip:
+                // the following 4 bytes are the gateway IP address GAR: 192.168.1.1
+                txbuf[0] = 0xc0;
+                txbuf[1] = 0xa8;
+                txbuf[2] = 0x01;
+                txbuf[3] = 0x01;
+                writeEthAddress(0x0001, 4);
+                state = state_write_subnetmask;
+                break;
+            case state_write_subnetmask:
+                // following 4 bytes are the subnetmask SUBR: 255.255.255.0
+                txbuf[0] = 0xff;
+                txbuf[1] = 0xff;
+                txbuf[2] = 0xff;
+                txbuf[3] = 0x00;
+                writeEthAddress(0x0005, 4);
+                state = state_initialize_sockets_tx;
+                break;
+            case state_initialize_sockets_tx:
+                // writes 0x2 to each of 0x4n1F where n = 0..7 for W5200
+                txbuf[0] = 0x2;
+                writeEthAddress(0x4000 + write_idx * 0x100 + 0x001F, 1);
+                write_idx += 1;
+                if (write_idx == 8) { // means we are done
+                    write_idx = 0;
+                    state = state_initialize_sockets_rx;
+                }
+                break;
+            case state_initialize_sockets_rx:
+                // writes 0x2 to each of 0x4n1F where n = 0..7 for W5200
+                txbuf[0] = 0x2;
+                writeEthAddress(0x4000 + write_idx * 0x100 + 0x001E, 1);
+                write_idx += 1;
+                if (write_idx == 8) { // means we are done
+                    write_idx = 0;
+                    state = state_finished;
+                }
+                break;
+            case state_finished:
+                for (idx=0; idx<8; idx++) {
+                    TXBASE[idx] = TXBUF_BASE + TXBUF_SIZE * idx;
+                    RXBASE[idx] = RXBUF_BASE + RXBUF_SIZE * idx;
+                }
                 break;
         }
     }
