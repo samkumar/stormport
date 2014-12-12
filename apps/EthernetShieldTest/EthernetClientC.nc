@@ -62,7 +62,7 @@ implementation
     {
         state_initialize,
         state_connect,
-        state_rw
+        state_writeUDP
     } processstate;
 
     enum
@@ -92,14 +92,16 @@ implementation
         state_connect_wait_connect_dst,
         state_connect_wait_established,
 
-        // writing data
-        state_writedatatest1,
-        state_writedatatest2,
-        state_writedatatest3,
-        state_writedatatest4,
-        state_writedatatest5,
-        state_writedatatest6,
-        state_writedatatest7
+        // writing UDP data
+        state_writeudp_readtxwr,
+        state_writeudp_copytotxbuf,
+        state_writeudp_advancetxwr,
+        state_writeudp_writesendcmd,
+        state_writeudp_waitsendinterrupt,
+        state_writeudp_clearsend,
+        state_writeudp_cleartimeout,
+        state_writeudp_waitsendcomplete,
+        state_writeudp_sleep
     } state;
 
     int write_idx = 0; // use this to loop writes (see state_initialize_sockets_{tx,rx})
@@ -375,73 +377,103 @@ implementation
                 readEthAddress(0x4000 + socket * 0x100 + 0x0003, 1);
                 if (*rxbuf == SocketState_UDP) {
                     printf("status is 0x%02x\n", *rxbuf);
-                    state = state_writedatatest1;
+                    processstate = state_writeUDP;
+                    state = state_writeudp_readtxwr;
                 } else {
                     printf("status is 0x%02x\n", *rxbuf);
                 }
                 break;
 
-            case state_writedatatest1:
+        }
+    }
+
+    task void writeUDP()
+    {
+
+        switch(state)
+        {
+            // read where we are in the circular tx buffer
+            case state_writeudp_readtxwr:
                 readEthAddress(0x4000 + socket * 0x100 + 0x0024, 2);
                 // "user should read upper byte first and lower byte later to get proper value"
                 ptr = ((uint16_t)rxbuf[1] << 8) | rxbuf[0];
                 printf("reading out ptr from TX_WR: %u\n", ptr);
-                state = state_writedatatest2;
+                state = state_writeudp_copytotxbuf;
                 break;
 
-            case state_writedatatest2:
-                for (idx=0; idx<200; idx++) {
-                    txbuf[idx] = 0xFF;
-                }
-                writeEthAddress(TXBASE[socket] + (ptr & TXMASK), 200);
-                state = state_writedatatest3;
+            // copy the dat we want to write to the tx buffer
+            case state_writeudp_copytotxbuf:
+                txbuf[0] = 0x68;
+                txbuf[1] = 0x65;
+                txbuf[2] = 0x6c;
+                txbuf[3] = 0x6c;
+                txbuf[4] = 0x6f;
+                writeEthAddress(TXBASE[socket] + (ptr & TXMASK), 5);
+                state = state_writeudp_advancetxwr;
                 printf("Writing 200 bytes of 0xff to TXBASE[socke]\n");
                 break;
 
-            case state_writedatatest3:
+            // advance the circular tx buffer by how much we wrote
+            case state_writeudp_advancetxwr:
+                ptr += 5; // here, 5 is the number of bytes we wrote in state_writeudp_copytotxbuf
+                txbuf[0] = ptr & 0xff;
+                txbuf[1] = (ptr >> 8);
+                writeEthAddress(0x4000 + socket * 0x100 + 0x0024, 2);
+                state = state_writeudp_writesendcmd;
+                break;
+
+            // tell the W5200 chip to send data in tx buf
+            case state_writeudp_writesendcmd:
                 txbuf[0] = SocketCommand_SEND;
                 writeEthAddress(0x4000 + socket * 0x100 + 0x0001, 1);
                 printf("Sending SEND command\n");
-                state = state_writedatatest7;
+                state = state_writeudp_waitsendcomplete;
                 break;
 
-            case state_writedatatest7:
+            // wait until the chip has sent data
+            case state_writeudp_waitsendcomplete:
                 readEthAddress(0x4000 + socket * 0x100 + 0x0001, 1);
                 if (*rxbuf) {
                     printf("Waiting for SEND to complete\n");
                 } else {
                     //continue
                     printf("SEND completed\n");
-                    state = state_writedatatest4;
+                    state = state_writeudp_waitsendinterrupt;
                 }
                 break;
 
-            case state_writedatatest4:
+            // wait for an interrupt so we can tell what happened
+            case state_writeudp_waitsendinterrupt:
                 // read interrupt register
                 readEthAddress(0x4000 + socket * 0x100 + 0x0002, 1);
                 if (*rxbuf) printf("interrupt register is 0x%02x\n", *rxbuf);
                 if ((*rxbuf & 0x10) != 0x10 ) { // true if SEND_OK has not completed
                     if (*rxbuf & 0x08) { // true if TIMEOUT
                         printf("timeout on send\n");
-                        state = state_writedatatest6; // clear timeout bit
+                        state = state_writeudp_cleartimeout; // clear timeout bit
                     }
                 } else {
-                    state = state_writedatatest5;
+                    state = state_writeudp_clearsend;
                 }
                 break;
 
-            case state_writedatatest5:
-                printf("got to here\n");
+            case state_writeudp_clearsend:
+                printf("success send msg\n");
                 txbuf[0] = 0x10; //SEND_OK -- clear the interrupt bit
                 writeEthAddress(0x4000 + socket * 0x100 + 0x0002, 1);
-                call Timer.startOneShot(5000);
+                state = state_writeudp_sleep;
                 break;
 
-            case state_writedatatest6:
+            case state_writeudp_cleartimeout:
                 printf("timeout\n");
                 txbuf[0] = 0x10 | 0x08; //SEND_OK | TIMEOUT -- clear the interrupt bit
                 writeEthAddress(0x4000 + socket * 0x100 + 0x0002, 1);
-                state = state_writedatatest3; // go back
+                state = state_writeudp_writesendcmd; // go back
+                break;
+
+            case state_writeudp_sleep:
+                state = state_writeudp_writesendcmd;
+                call Timer.startOneShot(50000);
                 break;
 
         }
@@ -456,6 +488,9 @@ implementation
             break;
         case state_connect:
             post connect();
+            break;
+        case state_writeUDP:
+            post writeUDP();
             break;
         }
     }
