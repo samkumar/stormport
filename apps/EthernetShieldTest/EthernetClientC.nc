@@ -78,6 +78,7 @@ implementation
         state_write_subnetmask,
         state_initialize_sockets_tx,
         state_initialize_sockets_rx,
+        state_initialize_txwr_txrd,
         state_finished_init,
 
         // state_connect states
@@ -108,6 +109,7 @@ implementation
     int8_t socket_idx = -1;
     uint8_t socket;
     uint16_t ptr;
+    uint16_t data_offset = 0;
 
     uint16_t srcport = 1024; // default connect from src port 1024
     uint16_t dstport = 7000; // default connect to dest port 7000
@@ -264,9 +266,17 @@ implementation
                 write_idx += 1;
                 if (write_idx == 8) { // means we are done
                     write_idx = 0;
-                    state = state_finished_init;
+                    state = state_initialize_txwr_txrd;
                     printf("Initialized RX sockets\n");
                 }
+                break;
+            case state_initialize_txwr_txrd:
+                txbuf[0] = 0x0;
+                txbuf[1] = 0x0;
+                txbuf[2] = 0x0;
+                txbuf[3] = 0x0;
+                writeEthAddress(0x4000 + 0x0022, 4); //TODO: do this for each socket
+                state = state_finished_init;
                 break;
             case state_finished_init:
                 for (idx=0; idx<8; idx++) {
@@ -390,13 +400,14 @@ implementation
     task void writeUDP()
     {
 
+        uint16_t offset;
         switch(state)
         {
             // read where we are in the circular tx buffer
             case state_writeudp_readtxwr:
                 readEthAddress(0x4000 + socket * 0x100 + 0x0024, 2);
                 // "user should read upper byte first and lower byte later to get proper value"
-                ptr = ((uint16_t)rxbuf[0] << 8) | rxbuf[1];
+                //ptr = ((uint16_t)rxbuf[0] << 8) | rxbuf[1];
                 printf("reading out ptr from TX_WR: %u\n", ptr);
                 state = state_writeudp_copytotxbuf;
                 break;
@@ -408,7 +419,6 @@ implementation
                 txbuf[2] = 0x6c;
                 txbuf[3] = 0x6c;
                 txbuf[4] = 0x6f;
-                printf("offset is %i, txsize is %i\n", (ptr & TXMASK), TXBUF_SIZE);
                 writeEthAddress(TXBASE[socket] + (ptr & TXMASK), 5);
                 state = state_writeudp_advancetxwr;
                 printf("Writing 5 bytes of 'hello' to TXBASE[socket]\n");
@@ -419,6 +429,7 @@ implementation
                 ptr += 5; // here, 5 is the number of bytes we wrote in state_writeudp_copytotxbuf
                 txbuf[0] = (ptr >> 8);
                 txbuf[1] = ptr & 0xff;
+                printf("reading out ptr after write from TX_WR: %u\n", ptr);
                 writeEthAddress(0x4000 + socket * 0x100 + 0x0024, 2);
                 state = state_writeudp_writesendcmd;
                 break;
@@ -469,11 +480,13 @@ implementation
                 printf("timeout\n");
                 txbuf[0] = 0x10 | 0x08; //SEND_OK | TIMEOUT -- clear the interrupt bit
                 writeEthAddress(0x4000 + socket * 0x100 + 0x0002, 1);
-                state = state_writeudp_writesendcmd; // go back
+                //state = state_writeudp_writesendcmd; // go back
+                state = state_writeudp_readtxwr;
                 break;
 
             case state_writeudp_sleep:
-                state = state_writeudp_writesendcmd;
+                //state = state_writeudp_writesendcmd;
+                state = state_writeudp_readtxwr;
                 call Timer.startOneShot(50000);
                 break;
 
