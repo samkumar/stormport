@@ -96,7 +96,10 @@ implementation
         state_writedatatest1,
         state_writedatatest2,
         state_writedatatest3,
-        state_writedatatest4
+        state_writedatatest4,
+        state_writedatatest5,
+        state_writedatatest6,
+        state_writedatatest7
     } state;
 
     int write_idx = 0; // use this to loop writes (see state_initialize_sockets_{tx,rx})
@@ -112,6 +115,7 @@ implementation
 
     void check_presence();
     bool ssd;
+    int tryonce = 100;
 
     event void Boot.booted()
     {
@@ -281,7 +285,7 @@ implementation
 
     task void connect()
     {
-
+        uint16_t idx;
         if (ssd)
         {
             call EthernetSS.set();
@@ -314,16 +318,16 @@ implementation
             case state_connect_write_protocol:
                 // write our chosen protocol to the correct socket mode register
                 txbuf[0] = socketmode | 0;
-                writeEthAddress(0x4000 + socket * 0x100, 1);
+                writeEthAddress(0x4000 + socket * 0x100, 1); // write to SnMR
                 printf("Wrote protocol %d to socket %d\n", (int)socketmode, socket);
                 state = state_connect_write_src_port;
                 break;
 
             case state_connect_write_src_port:
                 // write the source port to SnPORT
-                txbuf[0] = srcport & 0xff;
-                txbuf[1] = (srcport >> 8);
-                writeEthAddress(0x4000 + socket * 0x100 + 0x0004, 2);
+                txbuf[0] = (srcport >> 8);
+                txbuf[1] = srcport & 0xff;
+                writeEthAddress(0x4000 + socket * 0x100 + 0x0004, 2); // write to SnPORT
                 printf("Wrote srcport %d to SnPORT\n", (int)srcport);
                 state = state_connect_open_src_port;
                 break;
@@ -331,7 +335,7 @@ implementation
             case state_connect_open_src_port:
                 // open the port
                 txbuf[0] = SocketCommand_OPEN;
-                writeEthAddress(0x4000 + socket * 0x100 + 0x0001, 1);
+                writeEthAddress(0x4000 + socket * 0x100 + 0x0001, 1); // write to SnCR
                 printf("Wrote OPEN to SnCR\n");
                 state = state_connect_wait_src_port_opened;
                 break;
@@ -353,43 +357,23 @@ implementation
                 txbuf[1] = 0xa8;
                 txbuf[2] = 0x01;
                 txbuf[3] = 0xb2;
-                writeEthAddress(0x4000 + socket * 0x100 + 0x000C, 4);
+                writeEthAddress(0x4000 + socket * 0x100 + 0x000C, 4); // write to SnDIPR
                 printf("Write dst address to SnDIPR\n");
                 state = state_connect_write_dst_port;
                 break;
 
             case state_connect_write_dst_port:
                 // port 7000
-                txbuf[0] = dstport & 0xff;
-                txbuf[1] = (dstport >> 8);
+                txbuf[0] = (dstport >> 8);
+                txbuf[1] = dstport & 0xff;
                 writeEthAddress(0x4000 + socket * 0x100 + 0x0010, 2);
-                printf("Write dst port to SnPORT\n");
-                state = state_connect_connect_dst;
+                printf("Write dst port to SnDPORT\n");
+                state = state_connect_wait_established;
                 break;
 
-            case state_connect_connect_dst:
-                txbuf[0] = SocketCommand_CONNECT;
-                writeEthAddress(0x4000 + socket * 0x100 + 0x0001, 1);
-                printf("Wrote CONNECT to SnCR\n");
-                state = state_connect_wait_connect_dst;
-                break;
-
-            case state_connect_wait_connect_dst:
-                readEthAddress(0x4000 + socket * 0x100 + 0x0001, 1);
-                if (!*rxbuf) {
-                    //continue
-                    state = state_connect_wait_established;
-                    printf("Waiting to connect to dest\n");
-                }
-                break;
-                
             case state_connect_wait_established:
                 readEthAddress(0x4000 + socket * 0x100 + 0x0003, 1);
-                //TODO: only if TCP
-                if (*rxbuf == SocketState_ESTABLISHED ) {
-                    printf("Connection established!\n");
-                    state = state_writedatatest1;
-                } else if (*rxbuf == SocketState_UDP) {
+                if (*rxbuf == SocketState_UDP) {
                     printf("status is 0x%02x\n", *rxbuf);
                     state = state_writedatatest1;
                 } else {
@@ -398,31 +382,68 @@ implementation
                 break;
 
             case state_writedatatest1:
-                txbuf[0] = 0xFF;
-                txbuf[1] = 0xFF;
-                txbuf[2] = 0xFF;
-                txbuf[3] = 0xFF;
-                writeEthAddress(TXBASE[socket] + (0 & TXMASK), 4);
+                readEthAddress(0x4000 + socket * 0x100 + 0x0024, 2);
+                // "user should read upper byte first and lower byte later to get proper value"
+                ptr = ((uint16_t)rxbuf[1] << 8) | rxbuf[0];
+                printf("reading out ptr from TX_WR: %u\n", ptr);
                 state = state_writedatatest2;
-                printf("Writing 4 bytes of 0xff to TXBASE[socke]\n");
                 break;
-                
+
             case state_writedatatest2:
-                txbuf[0] = SocketCommand_SEND;
-                writeEthAddress(0x4000 + socket * 0x100 + 0x0001, 1);
-                printf("Sending SEND command\n");
+                for (idx=0; idx<200; idx++) {
+                    txbuf[idx] = 0xFF;
+                }
+                writeEthAddress(TXBASE[socket] + (ptr & TXMASK), 200);
                 state = state_writedatatest3;
+                printf("Writing 200 bytes of 0xff to TXBASE[socke]\n");
                 break;
 
             case state_writedatatest3:
-                readEthAddress(0x4000 + socket * 0x100 + 0x0002, 1);
-                if (*rxbuf == 0x10 ) { // 0x10 is SEND_OK
-                    printf("sent ok\n");
+                txbuf[0] = SocketCommand_SEND;
+                writeEthAddress(0x4000 + socket * 0x100 + 0x0001, 1);
+                printf("Sending SEND command\n");
+                state = state_writedatatest7;
+                break;
+
+            case state_writedatatest7:
+                readEthAddress(0x4000 + socket * 0x100 + 0x0001, 1);
+                if (*rxbuf) {
+                    printf("Waiting for SEND to complete\n");
+                } else {
+                    //continue
+                    printf("SEND completed\n");
+                    state = state_writedatatest4;
                 }
                 break;
 
             case state_writedatatest4:
+                // read interrupt register
+                readEthAddress(0x4000 + socket * 0x100 + 0x0002, 1);
+                if (*rxbuf) printf("interrupt register is 0x%02x\n", *rxbuf);
+                if ((*rxbuf & 0x10) != 0x10 ) { // true if SEND_OK has not completed
+                    if (*rxbuf & 0x08) { // true if TIMEOUT
+                        printf("timeout on send\n");
+                        state = state_writedatatest6; // clear timeout bit
+                    }
+                } else {
+                    state = state_writedatatest5;
+                }
                 break;
+
+            case state_writedatatest5:
+                printf("got to here\n");
+                txbuf[0] = 0x10; //SEND_OK -- clear the interrupt bit
+                writeEthAddress(0x4000 + socket * 0x100 + 0x0002, 1);
+                call Timer.startOneShot(5000);
+                break;
+
+            case state_writedatatest6:
+                printf("timeout\n");
+                txbuf[0] = 0x10 | 0x08; //SEND_OK | TIMEOUT -- clear the interrupt bit
+                writeEthAddress(0x4000 + socket * 0x100 + 0x0002, 1);
+                state = state_writedatatest3; // go back
+                break;
+
         }
     }
 
