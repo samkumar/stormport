@@ -84,4 +84,49 @@ Status register is `SnSR`, where n is 0..7, at address 0x4n03 (need to check)
     * send a `Sock_CONNECT` to the socket command register `SnCR` at 0x4n01
       and wait for it to complete
 * the socket state at `SnSR` should be `ESTABLISHED`. We return when it becomes `CLOSED`
-    
+
+### Client Write
+
+We are sending buffer `buf` with length `len` on a Socket `s`. The socket has alrady been connected
+to an endpoint.
+
+Check if the length is more than `TXBUF_SIZE` (should be 2048?). Let's proceed with the simple
+case where we don't chunk the packet.
+
+We read the Tx write pointer register `SnTX_WR` and after copying the data into the TX buffer,
+update `TX_WR`. "user should read upper byte first and lower byte later to get proper value". This
+method is called `send_data_processing_offset` in the arduino code.
+
+```cpp
+void W5100Class::send_data_processing_offset(SOCKET s, uint16_t data_offset, const uint8_t *data, uint16_t len)
+{
+  // read the Tx write pointer register
+  uint16_t ptr = readSnTX_WR(s);
+  // add the data offset we are using
+  ptr += data_offset;
+  // SMASK is 0x07FF (RMASK is this too)
+  uint16_t offset = ptr & SMASK;
+  uint16_t dstAddr = offset + SBASE[s]; // SBASE[s] is the base address of tx buffer for socket s
+
+  // if our offset + length of data is bigger than buffer, then wrap
+  if (offset + len > SSIZE) 
+  {
+    // Wrap around circular buffer
+    uint16_t size = SSIZE - offset;
+    write(dstAddr, data, size);
+    write(SBASE[s], data + size, len - size);
+  } 
+  else { // DEFAULT (simple) case: write the payload w/ length len to dstAddr
+    write(dstAddr, data, len);
+  }
+
+  // add the len to ptr so we know where to start next time
+  ptr += len;
+  // write the pointer back to memory
+  writeSnTX_WR(s, ptr);
+}
+```
+
+After this, we write the `SEND`  socket command to the command register for socket `s`.
+
+Then, the code reads the interrupt register `SnIR` at 0x4n02 until it has the value `SEND_OK`
