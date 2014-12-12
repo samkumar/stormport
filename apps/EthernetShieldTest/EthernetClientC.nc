@@ -12,13 +12,63 @@ module EthernetClientC
 }
 implementation
 {
+    // socket modes
+    typedef enum
+    {
+        SocketMode_CLOSE  = 0x00,
+        SocketMode_TCP    = 0x01,
+        SocketMode_UDP    = 0x02,
+        SocketMode_IPRAW  = 0x03,
+        SocketMode_MACRAW = 0x04,
+        SocketMode_PPPOE  = 0x05
+    } SocketMode;
+
+    // socket states
+    typedef enum
+    {
+        SocketState_CLOSED      = 0x00,
+        SocketState_INIT        = 0x13,
+        SocketState_LISTEN      = 0x14,
+        SocketState_SYNSENT     = 0x15,
+        SocketState_SYNRECV     = 0x16,
+        SocketState_ESTABLISHED = 0x17,
+        SocketState_FIN_WAIT    = 0x18,
+        SocketState_CLOSING     = 0x1A,
+        SocketState_TIME_WAIT   = 0x1B,
+        SocketState_CLOSE_WAIT  = 0x1C,
+        SocketState_LAST_ACK    = 0x1D,
+        SocketState_UDP         = 0x22,
+        SocketState_IPRAW       = 0x32,
+        SocketState_MACRAW      = 0x42,
+        SocketState_PPPOE       = 0x5F
+    } SocketState;
+
+    // socket commands
+    typedef enum
+    {
+        SocketCommand_OPEN      = 0x01,
+        SocketCommand_LISTEN    = 0x02,
+        SocketCommand_CONNECT   = 0x04,
+        SocketCommand_DISCON    = 0x08,
+        SocketCommand_CLOSE     = 0x10,
+        SocketCommand_SEND      = 0x20,
+        SocketCommand_SEND_MAC  = 0x21,
+        SocketCommand_SEND_KEEP = 0x22,
+        SocketCommand_RECV      = 0x40
+    } SocketCommand;
+
+    // this enum governs which state the whole process is in
+    enum
+    {
+        state_initialize,
+        state_connect,
+        state_rw
+    } processstate;
 
     enum
     {
         state_init,
         state_reset,
-        state_check_presence2,
-        state_check_presence,
         state_write,
         state_read,
         state_foo,
@@ -28,10 +78,24 @@ implementation
         state_write_subnetmask,
         state_initialize_sockets_tx,
         state_initialize_sockets_rx,
-        state_finished
+        state_finished_init,
+
+        // state_connect states
+        state_connect_init,
+        state_connect_write_protocol,
+        state_connect_write_port,
+        state_connect_open_port,
+        state_connect_wait_port_opened
     } state;
 
     int write_idx = 0; // use this to loop writes (see state_initialize_sockets_{tx,rx})
+    int8_t socket_idx = -1;
+    uint8_t socket;
+
+    uint16_t srcport = 1024; // default connect from src port 1024
+
+    // connect to UDP for testing
+    SocketMode socketmode = SocketMode_UDP;
 
     void check_presence();
     bool ssd;
@@ -55,6 +119,7 @@ implementation
         call SpiHPL.enableRX();
 
         state = state_init;
+        processstate = state_initialize;
         call Timer.startOneShot(50000);
 
 
@@ -178,22 +243,107 @@ implementation
                 write_idx += 1;
                 if (write_idx == 8) { // means we are done
                     write_idx = 0;
-                    state = state_finished;
+                    state = state_finished_init;
                     printf("Initialized RX sockets\n");
                 }
                 break;
-            case state_finished:
+            case state_finished_init:
                 for (idx=0; idx<8; idx++) {
                     TXBASE[idx] = TXBUF_BASE + TXBUF_SIZE * idx;
                     RXBASE[idx] = RXBUF_BASE + RXBUF_SIZE * idx;
                 }
+                // change process state
+                processstate = state_connect;
+                state = state_connect_init;
                 printf("Finished initialization\n");
+                call Timer.startOneShot(20); // use to advance the timer
+                break;
+            default:
+                printf("ILLEGAL STATE in init process: %d\n", (int)state);
                 break;
         }
     }
+
+    task void connect()
+    {
+
+        if (ssd)
+        {
+            call EthernetSS.set();
+            ssd = 0;
+            call Timer.startOneShot(20);
+            return;
+        }
+
+        switch(state)
+        {
+            case state_connect_init:
+                if ((socket_idx > -1) && (*rxbuf == SocketState_CLOSED || *rxbuf == SocketState_FIN_WAIT || *rxbuf == SocketState_CLOSE_WAIT))
+                {
+                    socket = socket_idx;
+                    state = state_connect_write_protocol;
+                    printf("Chose socket %d\n", socket);
+                    post connect();
+                    break;
+                }
+                socket_idx += 1;
+                // check each of the available to sockets to see if we can use it
+                readEthAddress(0x4000 + socket_idx * 0x100 + 0x0003, 1);
+
+                if (socket_idx == 8) //couldn't find an open socket
+                {
+                    printf("No open socket found\n");
+                }
+                break;
+
+            case state_connect_write_protocol:
+                // write our chosen protocol to the correct socket mode register
+                txbuf[0] = socketmode | 0;
+                writeEthAddress(0x4000 + socket * 0x100, 1);
+                printf("Wrote protocol %d to socket %d\n", (int)socketmode, socket);
+                state = state_connect_write_port;
+                break;
+
+            case state_connect_write_port:
+                // write the source port to SnPORT
+                txbuf[0] = srcport & 0xff;
+                txbuf[1] = (srcport >> 8);
+                writeEthAddress(0x4000 + socket * 0x100 + 0x0004, 2);
+                printf("Wrote srcport %d to SnPORT\n", (int)srcport);
+                state = state_connect_open_port;
+                break;
+
+            case state_connect_open_port:
+                // open the port
+                txbuf[0] = SocketCommand_OPEN;
+                writeEthAddress(0x4000 + socket * 0x100 + 0x0001, 1);
+                printf("Wrote OPEN to SnCR\n");
+                state = state_connect_wait_port_opened;
+                break;
+
+            case state_connect_wait_port_opened:
+                readEthAddress(0x4000 + socket * 0x100 + 0x0001, 1);
+                if (*rxbuf) {
+                    printf("Waiting for srcport to open: 0x%02x\n", *rxbuf);
+                } else {
+                    //continue
+                    printf("opened srcport\n");
+                }
+                break;
+        }
+    }
+
     event void Timer.fired()
     {
-        post switch_state();
+        switch(processstate)
+        {
+        case state_initialize:
+            post switch_state();
+            break;
+        case state_connect:
+            post connect();
+            break;
+        }
     }
     async event void SpiPacket.sendDone(uint8_t* txBuf, uint8_t* rxBuf, uint16_t len, error_t error)
     {
