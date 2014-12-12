@@ -396,7 +396,7 @@ implementation
             case state_writeudp_readtxwr:
                 readEthAddress(0x4000 + socket * 0x100 + 0x0024, 2);
                 // "user should read upper byte first and lower byte later to get proper value"
-                ptr = ((uint16_t)rxbuf[1] << 8) | rxbuf[0];
+                ptr = ((uint16_t)rxbuf[0] << 8) | rxbuf[1];
                 printf("reading out ptr from TX_WR: %u\n", ptr);
                 state = state_writeudp_copytotxbuf;
                 break;
@@ -408,16 +408,17 @@ implementation
                 txbuf[2] = 0x6c;
                 txbuf[3] = 0x6c;
                 txbuf[4] = 0x6f;
+                printf("offset is %i, txsize is %i\n", (ptr & TXMASK), TXBUF_SIZE);
                 writeEthAddress(TXBASE[socket] + (ptr & TXMASK), 5);
                 state = state_writeudp_advancetxwr;
-                printf("Writing 200 bytes of 0xff to TXBASE[socke]\n");
+                printf("Writing 5 bytes of 'hello' to TXBASE[socket]\n");
                 break;
 
             // advance the circular tx buffer by how much we wrote
             case state_writeudp_advancetxwr:
                 ptr += 5; // here, 5 is the number of bytes we wrote in state_writeudp_copytotxbuf
-                txbuf[0] = ptr & 0xff;
-                txbuf[1] = (ptr >> 8);
+                txbuf[0] = (ptr >> 8);
+                txbuf[1] = ptr & 0xff;
                 writeEthAddress(0x4000 + socket * 0x100 + 0x0024, 2);
                 state = state_writeudp_writesendcmd;
                 break;
