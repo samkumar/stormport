@@ -142,6 +142,8 @@ implementation
     const uint16_t RXBUF_SIZE = 2048;
     const uint16_t TXBUF_BASE = 0x8000;
     const uint16_t RXBUF_BASE = 0xC000;
+    const uint16_t TXMASK = 0x07FF;
+    const uint16_t RXMASK = 0x07FF;
 
     uint16_t TXBASE[8];
     uint16_t RXBASE[8];
@@ -396,34 +398,30 @@ implementation
                 break;
 
             case state_writedatatest1:
-                readEthAddress(0x4000 + socket * 0x100 + 0x0024, 2);
-                ptr = *rxbuf;
-                state = state_writedatatest2;
-                printf("Reading SnTX_WR for offset?\n");
-                break;
-                
-            case state_writedatatest2:
                 txbuf[0] = 0xFF;
                 txbuf[1] = 0xFF;
                 txbuf[2] = 0xFF;
                 txbuf[3] = 0xFF;
-                writeEthAddress(TXBASE[socket], 4);
-                state = state_writedatatest3;
+                writeEthAddress(TXBASE[socket] + (0 & TXMASK), 4);
+                state = state_writedatatest2;
                 printf("Writing 4 bytes of 0xff to TXBASE[socke]\n");
                 break;
-
-            case state_writedatatest3:
-                txbuf[0] = ptr & 0xff;
-                txbuf[1] = (ptr >> 8);
-                writeEthAddress(0x4000 + socket * 0x100 + 0x0024, 2);
-                state = state_writedatatest4;
-                printf("Writing the pointer back to SnTX_WR\n");
-                break;
-
-            case state_writedatatest4:
+                
+            case state_writedatatest2:
                 txbuf[0] = SocketCommand_SEND;
                 writeEthAddress(0x4000 + socket * 0x100 + 0x0001, 1);
                 printf("Sending SEND command\n");
+                state = state_writedatatest3;
+                break;
+
+            case state_writedatatest3:
+                readEthAddress(0x4000 + socket * 0x100 + 0x0002, 1);
+                if (*rxbuf == 0x10 ) { // 0x10 is SEND_OK
+                    printf("sent ok\n");
+                }
+                break;
+
+            case state_writedatatest4:
                 break;
         }
     }
