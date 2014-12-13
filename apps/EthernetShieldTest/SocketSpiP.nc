@@ -8,6 +8,7 @@ module SocketSpiP
     uses interface GeneralIO as EthernetSS;
 
     provides interface SocketSpi;
+    provides interface Init;
 }
 implementation
 {
@@ -16,7 +17,7 @@ implementation
 
     //TODO: need to figure out how to wire this to boot or init for platform?
     // initializes SPI
-    void init()
+    async command void Init.init()
     {
         printf("Initializing Spi to talk to Wiz5200\n");
         call EthernetSS.makeOutput();
