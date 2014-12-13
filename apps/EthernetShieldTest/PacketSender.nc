@@ -2,6 +2,11 @@
 
 interface PacketSender
 {
+  //command init(mode(UDP), macaddress, staticip, subnetmask, gatewayip)
+  //command sendUDP(etc)
+  //command sendIPRAW(etc)
+  //etc
+  //event void recvUDP, recvIPRAW
   // send [len] bytes from buffer [buf]
   command void sendPacket(struct ip_iovec data);
 

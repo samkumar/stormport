@@ -1,10 +1,11 @@
+/*
+ * the state machien will setup src port and src address during init.
+ * on each sendUDP(dstport, dstaddress, iovec), we do the further init on the chip
+ * for sending to that destination (iovec is what we write)
+ * make this implement PacketSender
+ */
 module SocketP
 {
-    // needs SPI interface
-    //
-    // initialize (UDP, TCP, etc)
-    // send(*buf, len)
-    //
     uses interface SocketSpi;
     uses interface Timer<T32khz> as Timer;
 }
@@ -108,6 +109,7 @@ implementation
 
     //TODO: wire this to be called after SPI initialization during platform start
     // initialize the socket
+    // this should take argumetn saying "be UDP, TCP, etc"
     task void init()
     {
         switch(state)
@@ -118,7 +120,8 @@ implementation
             txbuf[0] = 0x80;
             call SocketSpi.writeRegister(0x0000, _txbuf, 1);
             break;
-
+        //TODO: remember to write src mac address
+        //TODO: global chip settings are a separate component
         // Write which address we are
         //TODO: this should come from DHCP or something set at compile time
         case state_write_ipaddress:
@@ -270,6 +273,10 @@ implementation
         }
     }
 
+//    command void sendUDP(uint16_t src, uint16_t dst)
+//    {
+//    }
+//
     event void Timer.fired()
     {
         post init();
