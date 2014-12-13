@@ -522,7 +522,7 @@ implementation
         printf("finished sending udp packet\n");
     }
 
-    event void UDPSender.packetReceived(struct ip_iovec data)
+    event void UDPSender.packetReceived(uint8_t *buf, uint16_t len)
     {
         printf("received a udp packet\n");
     }

@@ -9,5 +9,5 @@ interface PacketSender
   event void sendPacketDone(error_t error);
 
   // called upon recipt of a packet over ethernet
-  event void packetReceived(struct ip_iovec data);
+  event void packetReceived(uint8_t *buf, uint16_t len);
 }

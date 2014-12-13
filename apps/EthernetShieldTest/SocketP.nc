@@ -96,10 +96,9 @@ implementation
     // local srcport is 1024 by default
     uint16_t srcport = 1024;
 
-    // for looping through sockets 0..7
-    uint8_t sockidx = 0;
-
-    uint8_t socket; // this is the socket we chose
+    // our socket index
+    //TODO: this will become a generic parameter
+    uint8_t socket = 0;
 
     // are we finished initializing the wiz5200?
     bool initialized = 0;
@@ -154,28 +153,18 @@ implementation
             call SocketSpi.writeRegister(0x0005, _txbuf, 4);
             break;
 
-        // Initialize the sockets with their tx buffersize, as determined by the Wiz5200 chip
+        // Initialize the socket with its tx buffersize, as determined by the Wiz5200 chip
         case state_initialize_sockets_tx:
+            state = state_initialize_sockets_rx;
             txbuf[0] = 0x02;
-            call SocketSpi.writeRegister(0x4000 + sockidx * 0x100 + 0x001F, _txbuf, 1);
-            sockidx++;
-            if (sockidx == 8) // we're done with the sockets..
-            {
-                sockidx = 0; // ...so reset
-                state = state_initialize_sockets_rx;
-            }
+            call SocketSpi.writeRegister(0x4000 + socket * 0x100 + 0x001F, _txbuf, 1);
             break;
 
         // Initialize the sockets with their rx buffersize, as determined by the Wiz5200 chip
         case state_initialize_sockets_rx:
+            state = state_initialize_txwr_txrd;
             txbuf[0] = 0x02;
-            call SocketSpi.writeRegister(0x4000 + sockidx * 0x100 + 0x001E, _txbuf, 1);
-            sockidx++;
-            if (sockidx == 8) // we're done with the sockets..
-            {
-                sockidx = 0; // ...so reset
-                state = state_initialize_txwr_txrd;
-            }
+            call SocketSpi.writeRegister(0x4000 + socket * 0x100 + 0x001E, _txbuf, 1);
             break;
 
         // Clears the TX read and write pointers for the buffer
@@ -184,13 +173,8 @@ implementation
             txbuf[1] = 0x0;
             txbuf[2] = 0x0;
             txbuf[3] = 0x0;
-            call SocketSpi.writeRegister(0x4000 + sockidx * 0x100 + 0x0022, _txbuf, 4);
-            sockidx++;
-            if (sockidx == 8)
-            {
-                sockidx = 0;
-                initialized = 1;
-            }
+            call SocketSpi.writeRegister(0x4000 + socket * 0x100 + 0x0022, _txbuf, 4);
+            initialized = 1;
 
         }
     }
@@ -205,22 +189,15 @@ implementation
         case state_connect_init:
             if (startconnect & (*rxbuf == SocketState_CLOSED || *rxbuf == SocketState_FIN_WAIT || *rxbuf == SocketState_CLOSE_WAIT))
             {
-                socket = sockidx;
                 state = state_connect_write_protocol;
                 post openConnection(); // go to next state
                 break;
             }
             // read the state of the socket
-            call SocketSpi.readRegister(0x4000 + sockidx * 0x100 + 0x0003, _rxbuf, 1);
+            call SocketSpi.readRegister(0x4000 + socket * 0x100 + 0x0003, _rxbuf, 1);
 
-            // run the above check after we've read the first one
+            // run the above check after we've read once
             if (!startconnect) startconnect = 1;
-
-            if (sockidx == 8)
-            {
-                //TODO handle some sort of error?
-                printf("No open socket found\n");
-            }
             break;
 
         // configure which mode of socket (UDP, TCP, etc)
