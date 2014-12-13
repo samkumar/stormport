@@ -1,4 +1,5 @@
 #include "printf.h"
+#include "iovec.h"
 #include <usarthardware.h>
 
 module EthernetClientC
@@ -9,6 +10,7 @@ module EthernetClientC
     uses interface GeneralIO as EthernetSS;
     uses interface GeneralIO as SDCardSS;
     uses interface Timer<T32khz> as Timer;
+    uses interface PacketSender as UDPSender;
 }
 implementation
 {
@@ -513,6 +515,16 @@ implementation
         //We don't want to do too much in IRQ context
         call Timer.startOneShot(20);
 
+    }
+
+    event void UDPSender.sendPacketDone(error_t error)
+    {
+        printf("finished sending udp packet\n");
+    }
+
+    event void UDPSender.packetReceived(struct ip_iovec data)
+    {
+        printf("received a udp packet\n");
     }
 
 }
