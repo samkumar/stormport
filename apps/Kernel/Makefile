@@ -88,6 +88,8 @@ PFLAGS += -DREPORT_DEST=\"fe80::7\"
 
 GOALS += blip rpl
 
+PFLAGS += -DGITCOMMIT=\"$(shell git rev-parse HEAD)\"
+
 TINYOS_ROOT_DIR?=../..
 TOSMAKE_FIRST_FLAGS += -I$(TINYOS_ROOT_DIR)/tos/platforms/storm/lib/printf
 include $(TINYOS_ROOT_DIR)/Makefile.include

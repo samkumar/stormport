@@ -96,10 +96,10 @@ SECTIONS
     PROVIDE_HIDDEN (__exidx_end = .);
 
 
+    . = ALIGN(4);
     .kernelabi 0x41000:
     {
-        . = ALIGN(4);
-        *(.kernelabi);
+        *(.kernelabi)
     } > rom
 
     . = ALIGN(4);

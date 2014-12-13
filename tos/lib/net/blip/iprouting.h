@@ -15,6 +15,7 @@ enum {
   ROUTE_IFACE_ALL = 0,
   ROUTE_IFACE_154 = 1,
   ROUTE_IFACE_PPP = 2,
+  ROUTE_IFACE_ETH0 = 3,
 };
 
 enum {

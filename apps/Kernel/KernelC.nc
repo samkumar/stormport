@@ -48,12 +48,29 @@ configuration KernelC {
 
   KernelMainP.Dmesg -> Dmesg;
 
-  //components new TimerMilliC();
-  //UDPEchoP.StatusTimer -> TimerMilliC;
+  components FlashAttrC;
+  KernelMainP.FlashAttr -> FlashAttrC;
+
+  components new Timer32khzC();
+  KernelMainP.Timer -> Timer32khzC;
 
   components UdpC, IPDispatchC;
 
   components RPLRoutingC;
+  components EthernetP;
+  components IPPacketC;
+  components DummyPacketSenderP;
+  EthernetP.IPControl -> IPStackC;
+  EthernetP.RootControl -> RPLRoutingC;
+  EthernetP.ForwardingTable -> IPStackC;
+  EthernetP.PacketSender -> DummyPacketSenderP;
+  components RplBorderRouterP;
+  RplBorderRouterP.ForwardingEvents -> IPStackC.ForwardingEvents[ROUTE_IFACE_ETH0];
+  RplBorderRouterP.IPPacket -> IPPacketC;
+  components IPForwardingEngineP;
+  IPForwardingEngineP.IPForward[ROUTE_IFACE_ETH0] -> EthernetP.IPForward;
+
+
 
   // prints the routing table
   components StaticIPAddressC; // Use LocalIeee154 in address

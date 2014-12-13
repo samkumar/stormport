@@ -7,6 +7,7 @@
 int storm_vsnprintf(char* buffer, unsigned int buffer_len, const char *fmt, va_list va);
 int storm_snprintf(char* buffer, unsigned int buffer_len, const char *fmt, ...);
 int storm_printf(const char *fmt, ...);
+int storm_write(uint8_t const *buf, int len);
 
 #define vsnprintf storm_vsnprintf
 #define snprintf storm_snprintf

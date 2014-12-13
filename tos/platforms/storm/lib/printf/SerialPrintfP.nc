@@ -277,6 +277,16 @@ implementation
         return ret;
     }
 
+    int storm_write(uint8_t const *buf, int len) @C() @spontaneous()
+    {
+        int ret;
+        for(ret = 0; ret < len; ret++)
+        {
+            call UartByte.send(*buf);
+            buf++;
+        }
+        return ret;
+    }
     command error_t Init.init()
     {
         return SUCCESS;
