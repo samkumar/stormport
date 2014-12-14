@@ -13,6 +13,14 @@ module SocketP
 }
 implementation
 {
+    typedef enum
+    {
+        SocketType_UDP,
+        SocketType_TCP,
+        SocketType_IPRAW,
+        SocketType_GRE
+    } SocketType;
+
     // socket states
     typedef enum
     {
@@ -60,17 +68,6 @@ implementation
 
     typedef enum
     {
-        // initialization states
-        state_reset,
-        state_write_ipaddress,
-        state_write_gatewayip,
-        state_write_subnetmask,
-        state_initialize_sockets_tx,
-        state_initialize_sockets_rx,
-        state_initialize_txwr_txrd,
-        state_finished_init,
-
-        // state_connect states
         state_connect_init,
         state_connect_write_protocol,
         state_connect_write_src_port,
@@ -80,8 +77,17 @@ implementation
         state_connect_write_dst_port,
         state_connect_connect_dst,
         state_connect_wait_connect_dst,
-        state_connect_wait_established
-    } SocketInitState;
+        state_connect_wait_established,
+        state_writeudp_readtxwr,
+        state_writeudp_copytotxbuf,
+        state_writeudp_advancetxwr,
+        state_writeudp_writesendcmd,
+        state_writeudp_waitsendcomplete,
+        state_writeudp_waitsendinterrupt,
+        state_writeudp_clearsend,
+        state_writeudp_cleartimeout,
+        state_writeudp_finished
+    } SocketSendUDPState;
 
     // our own tx buffer
     uint8_t _txbuf [260];
@@ -90,112 +96,52 @@ implementation
     uint8_t * const rxbuf = &_rxbuf[4];
 
     // for the initialization state machine
-    SocketInitState state = state_reset;
+    SocketSendUDPState state = state_connect_init;
 
-    // default chose UDP
-    //TODO: compile option?
-    SocketMode socketmode = SocketMode_UDP;
+    SocketType sockettype;
 
     // local srcport is 1024 by default
     uint16_t srcport = 1024;
+
+    uint16_t destport;
+    uint32_t destip;
+    struct ip_iovec data;
 
     // our socket index
     //TODO: this will become a generic parameter
     uint8_t socket = 0;
 
-    // are we finished initializing the wiz5200?
-    bool initialized = 0;
+    const uint16_t TXBUF_BASE = 0x8000;
+    const uint16_t TXBUF_SIZE = 2048;
+    const uint16_t TXMASK = 0x07FF;
+    uint16_t TXBASE;
+
+    // use for read/write into send/recv buffer
+    uint16_t ptr;
 
     // have we started connecting?
     bool startconnect = 0;
 
-    //TODO: wire this to be called after SPI initialization during platform start
+    bool isinitialized = 0;
+
     // initialize the socket
-    // this should take argumetn saying "be UDP, TCP, etc"
     task void init()
     {
-        switch(state)
+        if (isinitialized)
         {
-        // Reset the chip by writing RST to the mode register
-        case state_reset:
-            state = state_write_ipaddress;
-            txbuf[0] = 0x80;
-            call SocketSpi.writeRegister(0x0000, _txbuf, 1);
-            break;
-        //TODO: remember to write src mac address
-        //TODO: global chip settings are a separate component
-        // Write which address we are
-        //TODO: this should come from DHCP or something set at compile time
-        case state_write_ipaddress:
-            state = state_write_gatewayip;
-            // SIBR: 192.168.1.177 src address
-            txbuf[0] = 0xc0;
-            txbuf[1] = 0xa8;
-            txbuf[2] = 0x01;
-            txbuf[3] = 0xb1;
-            call SocketSpi.writeRegister(0x000F, _txbuf, 4);
-            break;
-
-        // Write the gateway ip
-        case state_write_gatewayip:
-            // GAR: 192.168.1.1
-            state = state_write_subnetmask;
-            txbuf[0] = 0xc0;
-            txbuf[1] = 0xa8;
-            txbuf[2] = 0x01;
-            txbuf[3] = 0x01;
-            call SocketSpi.writeRegister(0x0001, _txbuf, 4);
-            break;
-
-        // Write the subnet mask
-        case state_write_subnetmask:
-            // SUBR: 255.255.255.0
-            state = state_initialize_sockets_tx;
-            txbuf[0] = 0xff;
-            txbuf[1] = 0xff;
-            txbuf[2] = 0xff;
-            txbuf[3] = 0x00;
-            call SocketSpi.writeRegister(0x0005, _txbuf, 4);
-            break;
-
-        // Initialize the socket with its tx buffersize, as determined by the Wiz5200 chip
-        case state_initialize_sockets_tx:
-            state = state_initialize_sockets_rx;
-            txbuf[0] = 0x02;
-            call SocketSpi.writeRegister(0x4000 + socket * 0x100 + 0x001F, _txbuf, 1);
-            break;
-
-        // Initialize the sockets with their rx buffersize, as determined by the Wiz5200 chip
-        case state_initialize_sockets_rx:
-            state = state_initialize_txwr_txrd;
-            txbuf[0] = 0x02;
-            call SocketSpi.writeRegister(0x4000 + socket * 0x100 + 0x001E, _txbuf, 1);
-            break;
-
-        // Clears the TX read and write pointers for the buffer
-        case state_initialize_txwr_txrd:
-            txbuf[0] = 0x0;
-            txbuf[1] = 0x0;
-            txbuf[2] = 0x0;
-            txbuf[3] = 0x0;
-            call SocketSpi.writeRegister(0x4000 + socket * 0x100 + 0x0022, _txbuf, 4);
-            initialized = 1;
-
+            return;
         }
-    }
 
-    // opens a socket to a destination
-    task void openConnection()
-    {
+        TXBASE = TXBUF_BASE + TXBUF_SIZE * socket;
+
         switch(state)
         {
-
         // find an available socket to use
         case state_connect_init:
             if (startconnect & (*rxbuf == SocketState_CLOSED || *rxbuf == SocketState_FIN_WAIT || *rxbuf == SocketState_CLOSE_WAIT))
             {
                 state = state_connect_write_protocol;
-                post openConnection(); // go to next state
+                post init(); // go to next state
                 break;
             }
             // read the state of the socket
@@ -208,7 +154,19 @@ implementation
         // configure which mode of socket (UDP, TCP, etc)
         case state_connect_write_protocol:
             state = state_connect_write_src_port;
-            txbuf[0] = socketmode;
+            switch(sockettype)
+            {
+                case SocketType_UDP:
+                case SocketType_GRE:
+                    txbuf[0] = SocketMode_UDP;
+                    break;
+                case SocketType_TCP:
+                    txbuf[0] = SocketMode_TCP;
+                    break;
+                case SocketType_IPRAW:
+                    txbuf[0] = SocketMode_IPRAW;
+                    break;
+            }
             call SocketSpi.writeRegister(0x4000 + socket * 0x100, _txbuf, 1);
             break;
 
@@ -235,50 +193,130 @@ implementation
             call SocketSpi.readRegister(0x4000 + socket * 0x100 + 0x0001, _rxbuf, 1);
             if (!(*rxbuf)) // if 0, then it went through
             {
-                state = state_connect_write_dst_ipaddress;
+                isinitialized = 1; // prevent anyone from calling this again
             }
             break;
 
+        }
+    }
+
+    // opens a socket to a destination
+    task void sendUDPPacket()
+    {
+        int data_length = 0;
+        switch(state)
+        {
+
         // write our destination address to the correct register
-        //TODO: have this come from compile flag?
         case state_connect_write_dst_ipaddress:
             state = state_connect_write_dst_port;
-            // 192.168.1.178
-            txbuf[0] = 0xc0;
-            txbuf[1] = 0xa8;
-            txbuf[2] = 0x01;
-            txbuf[3] = 0xb2;
+            txbuf[0] = destip >> (3 * 8);
+            txbuf[1] = destip >> (2 * 8);
+            txbuf[2] = destip >> (1 * 8);
+            txbuf[3] = destip >> (0 * 8);
             call SocketSpi.writeRegister(0x4000 + socket * 0x100 + 0x000C, _txbuf, 4);
             break;
-        
+
         // write the destination port to the register
-        //TODO: have this come from compile flag
         case state_connect_write_dst_port:
             state = state_connect_wait_established;
-            // port 7000
             // little endian
-            txbuf[0] = (7000 >> 8);
-            txbuf[1] = 7000 & 0xff;
+            txbuf[0] = (destport >> 8);
+            txbuf[1] = destport & 0xff;
             call SocketSpi.writeRegister(0x4000 + socket + 0x100 + 0x0010, _txbuf, 2);
             break;
 
         // wait until the connection is established.
         // For UDP we want the state to be SocketState_UDP
-        //TODO: handle TCP here
         case state_connect_wait_established:
             call SocketSpi.readRegister(0x4000 + socket * 0x100 + 0x0003, _rxbuf, 1);
             if (*rxbuf == SocketState_UDP)
             {
                 //finished
+                state = state_writeudp_readtxwr;
             }
+            break;
+
+        case state_writeudp_readtxwr:
+            call SocketSpi.readRegister(0x4000 + socket * 0x100 + 0x0024, _rxbuf, 2);
+            //ptr = ((uint16_t)_rxbuf[0] << 8) | rxbuf[1];
+            // placeholder for doign stuff w/ ptr later
+            state = state_writeudp_copytotxbuf;
+            break;
+
+        case state_writeudp_copytotxbuf:
+            data_length = iov_len(&data);
+            //TODO offset is 0 for now; assume we can fit it all in the send buffer. need to bounds check
+            iov_read(&data, 0, data_length, txbuf);
+            call SocketSpi.writeRegister(TXBASE + (ptr & TXMASK), _txbuf, data_length);
+            state = state_writeudp_advancetxwr;
+            break;
+
+        case state_writeudp_advancetxwr:
+            data_length = iov_len(&data);
+            ptr += data_length;
+            txbuf[0] = (ptr >> 8);
+            txbuf[1] = ptr & 0xff;
+            call SocketSpi.writeRegister(0x4000 + socket * 0x100 + 0x0024, _txbuf, 2);
+            state = state_writeudp_writesendcmd;
+            break;
+
+        case state_writeudp_writesendcmd:
+            txbuf[0] = SocketCommand_SEND;
+            call SocketSpi.writeRegister(0x4000 + socket * 0x100 + 0x0001, _txbuf, 1);
+            state = state_writeudp_waitsendcomplete;
+            break;
+
+        case state_writeudp_waitsendcomplete:
+            call SocketSpi.readRegister(0x4000 + socket * 0x100 + 0x0001, _rxbuf, 1);
+            if (!(*rxbuf))
+            {
+                // finished writing SEND
+                state = state_writeudp_waitsendinterrupt;
+            }
+            break;
+
+        case state_writeudp_waitsendinterrupt:
+            call SocketSpi.readRegister(0x4000 + socket * 0x100 + 0x0002, _rxbuf, 2);
+            if ((*rxbuf & 0x10) != 0x10 ) { // true if SEND_OK has not completed
+                if (*rxbuf & 0x08) { // true if TIMEOUT
+                    printf("timeout on send\n");
+                    state = state_writeudp_cleartimeout; // clear timeout bit
+                }
+            } else {
+                state = state_writeudp_clearsend;
+            }
+            break;
+
+        case state_writeudp_clearsend:
+            txbuf[0] = 0x10; //SEND_OK -- clear interrupt bit
+            call SocketSpi.writeRegister(0x4000 + socket * 0x100 + 0x0002, _txbuf, 1);
+            state = state_writeudp_finished;
+            break;
+
+        case state_writeudp_cleartimeout:
+            txbuf[0] = 0x10 | 0x08; //SEND_OK | TIMEOUT -- clear interrupt bit
+            call SocketSpi.writeRegister(0x4000 + socket * 0x100 + 0x0002, _txbuf, 1);
+            state = state_writeudp_finished;
             break;
         }
     }
 
-//    command void sendUDP(uint16_t src, uint16_t dst)
-//    {
-//    }
-//
+    command void UDPSocket.initialize()
+    {
+        sockettype = SocketType_UDP;
+        post init();
+    }
+
+    command void UDPSocket.sendPacket(uint16_t destport, uint32_t destip, struct ip_iovec data)
+    {
+        destport = destport;
+        destip = destip;
+        data = data;
+        state = state_connect_write_dst_ipaddress;
+        post sendUDPPacket();
+    }
+
     event void Timer.fired()
     {
         post init();
@@ -289,4 +327,9 @@ implementation
     {
         call Timer.startOneShot(20);
     }
+
+    //default command void UDPSocket.initialize() {}
+    //default command void UDPSocket.sendPacket(uint16_t destport, uint32_t destip, struct ip_iovec data) {}
+    //default event void UDPSocket.sendPacketDone(error_t error) {}
+    //default event void UDPSocket.packetReceived(uint16_t srcport, uint32_t srcip, uint8_t *buf, uint16_t len) {}
 }

@@ -1,7 +1,7 @@
 interface UDPSocket
 {
-  // Srcport is little endian
-  command void initialize(uint16_t srcport);
+  // use this socket for UDP
+  command void initialize();
 
   // Destport is in little endian, destip is in big endian (network byte order).
   command void sendPacket(uint16_t destport, uint32_t destip, struct ip_iovec data);
