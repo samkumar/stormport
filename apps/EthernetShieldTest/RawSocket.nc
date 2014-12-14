@@ -1,4 +1,4 @@
-interface
+interface RawSocket
 {
     command void sendPacket(struct ip_iovec data);
 
