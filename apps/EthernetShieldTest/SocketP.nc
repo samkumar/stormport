@@ -8,7 +8,7 @@ module SocketP
 {
     uses interface SocketSpi;
     uses interface Timer<T32khz> as Timer;
-    provides interface RawSocket;
+    //provides interface RawSocket;
     provides interface UDPSocket;
 }
 implementation

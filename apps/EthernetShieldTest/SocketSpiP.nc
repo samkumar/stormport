@@ -17,7 +17,7 @@ implementation
 
     //TODO: need to figure out how to wire this to boot or init for platform?
     // initializes SPI
-    async command void Init.init()
+    command error_t Init.init()
     {
         printf("Initializing Spi to talk to Wiz5200\n");
         call EthernetSS.makeOutput();
