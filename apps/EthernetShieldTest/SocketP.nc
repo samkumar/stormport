@@ -2,7 +2,6 @@
  * the state machien will setup src port and src address during init.
  * on each sendUDP(dstport, dstaddress, iovec), we do the further init on the chip
  * for sending to that destination (iovec is what we write)
- * make this implement PacketSender
  */
 module SocketP
 {
@@ -86,7 +85,8 @@ implementation
         state_writeudp_waitsendinterrupt,
         state_writeudp_clearsend,
         state_writeudp_cleartimeout,
-        state_writeudp_finished
+        state_writeudp_finished,
+        state_writeudp_error
     } SocketSendUDPState;
 
     // our own tx buffer
@@ -297,7 +297,15 @@ implementation
         case state_writeudp_cleartimeout:
             txbuf[0] = 0x10 | 0x08; //SEND_OK | TIMEOUT -- clear interrupt bit
             call SocketSpi.writeRegister(0x4000 + socket * 0x100 + 0x0002, _txbuf, 1);
-            state = state_writeudp_finished;
+            state = state_writeudp_error; // timedout on send
+            break;
+
+        case state_writeudp_finished:
+            signal UDPSocket.sendPacketDone(SUCCESS);
+            break;
+
+        case state_writeudp_error:
+            signal UDPSocket.sendPacketDone(FAIL);
             break;
         }
     }
@@ -328,8 +336,6 @@ implementation
         call Timer.startOneShot(20);
     }
 
-    //default command void UDPSocket.initialize() {}
-    //default command void UDPSocket.sendPacket(uint16_t destport, uint32_t destip, struct ip_iovec data) {}
-    //default event void UDPSocket.sendPacketDone(error_t error) {}
-    //default event void UDPSocket.packetReceived(uint16_t srcport, uint32_t srcip, uint8_t *buf, uint16_t len) {}
+    default event void UDPSocket.sendPacketDone(error_t error) {}
+    default event void UDPSocket.packetReceived(uint16_t srcport, uint32_t srcip, uint8_t *buf, uint16_t len) {}
 }

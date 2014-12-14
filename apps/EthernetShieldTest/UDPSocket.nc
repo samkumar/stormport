@@ -1,3 +1,5 @@
+#include <lib6lowpan/iovec.h>
+
 interface UDPSocket
 {
   // use this socket for UDP
