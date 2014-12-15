@@ -32,6 +32,7 @@ implementation
         call SpiHPL.enableRX();
 
         //TODO: initialize internal state
+        printf("SPI initialized\n");
 
     }
 

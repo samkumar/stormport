@@ -10,6 +10,9 @@ implementation
   SocketSpiP.SpiHPL -> Sam4lUSART0C;
   SocketSpiP.EthernetSS -> HplSam4lIOC.PB11;
 
+  // is this the correct way to do this?
+  MainC.SoftwareInit -> SocketSpiP;
+
   components EthernetShieldConfigC;
   components new Timer32khzC() as EthernetShieldTimer;
   EthernetShieldConfigC.Timer -> EthernetShieldTimer;

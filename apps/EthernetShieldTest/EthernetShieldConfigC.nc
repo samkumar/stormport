@@ -44,9 +44,11 @@ implementation
 
     task void init()
     {
+        printf("current state %d\n", state);
         switch(state)
         {
         case state_reset:
+            printf("state reset\n");
             state = state_write_ipaddress;
             txbuf[0] = 0x80;
             call SocketSpi.writeRegister(0x0000, _txbuf, 1);
@@ -54,6 +56,7 @@ implementation
 
         // Write which address we are
         case state_write_ipaddress:
+            printf("state_write_ipaddress\n");
             state = state_write_gatewayip;
             txbuf[0] = src_ip >> (3 * 8);
             txbuf[1] = src_ip >> (2 * 8);
@@ -118,6 +121,7 @@ implementation
 
         // termination case
         case state_initialize_finished:
+            printf("Ethernet shield initialized!\n");
             break;
         }
     }

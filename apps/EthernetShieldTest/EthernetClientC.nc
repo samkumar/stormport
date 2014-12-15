@@ -18,8 +18,9 @@ implementation
          uint32_t gateway = 192 << 24 | 168 << 16 | 1 << 8 | 1;
          uint8_t *mac = "\xde\xad\xbe\xef\xfe\xed";
          call EthernetShieldConfig.initialize(srcip, netmask, gateway, mac);
-         call UDPSocket.initialize();
-         call Timer.startOneShot(5000);
+         //TODO: uncomment these once we figure out how to get initialize above to block?
+         //call UDPSocket.initialize();
+         //call Timer.startOneShot(5000);
     }
 
     event void UDPSocket.sendPacketDone(error_t error)
