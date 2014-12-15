@@ -7,11 +7,17 @@ module EthernetClientC
     uses interface Boot;
     uses interface Timer<T32khz> as Timer;
     uses interface UDPSocket;
+    uses interface EthernetShieldConfig;
 }
 implementation
 {
     event void Boot.booted()
     {
+         uint32_t srcip = 192 << 24 | 168 << 16 | 1 << 8 | 177;
+         uint32_t netmask = 255 << 24 | 255 << 16 | 255 << 8 | 0;
+         uint32_t gateway = 192 << 24 | 168 << 16 | 1 << 8 | 1;
+         uint8_t *mac = "\xde\xad\xbe\xef\xfe\xed";
+         call EthernetShieldConfig.initialize(srcip, netmask, gateway, mac);
          call UDPSocket.initialize();
          call Timer.startOneShot(5000);
     }

@@ -17,21 +17,32 @@ implementation
         state_initialize_sockets_tx,
         state_initialize_sockets_rx,
         state_initialize_txwr_txrd,
-        state_finished_init
+        state_initialize_finished
     } SocketInitState;
 
     SocketInitState state = state_reset;
 
+    uint8_t socket = 0;
+    uint32_t src_ip, netmask, gateway;
+    uint8_t *mac;
+
     // our own tx buffer
-    uint8_t _txbuf [260];
+    uint8_t _txbuf [10];
     uint8_t * const txbuf = &_txbuf[4];
-    uint8_t _rxbuf [260];
-    uint8_t * const rxbuf = &_rxbuf[4];
 
     // loop index
     int i = 0;
 
-    command void initialize(uint32_t src_ip, uint32_t netmask, uint32_t gateway, uint8_t *mac)
+    command void EthernetShieldConfig.initialize(uint32_t src_ip, uint32_t netmask, uint32_t gateway, uint8_t *mac)
+    {
+        src_ip = src_ip;
+        netmask = netmask;
+        gateway = gateway;
+        mac = mac;
+        call Timer.startOneShot(20);
+    }
+
+    task void init()
     {
         switch(state)
         {
@@ -75,7 +86,7 @@ implementation
             state = state_initialize_sockets_tx;
             for (i=0; i < 6; i++)
             {
-                txbuf[i] = *mac[i];
+                txbuf[i] = mac[i];
             }
             call SocketSpi.writeRegister(0x0009, _txbuf, 6);
             break;
@@ -110,4 +121,14 @@ implementation
             break;
         }
     }
+    event void Timer.fired()
+    {
+        post init();
+    }
+    
+    event void SocketSpi.taskDone(error_t error, uint8_t *buf, uint8_t len)
+    {
+        call Timer.startOneShot(20);
+    }
+
 }
