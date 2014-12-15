@@ -2,6 +2,7 @@ module EthernetShieldConfigC
 {
     uses interface SocketSpi;
     uses interface Timer<T32khz> as Timer;
+    uses interface Resource as SpiResource;
     provides interface EthernetShieldConfig;
 }
 implementation
@@ -39,6 +40,8 @@ implementation
         netmask = netmask;
         gateway = gateway;
         mac = mac;
+        printf("immediate request spi\n");
+        printf("requset: %d %d\n", call SpiResource.immediateRequest(), SUCCESS);
         call Timer.startOneShot(20);
     }
 
@@ -122,9 +125,12 @@ implementation
         // termination case
         case state_initialize_finished:
             printf("Ethernet shield initialized!\n");
+            printf("released: %d\n", call SpiResource.release());
+            printf("ami owner %d\n", call SpiResource.isOwner());
             break;
         }
     }
+
     event void Timer.fired()
     {
         post init();
@@ -132,7 +138,16 @@ implementation
     
     event void SocketSpi.taskDone(error_t error, uint8_t *buf, uint8_t len)
     {
+        if (!(call SpiResource.isOwner()))
+        {
+            return;
+        }
         call Timer.startOneShot(20);
+    }
+
+    event void SpiResource.granted()
+    {
+        printf("granted shoudl not see\n");
     }
 
 }

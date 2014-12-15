@@ -1,3 +1,5 @@
+#include "ethernetshield.h"
+
 configuration EthernetClientAppC
 {
 }
@@ -10,6 +12,11 @@ implementation
   SocketSpiP.SpiHPL -> Sam4lUSART0C;
   SocketSpiP.EthernetSS -> HplSam4lIOC.PB11;
 
+  // arbiter
+  components new FcfsArbiterC("ETHERNETCLIENT") as arbiter;
+  components EthernetClientResourceConfigureP;
+  arbiter.ResourceConfigure -> EthernetClientResourceConfigureP.ResourceConfigure;
+
   // is this the correct way to do this?
   MainC.SoftwareInit -> SocketSpiP;
 
@@ -17,8 +24,10 @@ implementation
   components new Timer32khzC() as EthernetShieldTimer;
   EthernetShieldConfigC.Timer -> EthernetShieldTimer;
   EthernetShieldConfigC.SocketSpi -> SocketSpiP.SocketSpi;
+  EthernetShieldConfigC.SpiResource -> arbiter.Resource[unique(ETHERNETRESOURCE_ID)];
 
   EthernetClientC.Boot -> MainC;
+
   components SerialPrintfC;
   components new Timer32khzC();
   EthernetClientC.Timer -> Timer32khzC;
@@ -26,7 +35,11 @@ implementation
   components new Timer32khzC() as SocketPTimer;
   SocketP.SocketSpi -> SocketSpiP.SocketSpi;
   SocketP.Timer -> SocketPTimer;
+  SocketP.SpiResource -> arbiter.Resource[unique(ETHERNETRESOURCE_ID)];
+  SocketP.ArbiterInfo -> arbiter.ArbiterInfo;
 
   EthernetClientC.UDPSocket -> SocketP.UDPSocket;
+  EthernetClientC.SpiResource -> arbiter.Resource[unique(ETHERNETRESOURCE_ID)];
+  EthernetClientC.ArbiterInfo -> arbiter.ArbiterInfo;
   EthernetClientC.EthernetShieldConfig -> EthernetShieldConfigC;
 }

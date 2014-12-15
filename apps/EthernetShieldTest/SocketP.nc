@@ -7,6 +7,8 @@ module SocketP
 {
     uses interface SocketSpi;
     uses interface Timer<T32khz> as Timer;
+    uses interface Resource as SpiResource;
+    uses interface ArbiterInfo;
     //provides interface RawSocket;
     provides interface UDPSocket;
 }
@@ -132,8 +134,10 @@ implementation
             return;
         }
 
+
         TXBASE = TXBUF_BASE + TXBUF_SIZE * socket;
 
+        printf("udp init state %d\n", state);
         switch(state)
         {
         // find an available socket to use
@@ -313,7 +317,9 @@ implementation
     command void UDPSocket.initialize()
     {
         sockettype = SocketType_UDP;
-        post init();
+        printf("init is owner? %d\n", call SpiResource.isOwner());
+        printf("udp socket request %d %d\n", call SpiResource.request(), EBUSY);
+        //call Timer.startOneShot(10000);
     }
 
     command void UDPSocket.sendPacket(uint16_t destport, uint32_t destip, struct ip_iovec data)
@@ -327,15 +333,34 @@ implementation
 
     event void Timer.fired()
     {
+        printf("udp timer fired\n");
+        printf("is owner? %d\n", call SpiResource.isOwner());
+        printf("udp socket request %d %d\n", call SpiResource.request(), EBUSY);
+        if (!(call SpiResource.isOwner()))
+        {
+            return;
+        }
         post init();
     }
 
     // signal that write or read is done
     event void SocketSpi.taskDone(error_t error, uint8_t *buf, uint8_t len)
     {
+        printf("is owner? %d\n", call SpiResource.isOwner());
+        if (!(call SpiResource.isOwner()))
+        {
+            printf("tried, but is not owner\n");
+            return;
+        }
         call Timer.startOneShot(20);
     }
 
     default event void UDPSocket.sendPacketDone(error_t error) {}
     default event void UDPSocket.packetReceived(uint16_t srcport, uint32_t srcip, uint8_t *buf, uint16_t len) {}
+
+    event void SpiResource.granted()
+    {
+        printf("granted should see once: %d\n", call SpiResource.isOwner());
+        post init();
+    }
 }

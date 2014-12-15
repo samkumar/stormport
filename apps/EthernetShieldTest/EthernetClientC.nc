@@ -1,6 +1,7 @@
 #include "printf.h"
 #include <lib6lowpan/iovec.h>
 #include <usarthardware.h>
+#include "ethernetshield.h"
 
 module EthernetClientC
 {
@@ -8,21 +9,32 @@ module EthernetClientC
     uses interface Timer<T32khz> as Timer;
     uses interface UDPSocket;
     uses interface EthernetShieldConfig;
+
+    uses interface ArbiterInfo;
+
+    uses interface Resource as SpiResource;
 }
 implementation
 {
     event void Boot.booted()
     {
-         uint32_t srcip = 192 << 24 | 168 << 16 | 1 << 8 | 177;
-         uint32_t netmask = 255 << 24 | 255 << 16 | 255 << 8 | 0;
-         uint32_t gateway = 192 << 24 | 168 << 16 | 1 << 8 | 1;
-         uint8_t *mac = "\xde\xad\xbe\xef\xfe\xed";
-         call EthernetShieldConfig.initialize(srcip, netmask, gateway, mac);
-         //TODO: uncomment these once we figure out how to get initialize above to block?
-         //call UDPSocket.initialize();
-         //call Timer.startOneShot(5000);
-    }
+        uint32_t srcip = 192 << 24 | 168 << 16 | 1 << 8 | 177;
+        uint32_t netmask = 255 << 24 | 255 << 16 | 255 << 8 | 0;
+        uint32_t gateway = 192 << 24 | 168 << 16 | 1 << 8 | 1;
+        uint8_t *mac = "\xde\xad\xbe\xef\xfe\xed";
 
+        printf("user %d\n", call ArbiterInfo.userId());
+
+        call EthernetShieldConfig.initialize(srcip, netmask, gateway, mac);
+
+        printf("user %d\n", call ArbiterInfo.userId());
+
+        call UDPSocket.initialize();
+
+        printf("uniqe count: %d\n", uniqueCount(ETHERNETRESOURCE_ID));
+        //call Timer.startOneShot(5000);
+        // need resource here too
+    }
     event void UDPSocket.sendPacketDone(error_t error)
     {
         printf("sent a packet\n");
@@ -45,5 +57,10 @@ implementation
         out.iov_len = 6;
         out.iov_next = NULL;
         call UDPSocket.sendPacket(destport, destip, out);
+    }
+
+    event void SpiResource.granted()
+    {
+        printf("got resource in ethernetclietnc\n");
     }
 }
