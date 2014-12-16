@@ -28,7 +28,7 @@ implementation
         call UDPSocket.initialize();
 
         //printf("uniqe count: %d\n", uniqueCount(ETHERNETRESOURCE_ID));
-        //call Timer.startOneShot(10000);
+        call Timer.startOneShot(10000);
     }
     event void UDPSocket.sendPacketDone(error_t error)
     {
@@ -46,11 +46,11 @@ implementation
     {
         // send a packet out
         struct ip_iovec out;
-        char* hello = "\x68\x65\x6c\x6c\x6f\n";
+        char* hello = "\x68\x65\x6c\x6c\x6f";
         uint32_t destip = 192 << 24 | 168 << 16 | 1 << 8 | 178;
         uint16_t destport = 7000;
         out.iov_base = hello;
-        out.iov_len = 6;
+        out.iov_len = 5;
         out.iov_next = NULL;
         printf("ethernetclient c trying to send packet\n");
         call UDPSocket.sendPacket(destport, destip, out);

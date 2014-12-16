@@ -39,7 +39,7 @@ implementation
 
     // initialize
     // write to W5200 register
-    command void SocketSpi.writeRegister(uint8_t reg_addr, uint8_t *buf, uint8_t len)
+    command void SocketSpi.writeRegister(uint16_t reg_addr, uint8_t *buf, uint8_t len)
     {
         call EthernetSS.clr();
         ssd = 1;
@@ -53,17 +53,17 @@ implementation
     }
 
     // read from W5200 register
-    command void SocketSpi.readRegister(uint8_t reg_addr, uint8_t *buf, uint8_t len)
+    command void SocketSpi.readRegister(uint16_t reg_addr, uint8_t *buf, uint8_t len)
     {
         uint16_t i;
-        for (i = 0; i < len; i++)  buf[4+i] = 0;
+        for (i = 0; i < len; i++)  txbuf[4+i] = 0;
         call EthernetSS.clr();
         ssd = 1;
-        buf[0] = (uint8_t) (reg_addr >> 8); //network byte order
-        buf[1] = (uint8_t) reg_addr;
-        buf[2] = 0x00; //Clear top bit for read
-        buf[3] = len;
-        call SpiPacket.send(buf, _rxbuf, ((int)len) + 4);
+        txbuf[0] = (uint8_t) (reg_addr >> 8); //network byte order
+        txbuf[1] = (uint8_t) reg_addr;
+        txbuf[2] = 0x00; //Clear top bit for read
+        txbuf[3] = len;
+        call SpiPacket.send(txbuf, _rxbuf, ((int)len) + 4);
     }
 
 

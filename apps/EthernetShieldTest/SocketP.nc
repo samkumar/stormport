@@ -272,7 +272,7 @@ implementation
             printf("send UDP: wait until established\n");
             call SocketSpi.readRegister(0x4000 + socket * 0x100 + 0x0003, rxbuf, 1);
             printf("result: 0x%02x 0x%02x 0x%02x\n", *rxbuf, *rxbuf, SocketState_UDP);
-            if (*rxbuf+4 == SocketState_UDP)
+            if (*rxbuf == SocketState_UDP)
             {
                 //finished
                 state = state_writeudp_readtxwr;
@@ -324,7 +324,7 @@ implementation
             break;
 
         case state_writeudp_waitsendinterrupt:
-            printf("send UDP: wait for SEND interrupt\n");
+            //printf("send UDP: wait for SEND interrupt\n");
             call SocketSpi.readRegister(0x4000 + socket * 0x100 + 0x0002, rxbuf, 2);
             if ((*rxbuf & 0x10) != 0x10 ) { // true if SEND_OK has not completed
                 if (*rxbuf & 0x08) { // true if TIMEOUT
@@ -398,7 +398,6 @@ implementation
     {
 
         memcpy(rxbuf, buf, len);
-        printf("buf 0x%02x rxbuf 0x%02x len %d error %d base 0x%02x\n", *buf, *rxbuf, len, error);
 
         if (!(call SpiResource.isOwner()))
         {
