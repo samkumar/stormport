@@ -13,7 +13,7 @@ implementation
   SocketSpiP.EthernetSS -> HplSam4lIOC.PB11;
 
   // arbiter
-  components new FcfsArbiterC("ETHERNETCLIENT") as arbiter;
+  components new FcfsArbiterC(ETHERNETRESOURCE_ID) as arbiter;
   components EthernetClientResourceConfigureP;
   arbiter.ResourceConfigure -> EthernetClientResourceConfigureP.ResourceConfigure;
 
@@ -27,7 +27,6 @@ implementation
   EthernetShieldConfigC.SpiResource -> arbiter.Resource[unique(ETHERNETRESOURCE_ID)];
 
   EthernetClientC.Boot -> MainC;
-
   components SerialPrintfC;
   components new Timer32khzC();
   EthernetClientC.Timer -> Timer32khzC;
@@ -39,7 +38,6 @@ implementation
   SocketP.ArbiterInfo -> arbiter.ArbiterInfo;
 
   EthernetClientC.UDPSocket -> SocketP.UDPSocket;
-  EthernetClientC.SpiResource -> arbiter.Resource[unique(ETHERNETRESOURCE_ID)];
   EthernetClientC.ArbiterInfo -> arbiter.ArbiterInfo;
   EthernetClientC.EthernetShieldConfig -> EthernetShieldConfigC;
 }

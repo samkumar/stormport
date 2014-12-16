@@ -76,6 +76,8 @@ implementation
         state_connect_wait_src_port_opened,
         state_connect_write_dst_ipaddress,
         state_connect_write_dst_port,
+        state_connect_write_connect,
+        state_connect_wait_connect,
         state_connect_connect_dst,
         state_connect_wait_connect_dst,
         state_connect_wait_established,
@@ -94,8 +96,8 @@ implementation
     // our own tx buffer
     uint8_t _txbuf [260];
     uint8_t * const txbuf = &_txbuf[4];
-    uint8_t _rxbuf [260];
-    uint8_t * const rxbuf = &_rxbuf[4];
+    uint8_t rxbuf [260];
+    //uint8_t * const rxbuf = &_rxbuf[4];
 
     // for the initialization state machine
     SocketSendUDPState state = state_connect_init;
@@ -126,6 +128,8 @@ implementation
 
     bool isinitialized = 0;
 
+    bool didsend = 0;
+
     // initialize the socket
     task void init()
     {
@@ -137,11 +141,11 @@ implementation
 
         TXBASE = TXBUF_BASE + TXBUF_SIZE * socket;
 
-        printf("udp init state %d\n", state);
         switch(state)
         {
         // find an available socket to use
         case state_connect_init:
+            printf("UDP init socket 0x%02x\n", *rxbuf);
             if (startconnect & (*rxbuf == SocketState_CLOSED || *rxbuf == SocketState_FIN_WAIT || *rxbuf == SocketState_CLOSE_WAIT))
             {
                 state = state_connect_write_protocol;
@@ -149,7 +153,7 @@ implementation
                 break;
             }
             // read the state of the socket
-            call SocketSpi.readRegister(0x4000 + socket * 0x100 + 0x0003, _rxbuf, 1);
+            call SocketSpi.readRegister(0x4000 + socket * 0x100 + 0x0003, rxbuf, 1);
 
             // run the above check after we've read once
             if (!startconnect) startconnect = 1;
@@ -157,6 +161,7 @@ implementation
 
         // configure which mode of socket (UDP, TCP, etc)
         case state_connect_write_protocol:
+            printf("UDP init write protocol\n");
             state = state_connect_write_src_port;
             switch(sockettype)
             {
@@ -176,6 +181,7 @@ implementation
 
         // write the local src port
         case state_connect_write_src_port:
+            printf("UDP init write src port\n");
             state = state_connect_open_src_port;
             // write the src port in little-endian
             txbuf[0] = (srcport >> 8);
@@ -186,6 +192,7 @@ implementation
 
         // after choosing srcport, wait for it to be opened
         case state_connect_open_src_port:
+            printf("UDP init open src port\n");
             state = state_connect_wait_src_port_opened;
             txbuf[0] = SocketCommand_OPEN;
             call SocketSpi.writeRegister(0x4000 + socket * 0x100 + 0x0001, _txbuf, 1);
@@ -194,10 +201,14 @@ implementation
         // after writing the command to OPEN srcport, wait until it is successful
         // this will loop until the condition is met
         case state_connect_wait_src_port_opened:
-            call SocketSpi.readRegister(0x4000 + socket * 0x100 + 0x0001, _rxbuf, 1);
+            printf("UDP init wait src port opened\n");
+            call SocketSpi.readRegister(0x4000 + socket * 0x100 + 0x0001, rxbuf, 1);
+            printf("opened? 0x%02x\n", *rxbuf);
             if (!(*rxbuf)) // if 0, then it went through
             {
                 isinitialized = 1; // prevent anyone from calling this again
+                printf("Release SPI resource\n");
+                call SpiResource.release();
             }
             break;
 
@@ -207,34 +218,61 @@ implementation
     // opens a socket to a destination
     task void sendUDPPacket()
     {
+        int i;
         int data_length = 0;
         switch(state)
         {
 
         // write our destination address to the correct register
         case state_connect_write_dst_ipaddress:
+            printf("send UDP: write dest address %u\n", destip);
             state = state_connect_write_dst_port;
             txbuf[0] = destip >> (3 * 8);
-            txbuf[1] = destip >> (2 * 8);
-            txbuf[2] = destip >> (1 * 8);
-            txbuf[3] = destip >> (0 * 8);
+            txbuf[1] = (destip >> (2 * 8)) & 0x00ff;
+            txbuf[2] = (destip >> (1 * 8)) & 0x00ff;
+            txbuf[3] = (destip >> (0 * 8)) & 0x00ff;
             call SocketSpi.writeRegister(0x4000 + socket * 0x100 + 0x000C, _txbuf, 4);
             break;
 
         // write the destination port to the register
         case state_connect_write_dst_port:
-            state = state_connect_wait_established;
+            printf("send UDP: write dest port %d\n", destport);
+            state = state_connect_write_connect;
             // little endian
             txbuf[0] = (destport >> 8);
             txbuf[1] = destport & 0xff;
             call SocketSpi.writeRegister(0x4000 + socket + 0x100 + 0x0010, _txbuf, 2);
             break;
 
+        // tell the chip to connect to destination
+        case state_connect_write_connect:
+            printf("send UDP: create connection\n");
+            state = state_connect_wait_connect;
+            txbuf[0] = SocketCommand_CONNECT;
+            call SocketSpi.writeRegister(0x4000 + socket * 0x100 + 0x0001, _txbuf, 1);
+            break;
+
+        // wait for command to be read
+        case state_connect_wait_connect:
+            printf("send UDP: wait for connect command sent\n");
+            call SocketSpi.readRegister(0x4000 + socket * 0x100 + 0x0001, rxbuf, 4);
+            //printf("result: 0x%02x 0x%02x 0x%02x\n", *rxbuf, *rxbuf, *(rxbuf+4));
+            if (didsend && !(*rxbuf))
+            {
+                printf("sent\n");
+                state = state_connect_wait_established;
+                didsend = 0;
+            }
+            didsend = 1;
+            break;
+
         // wait until the connection is established.
         // For UDP we want the state to be SocketState_UDP
         case state_connect_wait_established:
-            call SocketSpi.readRegister(0x4000 + socket * 0x100 + 0x0003, _rxbuf, 1);
-            if (*rxbuf == SocketState_UDP)
+            printf("send UDP: wait until established\n");
+            call SocketSpi.readRegister(0x4000 + socket * 0x100 + 0x0003, rxbuf, 1);
+            printf("result: 0x%02x 0x%02x 0x%02x\n", *rxbuf, *rxbuf, SocketState_UDP);
+            if (*rxbuf+4 == SocketState_UDP)
             {
                 //finished
                 state = state_writeudp_readtxwr;
@@ -242,13 +280,15 @@ implementation
             break;
 
         case state_writeudp_readtxwr:
-            call SocketSpi.readRegister(0x4000 + socket * 0x100 + 0x0024, _rxbuf, 2);
-            //ptr = ((uint16_t)_rxbuf[0] << 8) | rxbuf[1];
+            printf("send UDP:read TX write register\n");
+            call SocketSpi.readRegister(0x4000 + socket * 0x100 + 0x0024, rxbuf, 2);
+            //ptr = ((uint16_t)rxbuf[0] << 8) | rxbuf[1];
             // placeholder for doign stuff w/ ptr later
             state = state_writeudp_copytotxbuf;
             break;
 
         case state_writeudp_copytotxbuf:
+            printf("send UDP: copy payload to TX buffer\n");
             data_length = iov_len(&data);
             //TODO offset is 0 for now; assume we can fit it all in the send buffer. need to bounds check
             iov_read(&data, 0, data_length, txbuf);
@@ -257,6 +297,7 @@ implementation
             break;
 
         case state_writeudp_advancetxwr:
+            printf("send UDP: advance TX write register\n");
             data_length = iov_len(&data);
             ptr += data_length;
             txbuf[0] = (ptr >> 8);
@@ -266,13 +307,15 @@ implementation
             break;
 
         case state_writeudp_writesendcmd:
+            printf("send UDP: write SEND command\n");
             txbuf[0] = SocketCommand_SEND;
             call SocketSpi.writeRegister(0x4000 + socket * 0x100 + 0x0001, _txbuf, 1);
             state = state_writeudp_waitsendcomplete;
             break;
 
         case state_writeudp_waitsendcomplete:
-            call SocketSpi.readRegister(0x4000 + socket * 0x100 + 0x0001, _rxbuf, 1);
+            printf("send UDP: wait SEND complete\n");
+            call SocketSpi.readRegister(0x4000 + socket * 0x100 + 0x0001, rxbuf, 1);
             if (!(*rxbuf))
             {
                 // finished writing SEND
@@ -281,7 +324,8 @@ implementation
             break;
 
         case state_writeudp_waitsendinterrupt:
-            call SocketSpi.readRegister(0x4000 + socket * 0x100 + 0x0002, _rxbuf, 2);
+            printf("send UDP: wait for SEND interrupt\n");
+            call SocketSpi.readRegister(0x4000 + socket * 0x100 + 0x0002, rxbuf, 2);
             if ((*rxbuf & 0x10) != 0x10 ) { // true if SEND_OK has not completed
                 if (*rxbuf & 0x08) { // true if TIMEOUT
                     printf("timeout on send\n");
@@ -293,12 +337,14 @@ implementation
             break;
 
         case state_writeudp_clearsend:
+            printf("send UDP: clear send bit\n");
             txbuf[0] = 0x10; //SEND_OK -- clear interrupt bit
             call SocketSpi.writeRegister(0x4000 + socket * 0x100 + 0x0002, _txbuf, 1);
             state = state_writeudp_finished;
             break;
 
         case state_writeudp_cleartimeout:
+            printf("send UDP: clear timeout bit\n");
             txbuf[0] = 0x10 | 0x08; //SEND_OK | TIMEOUT -- clear interrupt bit
             call SocketSpi.writeRegister(0x4000 + socket * 0x100 + 0x0002, _txbuf, 1);
             state = state_writeudp_error; // timedout on send
@@ -306,10 +352,14 @@ implementation
 
         case state_writeudp_finished:
             signal UDPSocket.sendPacketDone(SUCCESS);
+            printf("Finished packet. Releasing SPI\n");
+            call SpiResource.release();
             break;
 
         case state_writeudp_error:
             signal UDPSocket.sendPacketDone(FAIL);
+            printf("Packet timeout. Releasing SPI\n");
+            call SpiResource.release();
             break;
         }
     }
@@ -317,39 +367,42 @@ implementation
     command void UDPSocket.initialize()
     {
         sockettype = SocketType_UDP;
-        printf("init is owner? %d\n", call SpiResource.isOwner());
-        printf("udp socket request %d %d\n", call SpiResource.request(), EBUSY);
-        //call Timer.startOneShot(10000);
+        printf("udp socket call resource %d\n", call SpiResource.request());
     }
 
-    command void UDPSocket.sendPacket(uint16_t destport, uint32_t destip, struct ip_iovec data)
+    command void UDPSocket.sendPacket(uint16_t dp, uint32_t di, struct ip_iovec d)
     {
-        destport = destport;
-        destip = destip;
-        data = data;
+        destport = dp;
+        destip = di;
+        data = d;
         state = state_connect_write_dst_ipaddress;
-        post sendUDPPacket();
+        printf("send to %u:%d\n", destip, destport);
+        call SpiResource.request();
+        //post sendUDPPacket();
     }
 
     event void Timer.fired()
     {
-        printf("udp timer fired\n");
-        printf("is owner? %d\n", call SpiResource.isOwner());
-        printf("udp socket request %d %d\n", call SpiResource.request(), EBUSY);
-        if (!(call SpiResource.isOwner()))
+        if (!isinitialized)
         {
-            return;
+            post init();
         }
-        post init();
+        else // sending UDP packet
+        {
+            post sendUDPPacket();
+        }
     }
 
     // signal that write or read is done
     event void SocketSpi.taskDone(error_t error, uint8_t *buf, uint8_t len)
     {
-        printf("is owner? %d\n", call SpiResource.isOwner());
+
+        memcpy(rxbuf, buf, len);
+        printf("buf 0x%02x rxbuf 0x%02x len %d error %d base 0x%02x\n", *buf, *rxbuf, len, error);
+
         if (!(call SpiResource.isOwner()))
         {
-            printf("tried, but is not owner\n");
+            //printf("tried, but is not owner\n");
             return;
         }
         call Timer.startOneShot(20);
@@ -360,7 +413,16 @@ implementation
 
     event void SpiResource.granted()
     {
-        printf("granted should see once: %d\n", call SpiResource.isOwner());
-        post init();
+        printf("UDP socket got granted! should see once: %d\n", call SpiResource.isOwner());
+        if (!isinitialized)
+        {
+          printf("initializing granted\n");
+          post init();
+        }
+        else // sending UDP packet
+        {
+            printf("sending udp packet call\n");
+            post sendUDPPacket();
+        }
     }
 }

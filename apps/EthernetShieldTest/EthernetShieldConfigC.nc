@@ -34,15 +34,16 @@ implementation
     // loop index
     int i = 0;
 
-    command void EthernetShieldConfig.initialize(uint32_t src_ip, uint32_t netmask, uint32_t gateway, uint8_t *mac)
+    task void init();
+
+    command void EthernetShieldConfig.initialize(uint32_t si, uint32_t nm, uint32_t gw, uint8_t *m)
     {
-        src_ip = src_ip;
-        netmask = netmask;
-        gateway = gateway;
-        mac = mac;
-        printf("immediate request spi\n");
-        printf("requset: %d %d\n", call SpiResource.immediateRequest(), SUCCESS);
-        call Timer.startOneShot(20);
+        src_ip = si;
+        netmask = nm;
+        gateway = gw;
+        mac = m;
+        printf("eth shield config immediate request spi: %d %d\n", call SpiResource.immediateRequest(), SUCCESS);
+        post init();
     }
 
     task void init()
@@ -62,9 +63,9 @@ implementation
             printf("state_write_ipaddress\n");
             state = state_write_gatewayip;
             txbuf[0] = src_ip >> (3 * 8);
-            txbuf[1] = src_ip >> (2 * 8);
-            txbuf[2] = src_ip >> (1 * 8);
-            txbuf[3] = src_ip >> (0 * 8);
+            txbuf[1] = (src_ip >> (2 * 8)) & 0x00ff;
+            txbuf[2] = (src_ip >> (1 * 8)) & 0x00ff;
+            txbuf[3] = (src_ip >> (0 * 8)) & 0x00ff;
             call SocketSpi.writeRegister(0x000F, _txbuf, 4);
             break;
 
@@ -72,9 +73,9 @@ implementation
         case state_write_gatewayip:
             state = state_write_subnetmask;
             txbuf[0] = gateway >> (3 * 8);
-            txbuf[1] = gateway >> (2 * 8);
-            txbuf[2] = gateway >> (1 * 8);
-            txbuf[3] = gateway >> (0 * 8);
+            txbuf[1] = (gateway >> (2 * 8)) & 0x00ff;
+            txbuf[2] = (gateway >> (1 * 8)) & 0x00ff;
+            txbuf[3] = (gateway >> (0 * 8)) & 0x00ff;
             call SocketSpi.writeRegister(0x0001, _txbuf, 4);
             break;
 
@@ -82,9 +83,9 @@ implementation
         case state_write_subnetmask:
             state = state_write_mac;
             txbuf[0] = netmask >> (3 * 8);
-            txbuf[1] = netmask >> (2 * 8);
-            txbuf[2] = netmask >> (1 * 8);
-            txbuf[3] = netmask >> (0 * 8);
+            txbuf[1] = (netmask >> (2 * 8)) & 0x00ff;
+            txbuf[2] = (netmask >> (1 * 8)) & 0x00ff;
+            txbuf[3] = (netmask >> (0 * 8)) & 0x00ff;
             call SocketSpi.writeRegister(0x0005, _txbuf, 4);
             break;
 

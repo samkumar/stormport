@@ -14,6 +14,7 @@ implementation
 {
     bool ssd;
     uint8_t _rxbuf [260];
+    uint8_t txbuf[4];
 
     //TODO: need to figure out how to wire this to boot or init for platform?
     // initializes SPI
@@ -69,6 +70,6 @@ implementation
     async event void SpiPacket.sendDone(uint8_t* txBuf, uint8_t* rxBuf, uint16_t len, error_t error)
     {
         // finished sending spipacket
-        signal SocketSpi.taskDone(error, rxBuf, len);
+        signal SocketSpi.taskDone(error, &_rxbuf[4], len-4);
     }
 }

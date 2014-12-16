@@ -11,8 +11,6 @@ module EthernetClientC
     uses interface EthernetShieldConfig;
 
     uses interface ArbiterInfo;
-
-    uses interface Resource as SpiResource;
 }
 implementation
 {
@@ -23,17 +21,14 @@ implementation
         uint32_t gateway = 192 << 24 | 168 << 16 | 1 << 8 | 1;
         uint8_t *mac = "\xde\xad\xbe\xef\xfe\xed";
 
-        printf("user %d\n", call ArbiterInfo.userId());
+        //printf("user %d\n", call ArbiterInfo.userId());
 
         call EthernetShieldConfig.initialize(srcip, netmask, gateway, mac);
 
-        printf("user %d\n", call ArbiterInfo.userId());
-
         call UDPSocket.initialize();
 
-        printf("uniqe count: %d\n", uniqueCount(ETHERNETRESOURCE_ID));
-        //call Timer.startOneShot(5000);
-        // need resource here too
+        //printf("uniqe count: %d\n", uniqueCount(ETHERNETRESOURCE_ID));
+        //call Timer.startOneShot(10000);
     }
     event void UDPSocket.sendPacketDone(error_t error)
     {
@@ -44,6 +39,7 @@ implementation
 
     event void UDPSocket.packetReceived(uint16_t srcport, uint32_t srcip, uint8_t *buf, uint16_t len)
     {
+        printf("received packet udp\n");
     }
 
     event void Timer.fired()
@@ -56,11 +52,7 @@ implementation
         out.iov_base = hello;
         out.iov_len = 6;
         out.iov_next = NULL;
+        printf("ethernetclient c trying to send packet\n");
         call UDPSocket.sendPacket(destport, destip, out);
-    }
-
-    event void SpiResource.granted()
-    {
-        printf("got resource in ethernetclietnc\n");
     }
 }
