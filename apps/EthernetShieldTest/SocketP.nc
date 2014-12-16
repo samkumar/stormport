@@ -241,7 +241,7 @@ implementation
             // little endian
             txbuf[0] = (destport >> 8);
             txbuf[1] = destport & 0xff;
-            call SocketSpi.writeRegister(0x4000 + socket + 0x100 + 0x0010, _txbuf, 2);
+            call SocketSpi.writeRegister(0x4000 + socket * 0x100 + 0x0010, _txbuf, 2);
             break;
 
         // tell the chip to connect to destination
@@ -255,8 +255,7 @@ implementation
         // wait for command to be read
         case state_connect_wait_connect:
             printf("send UDP: wait for connect command sent\n");
-            call SocketSpi.readRegister(0x4000 + socket * 0x100 + 0x0001, rxbuf, 4);
-            //printf("result: 0x%02x 0x%02x 0x%02x\n", *rxbuf, *rxbuf, *(rxbuf+4));
+            call SocketSpi.readRegister(0x4000 + socket * 0x100 + 0x0001, rxbuf, 1);
             if (didsend && !(*rxbuf))
             {
                 printf("sent\n");
