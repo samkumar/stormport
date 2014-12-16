@@ -37,8 +37,14 @@
 #include <lib6lowpan/ip.h>
 #include "version.h"
 #include "blip_printf.h"
+#include "interface.h"
 
 #define REPORT_PERIOD 60L
+extern void __bootstrap_payload(uint32_t base_addr);
+#define __syscall(code) asm volatile (\
+    "push {r4-r11,lr}\n\t"\
+    "svc %[immediate]\n\t"\
+    "pop {r4-r11,lr}"::[immediate] "I" (code):"memory")
 
 module KernelMainP
 {
@@ -80,11 +86,16 @@ implementation
         uint8_t key [10];
         uint8_t val [65];
         uint8_t val_len;
+        error_t rv;
         uint32_t addr;
-        call FlashAttr.getAttr(1, key, val, &val_len);
+        rv = call FlashAttr.getAttr(1, key, val, &val_len);
+        if (rv != SUCCESS)
+        {
+            printf("Could not get flash attr\n");
+        }
         if (val_len != 4)
         {
-            printf("Did not find expected payload entry point");
+            printf("Did not find expected payload entry point: %d", val_len);
             return;
         }
         addr = val[0] + ((uint32_t)val[1] << 8) + ((uint32_t)val[2] << 16) + ((uint32_t)val[3] << 24);
@@ -95,11 +106,10 @@ implementation
         }
         printf("Found payload start at 0x%04x\n", addr);
         payload_running = TRUE;
-        ((void (*)()) addr)();
-
-
-
-
+      /*  __bootstrap_payload(addr);
+        printf("Payload stack generated\n");
+        __syscall(1);
+        printf("after le jump");*/
     }
     event void RadioControl.startDone(error_t e)
     {
@@ -132,29 +142,83 @@ implementation
                 return -1;
         }
     }
-    void (*rt_callback) ();
+    int32_t kabi_read(uint32_t fd, uint8_t *dst, uint32_t size)
+    {
+        switch(fd)
+        {
+            case 0:
+                return storm_read(dst, size);
+            default:
+                return -1;
+        }
+    }
     int32_t kabi_request_timeslice(uint32_t ticks, uint8_t oneshot, void (*callback)())
     {
-        rt_callback = callback;
-        call Timer.startOneShot(1000);
+
     }
     event void Timer.fired()
     {
-        rt_callback();
-        post selftest();
+
     }
-    extern void* proc_table [];
-    void* get_proc_address(uint32_t abi_id) @C() @spontaneous() __attribute__((section(".kernelabi")))
+
+    #define RET_KERNEL 1
+    #define RET_USER 0
+
+    uint32_t sv_call_handler_main(unsigned int *svc_args)
     {
-        if (abi_id < 4)
-            return proc_table[abi_id];
-        return NULL;
+        unsigned int svc_number;
+        int32_t *r_i32, *r_u32;
+        /*
+         * We can extract the SVC number from the SVC instruction. svc_args[6]
+         * points to the program counter (the code executed just before the svc
+         * call). We need to add an offset of -2 to get to the upper byte of
+         * the SVC instruction (the immediate value).
+         */
+        svc_number = ((char *)svc_args[6])[-2];
+        r_i32 = (int32_t *) &svc_args[0];
+        r_u32 = (uint32_t *) &svc_args[0];
+
+        printf("svc number: %d\n", svc_number);
+        switch(svc_number)
+        {
+            case ABI_ID_GET_KERNEL_VERSION:
+                *r_u32 = kabi_get_kernel_version();
+                return RET_USER;
+            case ABI_ID_WRITE:
+                *r_i32 = kabi_write(svc_args[0], (uint8_t*)svc_args[1], svc_args[2]);
+                return RET_USER;
+            case ABI_ID_YIELD:
+                return RET_KERNEL;
+            case ABI_ID_READ:
+                *r_i32 = kabi_read(svc_args[0], (uint8_t*)svc_args[1], svc_args[2]);
+                return RET_USER;
+            default:
+                printf("bad svc number\n");
+                //switch
+                break;
+        }
     }
-    void* proc_table [] = {
-        get_proc_address,           //0
-        kabi_get_kernel_version,    //1
-        kabi_write,                 //2
-        kabi_request_timeslice      //3
-    };
+
+    void SVC_Handler() @C() @spontaneous() __attribute__(( naked ))
+    {
+        /*
+         * Get the pointer to the stack frame which was saved before the SVC
+         * call and use it as first parameter for the C-function (r0)
+         * All relevant registers (r0 to r3, r12 (scratch register), r14 or lr
+         * (link register), r15 or pc (programm counter) and xPSR (program
+         * status register) are saved by hardware.
+         */
+        asm volatile(
+            "tst lr, #4\t\n" /* Check EXC_RETURN[2] */
+            "ite eq\t\n"
+            "mrseq r0, msp\t\n"
+            "mrsne r0, psp\t\n"
+            "bl %[sv_call_handler_main]\t\n"
+            "b __context_switch\t\n"
+            : /* no output */
+            : [sv_call_handler_main] "i" (sv_call_handler_main)
+            : "r0" /* clobber */
+        );
+    }
 
 }
