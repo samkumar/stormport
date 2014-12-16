@@ -106,10 +106,10 @@ implementation
         }
         printf("Found payload start at 0x%04x\n", addr);
         payload_running = TRUE;
-      /*  __bootstrap_payload(addr);
+        __bootstrap_payload(addr);
         printf("Payload stack generated\n");
         __syscall(1);
-        printf("after le jump");*/
+        printf("after le jump");
     }
     event void RadioControl.startDone(error_t e)
     {
@@ -141,6 +141,7 @@ implementation
             default:
                 return -1;
         }
+
     }
     int32_t kabi_read(uint32_t fd, uint8_t *dst, uint32_t size)
     {
@@ -178,19 +179,19 @@ implementation
         r_i32 = (int32_t *) &svc_args[0];
         r_u32 = (uint32_t *) &svc_args[0];
 
-        printf("svc number: %d\n", svc_number);
+        //printf("svc number: %d\n", svc_number);
         switch(svc_number)
         {
             case ABI_ID_GET_KERNEL_VERSION:
                 *r_u32 = kabi_get_kernel_version();
                 return RET_USER;
             case ABI_ID_WRITE:
-                *r_i32 = kabi_write(svc_args[0], (uint8_t*)svc_args[1], svc_args[2]);
+                *r_i32 = kabi_write(svc_args[0], (uint8_t*)(svc_args[1]), svc_args[2]);
                 return RET_USER;
             case ABI_ID_YIELD:
                 return RET_KERNEL;
             case ABI_ID_READ:
-                *r_i32 = kabi_read(svc_args[0], (uint8_t*)svc_args[1], svc_args[2]);
+                *r_i32 = kabi_read(svc_args[0], (uint8_t*)(svc_args[1]), svc_args[2]);
                 return RET_USER;
             default:
                 printf("bad svc number\n");

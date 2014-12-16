@@ -3,10 +3,24 @@
 #include <stdint.h>
 #include <sys/stat.h>
 
-get_proc_address_t      get_proc_address = (get_proc_address_t)(0x41001);
-get_kernel_version_t    get_kernel_version;
-write_t                 write;
-request_timeslice_t     request_timeslice;
+
+volatile uint32_t foobar;
+uint32_t __attribute__((noinline)) k_get_kernel_version()
+{
+    __syscall(ABI_ID_GET_KERNEL_VERSION);
+}
+int32_t __attribute__((noinline)) k_write(uint32_t fd, uint8_t const *src, uint32_t size)
+{
+    __syscall(ABI_ID_WRITE);
+}
+void __attribute__((noinline)) k_yield()
+{
+    __syscall(ABI_ID_YIELD);
+}
+int32_t __attribute__((noinline)) k_read(uint32_t fd, uint8_t *dst, uint32_t size)
+{
+    __syscall(ABI_ID_READ);
+}
 
 extern void* __ram_end__;
 void* _sbrk(uint32_t increment)
@@ -30,7 +44,8 @@ int _isatty(int fd)
 }
 int _write(int fd, const void *buf, uint32_t count)
 {
-    return write(fd, buf, count);
+    k_write(fd, buf, count);
+    return count;
 }
 int _close(int fd)
 {
@@ -46,14 +61,13 @@ int _lseek(int fd, uint32_t offset, int whence)
 }
 int _read(int fd, void *buf, uint32_t count)
 {
-    return -1;
+    uint32_t got = 0;
+    while(got < count) {
+        got += k_read(fd, buf + got, count - got);
+    }
+    return got;
 }
-void loadsyms()
-{
-    get_kernel_version  = get_proc_address(ABI_ID_GET_KERNEL_VERSION);
-    write               = get_proc_address(ABI_ID_WRITE);
-    request_timeslice   = get_proc_address(ABI_ID_REQUEST_TIMESLICE);
-}
+
 
 // Symbols defined in the linker file
 extern uint32_t _sfixed;
@@ -70,9 +84,19 @@ extern void (*_init)();
 //Main function
 extern void setup();
 
-/* This function is intended to return! */
-void _start()
+extern void main();
+
+void __attribute__(( naked )) _start()
 {
+    asm volatile("ldr r0, =_start2\n\t"
+                 "ldr r1, =_estack\n\t"
+                 "bx lr" : : : "r0", "r1" );
+}
+
+/* This function is not intended to return! */
+void _start2()
+{
+    //asm volatile(" LDR sp, =_estack");
     uint32_t *pSrc, *pDest;
 
     /* Move the relocate segment */
@@ -83,12 +107,14 @@ void _start()
 	/* Clear the zero segment */
 	for (pDest = &_szero; pDest < &_ezero;) *pDest++ = 0;
 
+    main();
     /* load symbols */
-    loadsyms();
+    //loadsyms();
 
     /* create a timeslice for the setup() function */
-    request_timeslice(1, 1, setup);
+    //request_timeslice(1, 1, setup);
 
     /* return back to the kernel */
+
     return;
 }
