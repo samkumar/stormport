@@ -7,8 +7,17 @@
 #define __syscall(code) asm volatile (\
     "push {r4-r11,lr}\n\t"\
     "svc %[immediate]\n\t"\
-    "pop {r4-r11,lr}"::[immediate] "I" (code):"memory", "r0", "r1", "r2", "r3")
+    "pop {r4-r11,lr}\n\t"\
+    "bx lr"::[immediate] "I" (code):"memory", "r0", "r1", "r2", "r3")
 
+
+#if 0
+#define __syscall(code, rv) asm volatile (\
+    "push {r4-r11,lr}\n\t"\
+    "svc %[immediate]\n\t"\
+    "mov %[rv],r0\n\t"\
+    "pop {r4-r11,lr}":=r"rv":[immediate] "I" (code):"memory", "r0", "r1", "r2", "r3")
+#endif
 /**
  * Get the version of the kernel on the system.
  *
@@ -61,4 +70,5 @@ void k_yield();
 int32_t k_read(uint32_t fd, uint8_t *dst, uint32_t size);
 #define ABI_ID_READ 4
 
+int _read(int fd, void *buf, uint32_t count);
 #endif

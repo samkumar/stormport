@@ -5,11 +5,15 @@
 volatile uint32_t foobar;
 void main()
 {
+    char inarray [80];
     while(1)
     {
         foobar = 1;
+        _read(0, inarray, 5);
+        inarray[5] = 0;
         //_write(10, (uint8_t*) 20, 30);
-        printf("Hello world\n");
+        //fgets(inarray, 78, stdin);
+        printf("c: %02x", inarray[0]);
         foobar = 2;
     }
 }

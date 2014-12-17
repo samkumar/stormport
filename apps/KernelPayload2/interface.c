@@ -5,19 +5,19 @@
 
 
 volatile uint32_t foobar;
-uint32_t __attribute__((noinline)) k_get_kernel_version()
+uint32_t __attribute__((naked)) k_get_kernel_version()
 {
     __syscall(ABI_ID_GET_KERNEL_VERSION);
 }
-int32_t __attribute__((noinline)) k_write(uint32_t fd, uint8_t const *src, uint32_t size)
+int32_t __attribute__((naked)) k_write(uint32_t fd, uint8_t const *src, uint32_t size)
 {
     __syscall(ABI_ID_WRITE);
 }
-void __attribute__((noinline)) k_yield()
+void __attribute__((naked)) k_yield()
 {
     __syscall(ABI_ID_YIELD);
 }
-int32_t __attribute__((noinline)) k_read(uint32_t fd, uint8_t *dst, uint32_t size)
+int32_t __attribute__((naked)) k_read(uint32_t fd, uint8_t *dst, uint32_t size)
 {
     __syscall(ABI_ID_READ);
 }
@@ -62,8 +62,14 @@ int _lseek(int fd, uint32_t offset, int whence)
 int _read(int fd, void *buf, uint32_t count)
 {
     uint32_t got = 0;
+    uint32_t tmp;
     while(got < count) {
-        got += k_read(fd, buf + got, count - got);
+        tmp = k_read(fd, buf + got, count - got);
+        if (tmp >= 0) {
+            got += tmp;
+        } else {
+            return tmp;
+        }
     }
     return got;
 }
