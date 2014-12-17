@@ -101,6 +101,7 @@ implementation
         state_recv_snrx_rd,
         state_recv_increment_snrx_rd,
         state_recv_write_read,
+        state_recv_wait_write_read,
         state_recv_finished
     } SocketRecvUDPState;
 
@@ -141,7 +142,11 @@ implementation
     uint16_t snrx_rd_ptr;
 
     uint8_t recvbuf [256];
-    int16_t recvsize = -1;
+    uint16_t recvsize = 0;
+    uint16_t recvport;
+    uint32_t recvip;
+    uint8_t *recvdata;
+    uint16_t recvlen;
 
     // have we started connecting?
     bool startconnect = 0;
@@ -376,17 +381,29 @@ implementation
             break;
 
         case state_writeudp_finished:
-            signal UDPSocket.sendPacketDone(SUCCESS);
+            call SpiResource.release();
             printf("Finished packet. Releasing SPI\n");
             sendingUDP = 0;
-            call SpiResource.release();
+            listeningUDP = 0;
+                recvsize = 0;
+                rxbuf[0] = 0;
+                rxbuf[1] = 0;
+                rstateudp = state_recv_init;
+            signal UDPSocket.sendPacketDone(SUCCESS);
+            call Timer.startOneShot(100);
             break;
 
         case state_writeudp_error:
+            call SpiResource.release();
             signal UDPSocket.sendPacketDone(FAIL);
             printf("Packet timeout. Releasing SPI\n");
             sendingUDP = 0;
-            call SpiResource.release();
+                recvsize = 0;
+                rxbuf[0] = 0;
+                rxbuf[1] = 0;
+                rstateudp = state_recv_init;
+            listeningUDP = 0;
+            call Timer.startOneShot(100);
             break;
         }
     }
@@ -394,11 +411,6 @@ implementation
     task void recvUDPPacket()
     {
         int i;
-        uint16_t fromport;
-        uint16_t recvport;
-        uint32_t recvip;
-        uint8_t *recvdata;
-        uint16_t recvlen;
 
         if (!(call SpiResource.isOwner()))
         {
@@ -411,9 +423,11 @@ implementation
             // check socket interrupt register for incoming data
             case state_recv_init:
                 // in rxbuf is our most recent value of the interrupt buffer
-                recvsize = rxbuf[0] << 8 | rxbuf[1];
+                recvsize = ((uint16_t)rxbuf[0] << 8) | rxbuf[1];
                 if (recvsize)
                 {
+                    printf("rxbuf[0] = 0x%02x\n", rxbuf[0]);
+                    printf("rxbuf[1] = 0x%02x\n", rxbuf[1]);
                     printf("got rx size? 0x%02x\n", recvsize);
                     rstateudp = state_recv_snrx_rd;
                     // read register for next state
@@ -422,33 +436,50 @@ implementation
                 }
                 else
                 {
-                    call SocketSpi.readRegister(0x4000 + socket * 0x100 + 0x0026, rxbuf, 2);
+                    rstateudp = state_recv_giveup;
+                    post recvUDPPacket();
                 }
                 break;
 
             case state_recv_snrx_rd:
                 printf("state_recv_snrx_rd\n");
                 rstateudp = state_recv_increment_snrx_rd;
+                printf("before snrx: %d\n", snrx_rd_ptr);
                 snrx_rd_ptr = ((uint16_t)rxbuf[0] << 8) | rxbuf[1];
-                call SocketSpi.readRegister(RXBASE + (ptr & RXMASK), rxbuf, recvsize);
+                printf("read into rxbuf: %d bytes from 0x%02x\n", recvsize, RXBASE + (snrx_rd_ptr & RXMASK));
+                call SocketSpi.readRegister(RXBASE + (snrx_rd_ptr & RXMASK), rxbuf, recvsize);
                 break;
 
             case state_recv_increment_snrx_rd:
-                printf("state_recv_increment_snrx_rd\n");
-                memcpy(recvbuf, rxbuf, recvsize);
+                printf("state_recv_increment_snrx_rd with size %d\n", recvsize);
                 rstateudp = state_recv_write_read;
+
+                memcpy(recvbuf, rxbuf, recvsize);
+                recvport = ((uint16_t)recvbuf[4] << 8) | recvbuf[5];
+                printf("From port %d\n", recvport);
                 snrx_rd_ptr += recvsize;
+                printf("after snrx: %d\n", snrx_rd_ptr);
                 txbuf[0] = (snrx_rd_ptr >> 8);
                 txbuf[1] = snrx_rd_ptr & 0xff;
-                call SocketSpi.writeRegister(0x4000 + socket * 0x100 + 0x0026, _txbuf, 2);
+                call SocketSpi.writeRegister(0x4000 + socket * 0x100 + 0x0028, _txbuf, 2);
                 break;
 
             case state_recv_write_read:
                 printf("state_recv_write_read\n");
-                rstateudp = state_recv_finished;
+                rstateudp = state_recv_wait_write_read;
                 txbuf[0] = SocketCommand_RECV;
+                rxbuf[0] = 1; // make sure we check at least once below
                 call SocketSpi.writeRegister(0x4000 + socket * 0x100 + 0x0001, _txbuf, 1);
                 break;
+
+            case state_recv_wait_write_read:
+                call SocketSpi.readRegister(0x4000 + socket * 0x100 + 0x0001, rxbuf, 1);
+                if (!(*rxbuf))
+                {
+                    rstateudp = state_recv_finished;
+                }
+                break;
+                
 
             case state_recv_finished:
                 printf("Finished listening\n");
@@ -456,14 +487,20 @@ implementation
                 recvport = ((uint16_t)recvbuf[4] << 8) | recvbuf[5];
                 recvlen = (recvbuf[6] << 8) | recvbuf[7];
                 recvdata = &recvbuf[8];
-                recvsize = -1;
-                signal UDPSocket.packetReceived(recvport, recvip, recvdata, recvlen);
+                rstateudp = state_recv_init;
                 listeningUDP = 0;
+                recvsize = 0;
+                rxbuf[0] = 0;
+                rxbuf[1] = 0;
+                signal UDPSocket.packetReceived(recvport, recvip, recvdata, recvlen);
                 call SpiResource.release();
+                call Timer.startOneShot(1000); // go back to 'main' timer loop
                 break;
 
             case state_recv_giveup: // no data or some error happened
                 listeningUDP = 0;
+                recvsize = 0;
+                rstateudp = state_recv_init;
                 call SpiResource.release();
                 call Timer.startOneShot(100);
                 break;
@@ -488,15 +525,9 @@ implementation
         state = state_connect_write_dst_ipaddress;
         printf("send to %u:%d\n", destip, destport);
         sendingUDP = 1;
+        listeningUDP = 0;
         call SpiResource.request();
     }
-
-    command void UDPSocket.listen()
-    {
-        listeningUDP = 1;
-        call SpiResource.request();
-    }
-
 
     //command void RawSocket.initialize()
     //{
@@ -508,22 +539,27 @@ implementation
     {
         if (initializingUDP)
         {
+            sendingUDP = 0;
+            listeningUDP = 0;
             post init();
         }
         else if (sendingUDP) // sending UDP packet
         {
+            initializingUDP = 0;
+            listeningUDP = 0;
             post sendUDPPacket();
         }
         else if (listeningUDP)
         {
+            initializingUDP = 0;
+            sendingUDP = 0;
             post recvUDPPacket();
         }
-        //else
-        //{
-        //    listeningUDP = 1;
-        //    printf("switch to listening\n");
-        //    call Timer.startOneShot(100);
-        //}
+        else // if not doing anything else, go back to listening
+        {
+            listeningUDP = 1;
+            call SpiResource.request();
+        }
     }
 
     // signal that write or read is done
@@ -555,9 +591,16 @@ implementation
         }
         else if (listeningUDP)
         {
-            // check interrupt register. This will signal SocketSpi.taskDone when finished, which
+            // check incoming packets. This will signal SocketSpi.taskDone when finished, which
             // will trigger recvUDPPacket with the correct, most recent value of *rxbuf
-            call SocketSpi.readRegister(0x4000 + socket * 0x100  + 0x0002, rxbuf, 1);
+            call SocketSpi.readRegister(0x4000 + socket * 0x100  + 0x0026, rxbuf, 2);
+        }
+        else
+        {
+            listeningUDP = 1;
+            rxbuf[0] = 0;
+            rxbuf[1] = 0;
+            call SocketSpi.readRegister(0x4000 + socket * 0x100  + 0x0026, rxbuf, 2);
         }
     }
 }

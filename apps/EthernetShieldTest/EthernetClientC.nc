@@ -28,14 +28,14 @@ implementation
         call UDPSocket.initialize(7000);
 
         //printf("uniqe count: %d\n", uniqueCount(ETHERNETRESOURCE_ID));
-        call Timer.startOneShot(10000);
+        call Timer.startOneShot(100000);
     }
 
     event void UDPSocket.sendPacketDone(error_t error)
     {
         printf("sent a packet\n");
         // send another packet when we finish
-        call Timer.startOneShot(50000);
+        call Timer.startOneShot(500000);
     }
 
     event void UDPSocket.packetReceived(uint16_t srcport, uint32_t srcip, uint8_t *buf, uint16_t len)
@@ -49,9 +49,9 @@ implementation
         for (i=0;i<len;i++)
         {
             printf("%02x", buf[i]);
+            //printf("%c", buf[i]);
         }
         printf("\n");
-        call UDPSocket.listen();
     }
 
     event void Timer.fired()
@@ -65,7 +65,6 @@ implementation
         out.iov_len = 5;
         out.iov_next = NULL;
         //printf("ethernetclient c trying to send packet\n");
-        call UDPSocket.listen();
-        //call UDPSocket.sendPacket(destport, destip, out);
+        call UDPSocket.sendPacket(destport, destip, out);
     }
 }
