@@ -130,3 +130,19 @@ void W5100Class::send_data_processing_offset(SOCKET s, uint16_t data_offset, con
 After this, we write the `SEND`  socket command to the command register for socket `s`.
 
 Then, the code reads the interrupt register `SnIR` at 0x4n02 until it has the value `SEND_OK`
+
+### Client Reading
+
+We monitor the interrupt register `SnIR` and mask it with the `RECV` flag 0x04. If this is 1, then we have some
+incoming data.
+
+UDP header is 8 bytes: 4 bytes is destination IP address, 2 bytes destination
+port number, 2 bytes designate byte size of data. Data comes right after.
+
+Find out how big the data is by reading the `SnRX_RSR` register until it gives the same value twice. This means
+that the packet is done sending.
+
+If the size is > 0, then we have data to read. Read the value of the Receive read pointer `SnRX_RD`, and copy data
+from there into your own buffer. Increment the `SnRX_RD` pointer by how much you read.
+
+Write the `Sock_RECV` command to the command register when you're done. Remember to loop until the command has been read.

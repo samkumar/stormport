@@ -25,11 +25,12 @@ implementation
 
         call EthernetShieldConfig.initialize(srcip, netmask, gateway, mac);
 
-        call UDPSocket.initialize();
+        call UDPSocket.initialize(7000);
 
         //printf("uniqe count: %d\n", uniqueCount(ETHERNETRESOURCE_ID));
         call Timer.startOneShot(10000);
     }
+
     event void UDPSocket.sendPacketDone(error_t error)
     {
         printf("sent a packet\n");
@@ -39,7 +40,18 @@ implementation
 
     event void UDPSocket.packetReceived(uint16_t srcport, uint32_t srcip, uint8_t *buf, uint16_t len)
     {
+        int i;
         printf("received packet udp\n");
+        printf("From ip %d\n", srcip);
+        printf("From port %d\n", srcport);
+        printf("Length %d\n", len);
+        printf("Data:");
+        for (i=0;i<len;i++)
+        {
+            printf("%02x", buf[i]);
+        }
+        printf("\n");
+        call UDPSocket.listen();
     }
 
     event void Timer.fired()
@@ -52,7 +64,8 @@ implementation
         out.iov_base = hello;
         out.iov_len = 5;
         out.iov_next = NULL;
-        printf("ethernetclient c trying to send packet\n");
-        call UDPSocket.sendPacket(destport, destip, out);
+        //printf("ethernetclient c trying to send packet\n");
+        call UDPSocket.listen();
+        //call UDPSocket.sendPacket(destport, destip, out);
     }
 }
