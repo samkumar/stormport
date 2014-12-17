@@ -34,7 +34,7 @@ implementation
     {
         printf("sent a packet\n");
         // send another packet when we finish
-        call Timer.startOneShot(5000);
+        call Timer.startOneShot(50000);
     }
 
     event void UDPSocket.packetReceived(uint16_t srcport, uint32_t srcip, uint8_t *buf, uint16_t len)
