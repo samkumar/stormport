@@ -240,6 +240,7 @@ implementation
                 initializingUDP = 0;
                 printf("Release SPI resource\n");
                 call SpiResource.release();
+                signal UDPSocket.initializeDone(SUCCESS);
             }
             break;
 

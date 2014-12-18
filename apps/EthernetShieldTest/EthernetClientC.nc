@@ -26,9 +26,15 @@ implementation
         call EthernetShieldConfig.initialize(srcip, netmask, gateway, mac);
 
         call UDPSocket.initialize(7000);
+    }
 
-        //printf("uniqe count: %d\n", uniqueCount(ETHERNETRESOURCE_ID));
-        call Timer.startOneShot(100000);
+    event void UDPSocket.initializeDone(error_t error)
+    {
+        printf("Initialization done\n");
+        if (!error)
+        {
+            call Timer.startOneShot(100000);
+        }
     }
 
     event void UDPSocket.sendPacketDone(error_t error)

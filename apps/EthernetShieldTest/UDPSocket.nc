@@ -5,6 +5,9 @@ interface UDPSocket
   // use this socket for UDP
   command void initialize(uint16_t localport);
 
+  // signaled when the initialization process is done
+  event void initializeDone(error_t error);
+
   // Destport is in little endian, destip is in big endian (network byte order).
   command void sendPacket(uint16_t destport, uint32_t destip, struct ip_iovec data);
 
