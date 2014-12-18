@@ -9,11 +9,11 @@ void main()
     while(1)
     {
         foobar = 1;
-        _read(0, inarray, 5);
-        inarray[5] = 0;
+      //  foobar = _read(0, &inarray[0], 10);
+       // inarray[foobar] = 0;
         //_write(10, (uint8_t*) 20, 30);
-        //fgets(inarray, 78, stdin);
-        printf("c: %02x", inarray[0]);
+        fgets(inarray, 78, stdin);
+        printf("got line '%s'", inarray);
         foobar = 2;
     }
 }

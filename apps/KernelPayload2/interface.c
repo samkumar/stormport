@@ -64,7 +64,7 @@ int _read(int fd, void *buf, uint32_t count)
     uint32_t got = 0;
     uint32_t tmp;
     while(got < count) {
-        tmp = k_read(fd, buf + got, count - got);
+        tmp = k_read(fd, &((uint8_t*)buf)[got], count - got);
         if (tmp >= 0) {
             got += tmp;
         } else {
