@@ -145,10 +145,12 @@ implementation
     }
     int32_t kabi_read(uint32_t fd, uint8_t *dst, uint32_t size)
     {
+        uint32_t rv;
         switch(fd)
         {
             case 0:
-                return storm_read(dst, size);
+                rv = storm_read(dst, size);
+                return rv;
             default:
                 return -1;
         }
@@ -191,7 +193,7 @@ implementation
             case ABI_ID_YIELD:
                 return RET_KERNEL;
             case ABI_ID_READ:
-                *r_i32 = kabi_read(svc_args[0], (uint8_t*)(svc_args[1]), svc_args[2]);
+                *r_i32 = kabi_read(svc_args[0], &((uint8_t*)(svc_args[1]))[0], svc_args[2]);
                 return RET_USER;
             default:
                 printf("bad svc number\n");
