@@ -7,7 +7,9 @@ module SocketP
 {
     uses interface SocketSpi;
     uses interface Timer<T32khz> as Timer;
-    uses interface Resource as SpiResource;
+    uses interface Resource as InitResource;
+    uses interface Resource as SendResource;
+    uses interface Resource as RecvResource;
     uses interface ArbiterInfo;
     uses interface GeneralIO as IRQPin;
     uses interface GpioInterrupt;
@@ -44,6 +46,15 @@ implementation
         SocketState_MACRAW      = 0x42,
         SocketState_PPPOE       = 0x5F
     } SocketState;
+
+    typedef enum
+    {
+        SocketInterrupt_SEND_OK = 0x10,
+        SocketInterrupt_TIMEOUT = 0x08,
+        SocketInterrupt_RECV    = 0x04,
+        SocketInterrupt_DISON   = 0x02,
+        SocketInterrupt_CON     = 0x01
+    } SocketInterrupt;
 
     // socket modes
     typedef enum
@@ -85,6 +96,7 @@ implementation
         state_connect_wait_connect_dst,
         state_connect_wait_established,
         state_writeudp_readtxwr,
+        state_writeudp_calculate_txwr,
         state_writeudp_copytotxbuf,
         state_writeudp_advancetxwr,
         state_writeudp_writesendcmd,
@@ -172,6 +184,12 @@ implementation
             return;
         }
 
+        if (!(call InitResource.isOwner()))
+        {
+            call InitResource.request();
+            return;
+        }
+
 
         TXBASE = TXBUF_BASE + TXBUF_SIZE * socket;
         RXBASE = RXBUF_BASE + RXBUF_SIZE * socket;
@@ -184,6 +202,9 @@ implementation
             if (startconnect & (*rxbuf == SocketState_CLOSED || *rxbuf == SocketState_FIN_WAIT || *rxbuf == SocketState_CLOSE_WAIT))
             {
                 state = state_connect_write_protocol;
+                // mask out interrupts from read on sock register; we'll use something else
+                //txbuf[0] = 0x1b; // 00011011 ignore RECV, PRECV, PFAIL, PNEXT
+                //call SocketSpi.writeRegister(0x4000 + socket * 0x100 + 0x002C, _txbuf, 1);
                 post init(); // go to next state
                 break;
             }
@@ -244,7 +265,8 @@ implementation
                 isinitialized = 1;
                 initializingUDP = 0;
                 printf("Release SPI resource\n");
-                call SpiResource.release();
+                call InitResource.release();
+                call Timer.startOneShot(100);
                 signal UDPSocket.initializeDone(SUCCESS);
             }
             break;
@@ -257,6 +279,15 @@ implementation
     {
         int i;
         int data_length = 0;
+
+        if (!(call SendResource.isOwner()))
+        {
+            call SendResource.request();
+            return;
+        }
+        sendingUDP = 1;
+        //printf("send %d %d %d\n", initializingUDP, sendingUDP, listeningUDP);
+
         switch(state)
         {
 
@@ -317,10 +348,17 @@ implementation
 
         case state_writeudp_readtxwr:
             printf("send UDP:read TX write register\n");
+            state = state_writeudp_calculate_txwr;
             call SocketSpi.readRegister(0x4000 + socket * 0x100 + 0x0024, rxbuf, 2);
-            //ptr = ((uint16_t)rxbuf[0] << 8) | rxbuf[1];
+            break;
+
+        case state_writeudp_calculate_txwr:
+            printf("send UDP:calculate TX write register\n");
+            ptr = ((uint16_t)rxbuf[0] << 8) | rxbuf[1];
+            printf("start ptr at %d\n", ptr);
             // placeholder for doign stuff w/ ptr later
             state = state_writeudp_copytotxbuf;
+            post sendUDPPacket();
             break;
 
         case state_writeudp_copytotxbuf:
@@ -328,14 +366,15 @@ implementation
             data_length = iov_len(&data);
             //TODO offset is 0 for now; assume we can fit it all in the send buffer. need to bounds check
             iov_read(&data, 0, data_length, txbuf);
-            call SocketSpi.writeRegister(TXBASE + (ptr & TXMASK), _txbuf, data_length);
             state = state_writeudp_advancetxwr;
+            call SocketSpi.writeRegister(TXBASE + (ptr & TXMASK), _txbuf, data_length);
             break;
 
         case state_writeudp_advancetxwr:
             printf("send UDP: advance TX write register by length %d\n", iov_len(&data));
             data_length = iov_len(&data);
             ptr += data_length;
+            printf("end ptr at %d\n", ptr);
             txbuf[0] = (ptr >> 8);
             txbuf[1] = ptr & 0xff;
             call SocketSpi.writeRegister(0x4000 + socket * 0x100 + 0x0024, _txbuf, 2);
@@ -345,16 +384,18 @@ implementation
         case state_writeudp_writesendcmd:
             printf("send UDP: write SEND command\n");
             txbuf[0] = SocketCommand_SEND;
-            call SocketSpi.writeRegister(0x4000 + socket * 0x100 + 0x0001, _txbuf, 1);
             state = state_writeudp_waitsendcomplete;
+            call SocketSpi.writeRegister(0x4000 + socket * 0x100 + 0x0001, _txbuf, 1);
             break;
 
         case state_writeudp_waitsendcomplete:
-            printf("send UDP: wait SEND complete\n");
+            printf("send UDP: wait SEND complete: rxbuf is 0x%02x\n", *rxbuf);
             call SocketSpi.readRegister(0x4000 + socket * 0x100 + 0x0001, rxbuf, 1);
             if (!(*rxbuf))
             {
                 // finished writing SEND
+                printf("send UDP: finished writing SENd\n");
+                rxbuf[0] = 0;
                 state = state_writeudp_waitsendinterrupt;
             }
             break;
@@ -362,10 +403,18 @@ implementation
         case state_writeudp_waitsendinterrupt:
             //printf("send UDP: wait for SEND interrupt\n");
             call SocketSpi.readRegister(0x4000 + socket * 0x100 + 0x0002, rxbuf, 2);
-            if ((*rxbuf & 0x10) != 0x10 ) { // true if SEND_OK has not completed
-                if (*rxbuf & 0x08) { // true if TIMEOUT
+            if (*rxbuf) printf("rxbuf wait is 0x%02x\n", *rxbuf);
+            if ((*rxbuf & SocketInterrupt_SEND_OK) != SocketInterrupt_SEND_OK ) { // true if SEND_OK has not completed
+                if (*rxbuf & SocketInterrupt_TIMEOUT) { // true if TIMEOUT
                     printf("timeout on send\n");
                     state = state_writeudp_cleartimeout; // clear timeout bit
+                }
+                else if (*rxbuf & SocketInterrupt_RECV)
+                {
+                    printf("wait: rxbuf is 0x%02x\n", *rxbuf);
+                    txbuf[0] = SocketCommand_RECV;
+                    state = state_writeudp_cleartimeout;
+                    call SocketSpi.writeRegister(0x4000 + socket * 0x100 + 0x0002, _txbuf, 1);
                 }
             } else {
                 state = state_writeudp_clearsend;
@@ -374,14 +423,14 @@ implementation
 
         case state_writeudp_clearsend:
             printf("send UDP: clear send bit\n");
-            txbuf[0] = 0x10; //SEND_OK -- clear interrupt bit
+            txbuf[0] = SocketInterrupt_SEND_OK; //SEND_OK -- clear interrupt bit
             call SocketSpi.writeRegister(0x4000 + socket * 0x100 + 0x0002, _txbuf, 1);
             state = state_writeudp_finished;
             break;
 
         case state_writeudp_cleartimeout:
             printf("send UDP: clear timeout bit\n");
-            txbuf[0] = 0x10 | 0x08; //SEND_OK | TIMEOUT -- clear interrupt bit
+            txbuf[0] = SocketInterrupt_SEND_OK | SocketInterrupt_TIMEOUT; //SEND_OK | TIMEOUT -- clear interrupt bit
             call SocketSpi.writeRegister(0x4000 + socket * 0x100 + 0x0002, _txbuf, 1);
             state = state_writeudp_error; // timedout on send
             break;
@@ -391,12 +440,10 @@ implementation
             sendingUDP = 0;
             listeningUDP = 0;
             recvsize = 0;
-            //rxbuf[0] = 0;
-            //rxbuf[1] = 0;
-            //rstateudp = state_recv_init;
             signal UDPSocket.sendPacketDone(SUCCESS);
             call Timer.startOneShot(100);
-            call SpiResource.release();
+            call SendResource.release();
+            //call GpioInterrupt.enableFallingEdge();
             printf("sudp finish: %d %d %d\n", initializingUDP, sendingUDP, listeningUDP);
             break;
 
@@ -405,12 +452,10 @@ implementation
             sendingUDP = 0;
             listeningUDP = 0;
             recvsize = 0;
-            //rxbuf[0] = 0;
-            //rxbuf[1] = 0;
-            //rstateudp = state_recv_init;
             signal UDPSocket.sendPacketDone(FAIL);
             call Timer.startOneShot(100);
-            call SpiResource.release();
+            call SendResource.release();
+            //call GpioInterrupt.enableFallingEdge();
             printf("sudp fail: %d %d %d\n", initializingUDP, sendingUDP, listeningUDP);
             break;
         }
@@ -420,12 +465,13 @@ implementation
     {
         int i;
 
-        if (!(call SpiResource.isOwner()))
+        if (!(call RecvResource.isOwner()))
         {
-            call SpiResource.request();
+            call RecvResource.request();
             return;
         }
         listeningUDP = 1;
+        printf("recv %d %d %d\n", initializingUDP, sendingUDP, listeningUDP);
 
         switch(rstateudp)
         {
@@ -448,7 +494,7 @@ implementation
                     post recvUDPPacket();
                 }
                 break;
-                
+
             // check socket interrupt register for incoming data
             case state_recv_read_incoming_size:
                 // in rxbuf is our most recent value of the interrupt buffer
@@ -508,7 +554,7 @@ implementation
                     rstateudp = state_recv_finished;
                 }
                 break;
-                
+
 
             case state_recv_finished:
                 printf("Finished listening\n");
@@ -520,19 +566,18 @@ implementation
                 recvsize = 0;
                 listeningUDP = 0;
                 signal UDPSocket.packetReceived(recvport, recvip, recvdata, recvlen);
-                //call Timer.startOneShot(1000); // go back to 'main' timer loop
-                call SpiResource.release();
+                call RecvResource.release();
                 call GpioInterrupt.enableFallingEdge();
                 printf("recv finish: %d %d %d\n", initializingUDP, sendingUDP, listeningUDP);
+                call Timer.startOneShot(100);
                 break;
 
             case state_recv_giveup: // no data or some error happened
                 listeningUDP = 0;
                 recvsize = 0;
                 rstateudp = state_recv_init;
-                call SpiResource.release();
+                call RecvResource.release();
                 call GpioInterrupt.enableFallingEdge();
-                //call Timer.startOneShot(100);
                 if (initializingUDP + sendingUDP + listeningUDP)
                 {
                     printf("recv giveup: %d %d %d\n", initializingUDP, sendingUDP, listeningUDP);
@@ -547,7 +592,7 @@ implementation
         printf("Initializing local UDP socket with port %u\n", srcport);
         sockettype = SocketType_UDP;
         initializingUDP = 1;
-        printf("udp socket call resource %d\n", call SpiResource.request());
+        call InitResource.request();
     }
 
 
@@ -560,7 +605,7 @@ implementation
         printf("send to %u:%d\n", destip, destport);
         sendingUDP = 1;
         listeningUDP = 0;
-        call SpiResource.request();
+        call SendResource.request();
     }
 
     event void Timer.fired()
@@ -586,7 +631,7 @@ implementation
         else // if not doing anything else, go back to listening
         {
             // atomically check after enabling falling edge that
-            // we didn't already miss the trigger. If we did, 
+            // we didn't already miss the trigger. If we did,
             // trigger the read check manually
             printf(".");
             atomic
@@ -595,8 +640,6 @@ implementation
                 if (!(call IRQPin.get())) // check if low
                 {
                     call GpioInterrupt.disable();
-                    listeningUDP = 1;
-                    rstateudp = state_recv_init;
                     post recvUDPPacket();
                 }
             }
@@ -616,36 +659,34 @@ implementation
 
         memcpy(rxbuf, buf, len);
 
-        if (!(call SpiResource.isOwner()))
-        {
-            //printf("tried, but is not owner\n");
-            return;
-        }
         call Timer.startOneShot(20);
     }
 
     default event void UDPSocket.sendPacketDone(error_t error) {}
     default event void UDPSocket.packetReceived(uint16_t srcport, uint32_t srcip, uint8_t *buf, uint16_t len) {}
 
-    event void SpiResource.granted()
+    event void InitResource.granted()
     {
-        if (initializingUDP)
-        {
-            post init();
-        }
-        else if (sendingUDP) // sending UDP packet
-        {
-            post sendUDPPacket();
-        }
-        else if (listeningUDP)
-        {
-            post recvUDPPacket();
-        }
-        //else
-        //{
-        //    listeningUDP = 1;
-        //    rstateudp = state_recv_init;
-        //    post recvUDPPacket();
-        //}
+        printf("init resource granted\n");
+        initializingUDP = 1;
+        post init();
+    }
+
+    event void SendResource.granted()
+    {
+        printf("send resource granted\n");
+        initializingUDP = 0;
+        listeningUDP = 0;
+        sendingUDP = 1;
+        post sendUDPPacket();
+    }
+
+    event void RecvResource.granted()
+    {
+        printf("recv resource granted\n");
+        initializingUDP = 0;
+        sendingUDP = 0;
+        listeningUDP = 1;
+        post recvUDPPacket();
     }
 }

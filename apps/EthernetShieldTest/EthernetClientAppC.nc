@@ -34,7 +34,9 @@ implementation
   components new Timer32khzC() as SocketPTimer;
   SocketP.SocketSpi -> SocketSpiP.SocketSpi;
   SocketP.Timer -> SocketPTimer;
-  SocketP.SpiResource -> arbiter.Resource[unique(ETHERNETRESOURCE_ID)];
+  SocketP.InitResource -> arbiter.Resource[unique(ETHERNETRESOURCE_ID)];
+  SocketP.SendResource -> arbiter.Resource[unique(ETHERNETRESOURCE_ID)];
+  SocketP.RecvResource -> arbiter.Resource[unique(ETHERNETRESOURCE_ID)];
   SocketP.ArbiterInfo -> arbiter.ArbiterInfo;
   SocketP.GpioInterrupt -> HplSam4lIOC.PB12IRQ;
   SocketP.IRQPin -> HplSam4lIOC.PB12;

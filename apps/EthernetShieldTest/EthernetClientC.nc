@@ -64,13 +64,13 @@ implementation
     event void Timer.fired()
     {
         // send a packet out
-        char* hello = "\x68\x65\x6c\x6c\x6f";
+        char* hello = "\x68\x65\x6c\x6c";//\x6f";
         uint32_t destip = 10 << 24 | 4 << 16 | 10 << 8 | 142;
         uint16_t destport = 7000;
 
         struct ip_iovec out;
         out.iov_base = hello;
-        out.iov_len = 5;
+        out.iov_len = 4;
         out.iov_next = NULL;
 
         //printf("ethernetclient c trying to send packet\n");
