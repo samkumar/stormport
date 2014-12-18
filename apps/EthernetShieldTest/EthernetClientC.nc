@@ -16,9 +16,11 @@ implementation
 {
     event void Boot.booted()
     {
-        uint32_t srcip = 192 << 24 | 168 << 16 | 1 << 8 | 177;
+        uint32_t srcip = 10 << 24 | 4 << 16 | 10 << 8 | 143;
         uint32_t netmask = 255 << 24 | 255 << 16 | 255 << 8 | 0;
-        uint32_t gateway = 192 << 24 | 168 << 16 | 1 << 8 | 1;
+        uint32_t gateway = 10 << 24 | 4 << 16 | 10 << 8 | 1;
+        //uint32_t srcip = 192 << 24 | 168 << 16 | 1 << 8 | 177;
+        //uint32_t gateway = 192 << 24 | 168 << 16 | 1 << 8 | 1;
         uint8_t *mac = "\xde\xad\xbe\xef\xfe\xed";
 
         //printf("user %d\n", call ArbiterInfo.userId());
@@ -33,7 +35,7 @@ implementation
         printf("Initialization done\n");
         if (!error)
         {
-            call Timer.startOneShot(100000);
+            call Timer.startOneShot(50000);
         }
     }
 
@@ -41,7 +43,7 @@ implementation
     {
         printf("sent a packet\n");
         // send another packet when we finish
-        call Timer.startOneShot(500000);
+        call Timer.startOneShot(50000);
     }
 
     event void UDPSocket.packetReceived(uint16_t srcport, uint32_t srcip, uint8_t *buf, uint16_t len)
@@ -55,7 +57,6 @@ implementation
         for (i=0;i<len;i++)
         {
             printf("%02x", buf[i]);
-            //printf("%c", buf[i]);
         }
         printf("\n");
     }
@@ -63,13 +64,15 @@ implementation
     event void Timer.fired()
     {
         // send a packet out
-        struct ip_iovec out;
         char* hello = "\x68\x65\x6c\x6c\x6f";
-        uint32_t destip = 192 << 24 | 168 << 16 | 1 << 8 | 178;
+        uint32_t destip = 10 << 24 | 4 << 16 | 10 << 8 | 142;
         uint16_t destport = 7000;
+
+        struct ip_iovec out;
         out.iov_base = hello;
         out.iov_len = 5;
         out.iov_next = NULL;
+
         //printf("ethernetclient c trying to send packet\n");
         call UDPSocket.sendPacket(destport, destip, out);
     }

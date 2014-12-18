@@ -36,6 +36,8 @@ implementation
   SocketP.Timer -> SocketPTimer;
   SocketP.SpiResource -> arbiter.Resource[unique(ETHERNETRESOURCE_ID)];
   SocketP.ArbiterInfo -> arbiter.ArbiterInfo;
+  SocketP.GpioInterrupt -> HplSam4lIOC.PB12IRQ;
+  SocketP.IRQPin -> HplSam4lIOC.PB12;
 
   EthernetClientC.UDPSocket -> SocketP.UDPSocket;
   EthernetClientC.ArbiterInfo -> arbiter.ArbiterInfo;

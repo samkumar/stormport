@@ -9,6 +9,9 @@ module SocketP
     uses interface Timer<T32khz> as Timer;
     uses interface Resource as SpiResource;
     uses interface ArbiterInfo;
+    uses interface GeneralIO as IRQPin;
+    uses interface GpioInterrupt;
+
     //provides interface RawSocket;
     provides interface UDPSocket;
 }
@@ -96,6 +99,8 @@ implementation
     typedef enum
     {
         state_recv_init,
+        state_recv_read_incoming_size,
+        state_recv_check_socket,
         state_recv_getsize,
         state_recv_giveup,
         state_recv_snrx_rd,
@@ -328,7 +333,7 @@ implementation
             break;
 
         case state_writeudp_advancetxwr:
-            printf("send UDP: advance TX write register\n");
+            printf("send UDP: advance TX write register by length %d\n", iov_len(&data));
             data_length = iov_len(&data);
             ptr += data_length;
             txbuf[0] = (ptr >> 8);
@@ -382,29 +387,31 @@ implementation
             break;
 
         case state_writeudp_finished:
-            call SpiResource.release();
             printf("Finished packet. Releasing SPI\n");
             sendingUDP = 0;
             listeningUDP = 0;
-                recvsize = 0;
-                rxbuf[0] = 0;
-                rxbuf[1] = 0;
-                rstateudp = state_recv_init;
+            recvsize = 0;
+            //rxbuf[0] = 0;
+            //rxbuf[1] = 0;
+            //rstateudp = state_recv_init;
             signal UDPSocket.sendPacketDone(SUCCESS);
             call Timer.startOneShot(100);
+            call SpiResource.release();
+            printf("sudp finish: %d %d %d\n", initializingUDP, sendingUDP, listeningUDP);
             break;
 
         case state_writeudp_error:
-            call SpiResource.release();
-            signal UDPSocket.sendPacketDone(FAIL);
             printf("Packet timeout. Releasing SPI\n");
             sendingUDP = 0;
-                recvsize = 0;
-                rxbuf[0] = 0;
-                rxbuf[1] = 0;
-                rstateudp = state_recv_init;
             listeningUDP = 0;
+            recvsize = 0;
+            //rxbuf[0] = 0;
+            //rxbuf[1] = 0;
+            //rstateudp = state_recv_init;
+            signal UDPSocket.sendPacketDone(FAIL);
             call Timer.startOneShot(100);
+            call SpiResource.release();
+            printf("sudp fail: %d %d %d\n", initializingUDP, sendingUDP, listeningUDP);
             break;
         }
     }
@@ -418,11 +425,32 @@ implementation
             call SpiResource.request();
             return;
         }
+        listeningUDP = 1;
 
         switch(rstateudp)
         {
-            // check socket interrupt register for incoming data
+            // read IR2 register to see if our socket is triggered
             case state_recv_init:
+                rstateudp = state_recv_check_socket;
+                call SocketSpi.readRegister(0x0034, rxbuf, 1);
+                break;
+
+            case state_recv_check_socket:
+                if (*rxbuf & (1 << socket)) // mask for our socket number
+                {
+                    rstateudp = state_recv_read_incoming_size;
+                    // read incoming read register
+                    call SocketSpi.readRegister(0x4000 + socket * 0x100  + 0x0026, rxbuf, 2);
+                }
+                else
+                {
+                    rstateudp = state_recv_giveup;
+                    post recvUDPPacket();
+                }
+                break;
+                
+            // check socket interrupt register for incoming data
+            case state_recv_read_incoming_size:
                 // in rxbuf is our most recent value of the interrupt buffer
                 recvsize = ((uint16_t)rxbuf[0] << 8) | rxbuf[1];
                 if (recvsize)
@@ -489,13 +517,13 @@ implementation
                 recvlen = (recvbuf[6] << 8) | recvbuf[7];
                 recvdata = &recvbuf[8];
                 rstateudp = state_recv_init;
-                listeningUDP = 0;
                 recvsize = 0;
-                rxbuf[0] = 0;
-                rxbuf[1] = 0;
+                listeningUDP = 0;
                 signal UDPSocket.packetReceived(recvport, recvip, recvdata, recvlen);
+                //call Timer.startOneShot(1000); // go back to 'main' timer loop
                 call SpiResource.release();
-                call Timer.startOneShot(1000); // go back to 'main' timer loop
+                call GpioInterrupt.enableFallingEdge();
+                printf("recv finish: %d %d %d\n", initializingUDP, sendingUDP, listeningUDP);
                 break;
 
             case state_recv_giveup: // no data or some error happened
@@ -503,7 +531,12 @@ implementation
                 recvsize = 0;
                 rstateudp = state_recv_init;
                 call SpiResource.release();
-                call Timer.startOneShot(100);
+                call GpioInterrupt.enableFallingEdge();
+                //call Timer.startOneShot(100);
+                if (initializingUDP + sendingUDP + listeningUDP)
+                {
+                    printf("recv giveup: %d %d %d\n", initializingUDP, sendingUDP, listeningUDP);
+                }
                 break;
         }
     }
@@ -530,12 +563,6 @@ implementation
         call SpiResource.request();
     }
 
-    //command void RawSocket.initialize()
-    //{
-    //    sockettype = SocketType_IPRAW;
-    //    printf("ipraw socket call resource %d\n", call SpiResource.request());
-    //}
-
     event void Timer.fired()
     {
         if (initializingUDP)
@@ -558,9 +585,29 @@ implementation
         }
         else // if not doing anything else, go back to listening
         {
-            listeningUDP = 1;
-            call SpiResource.request();
+            // atomically check after enabling falling edge that
+            // we didn't already miss the trigger. If we did, 
+            // trigger the read check manually
+            printf(".");
+            atomic
+            {
+                call GpioInterrupt.enableFallingEdge();
+                if (!(call IRQPin.get())) // check if low
+                {
+                    call GpioInterrupt.disable();
+                    listeningUDP = 1;
+                    rstateudp = state_recv_init;
+                    post recvUDPPacket();
+                }
+            }
         }
+    }
+
+    // fired when we possibly get some incoming data
+    async event void GpioInterrupt.fired()
+    {
+        call GpioInterrupt.disable();
+        post recvUDPPacket();
     }
 
     // signal that write or read is done
@@ -592,16 +639,13 @@ implementation
         }
         else if (listeningUDP)
         {
-            // check incoming packets. This will signal SocketSpi.taskDone when finished, which
-            // will trigger recvUDPPacket with the correct, most recent value of *rxbuf
-            call SocketSpi.readRegister(0x4000 + socket * 0x100  + 0x0026, rxbuf, 2);
+            post recvUDPPacket();
         }
-        else
-        {
-            listeningUDP = 1;
-            rxbuf[0] = 0;
-            rxbuf[1] = 0;
-            call SocketSpi.readRegister(0x4000 + socket * 0x100  + 0x0026, rxbuf, 2);
-        }
+        //else
+        //{
+        //    listeningUDP = 1;
+        //    rstateudp = state_recv_init;
+        //    post recvUDPPacket();
+        //}
     }
 }

@@ -1,7 +1,11 @@
+#include <lib6lowpan/iovec.h>
+
 interface RawSocket
 {
     // use this socket for IPRAW
     command void initialize();
+
+    event void initializeDone(error_t error);
 
     command void sendPacket(struct ip_iovec data);
 
