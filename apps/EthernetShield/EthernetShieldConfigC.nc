@@ -31,8 +31,6 @@ implementation
     uint8_t _txbuf [10];
     uint8_t * const txbuf = &_txbuf[4];
 
-    // loop index
-    int i = 0;
 
     task void init();
 
@@ -48,6 +46,7 @@ implementation
 
     task void init()
     {
+        int i;
         printf("current state %d\n", state);
         switch(state)
         {
@@ -114,11 +113,17 @@ implementation
 
         // Clears the TX read and write pointers for the buffer
         case state_initialize_txwr_txrd:
-            txbuf[0] = 0x0;
-            txbuf[1] = 0x0;
-            txbuf[2] = 0x0;
-            txbuf[3] = 0x0;
-            call SocketSpi.writeRegister(0x4000 + socket * 0x100 + 0x0022, _txbuf, 4);
+            txbuf[0] = 0;
+            txbuf[1] = 0;
+            txbuf[2] = 0;
+            txbuf[3] = 0;
+            txbuf[4] = 0;
+            txbuf[5] = 0;
+            txbuf[6] = 0;
+            txbuf[7] = 0;
+            txbuf[8] = 0;
+            txbuf[9] = 0;
+            call SocketSpi.writeRegister(0x4000 + socket * 0x100 + 0x0022, _txbuf, 10);
             // now finished
             state = state_initialize_finished;
             break;

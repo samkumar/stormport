@@ -173,8 +173,9 @@ implementation
                 else
                 {
                     // socket can't be used
-                    //TODO: goto fail case
-                    signal UDPSocket.initializeDone(FAIL);
+                    printf("UDP init: socket %d cannot be used\n", socket);
+                    initUDPstate = state_init_fail;
+                    post initUDP();
                     break;
                 }
                 break;
@@ -219,7 +220,7 @@ implementation
                 initializingUDP = 0;
                 signal UDPSocket.initializeDone(SUCCESS);
                 call InitResource.release();
-                post enableListen();
+                call GpioInterrupt.enableFallingEdge();
                 break;
                 
             case state_init_fail:
@@ -227,7 +228,7 @@ implementation
                 initializingUDP = 0;
                 signal UDPSocket.initializeDone(FAIL);
                 call InitResource.release();
-                post enableListen();
+                call GpioInterrupt.enableFallingEdge();
                 break;
         }
     }
@@ -384,7 +385,6 @@ implementation
         if (!(call RecvResource.isOwner()))
         {
             call RecvResource.request();
-            //call IRQPin.clear();
             return;
         }
 
@@ -403,7 +403,7 @@ implementation
                 {
                     recvUDPstate = state_recv_clear_interrupt;
                     txbuf[0] = 0;
-                    call SocketSpi.writeRegister(0x0034, _txbuf, 1);
+                    call SocketSpi.writeRegister(0x4002 + socket * 0x100, _txbuf, 1);
                     // read incoming read register
                 }
                 else // we weren't triggered
@@ -463,7 +463,7 @@ implementation
 
                 rx_ptr += recvsize;
                 txbuf[0] = rx_ptr >> 8;
-                txbuf[1] = rx_ptr && 0xff;;
+                txbuf[1] = rx_ptr & 0xff;
                 printf("after rx_ptr: %d = 0x%02x\n", rx_ptr, rx_ptr);
                 call SocketSpi.writeRegister(0x4028 + socket * 0x100, _txbuf, 2);
                 break;
