@@ -461,7 +461,8 @@ implementation
 
                 memcpy(recvbuf, rxbuf, recvsize);
 
-                rx_ptr += recvsize;
+                recvlen = (recvbuf[6] << 8) | recvbuf[7];
+                rx_ptr += (recvlen + 8);
                 txbuf[0] = rx_ptr >> 8;
                 txbuf[1] = rx_ptr & 0xff;
                 printf("after rx_ptr: %d = 0x%02x\n", rx_ptr, rx_ptr);
@@ -498,11 +499,16 @@ implementation
                 recvUDPstate = state_recv_init;
                 recvipaddress = recvbuf[3] | (recvbuf[2] << 8) | (recvbuf[1] << 16) | (recvbuf[0] << 24);
                 recvport = ((uint16_t)recvbuf[4] << 8) | recvbuf[5];
-                recvlen = (recvbuf[6] << 8) | recvbuf[7];
                 recvdata = &recvbuf[8];
+                recvsize -= recvlen + 8;
                 signal UDPSocket.packetReceived(recvport, recvipaddress, recvdata, recvlen);
                 call RecvResource.release();
                 call GpioInterrupt.enableFallingEdge();
+                if (recvsize > 0)
+                {
+                    printf("mo packets. with size %d\n", recvsize);
+                    post recvUDP();
+                }
                 break;
 
             case state_recv_giveup:
