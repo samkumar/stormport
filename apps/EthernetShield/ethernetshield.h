@@ -103,6 +103,7 @@ typedef enum
 typedef enum
 {
     state_recv_init,
+    state_recv_clear_interrupt,
     state_recv_read_incoming_size,
     state_recv_check_socket,
     state_recv_getsize,
@@ -110,6 +111,7 @@ typedef enum
     state_recv_snrx_rd,
     state_recv_increment_snrx_rd,
     state_recv_write_read,
+    state_recv_read_read,
     state_recv_wait_write_read,
     state_recv_finished
 } SocketRecvUDPState;

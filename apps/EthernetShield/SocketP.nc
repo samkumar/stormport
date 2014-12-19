@@ -27,22 +27,36 @@ implementation
     struct ip_iovec senddata; // send data
     int senddata_len;
 
+    // vars for receiving
+    uint16_t recvsize = 0;
+    uint16_t recvport;
+    uint32_t recvipaddress;
+    uint8_t recvbuf [256];
+    uint8_t *recvdata;
+    uint16_t recvlen;
+
     // state machine vars
     SocketInitUDPState initUDPstate;
     SocketSendUDPState sendUDPstate;
+    SocketRecvUDPState recvUDPstate = state_recv_init;
 
     // send/recv buffer pointers
     uint16_t tx_ptr;
+    uint16_t rx_ptr;
 
     uint8_t socket = 0;
 
     // state machine flags
     bool initializingUDP = 0;
     bool sendingUDP = 0;
+    bool listeningUDP = 0;
 
     // predeclarations of state machine functions
     task void initUDP();
     task void sendUDP();
+    task void recvUDP();
+
+    task void enableListen();
 
     // Initialize this socket as a UDP socket with a local port of [lp]
     command void UDPSocket.initialize(uint16_t lp)
@@ -77,6 +91,8 @@ implementation
 
     async event void GpioInterrupt.fired()
     {
+        call GpioInterrupt.disable();
+        post recvUDP();
     }
 
     event void SocketSpi.taskDone(error_t error, uint8_t *buf, uint8_t len)
@@ -92,6 +108,10 @@ implementation
         else if (sendingUDP)
         {
             post sendUDP();
+        }
+        else if (listeningUDP)
+        {
+            post recvUDP();
         }
     }
 
@@ -111,6 +131,22 @@ implementation
 
     event void RecvResource.granted()
     {
+        printf("Got Recv resource, listening for packets\n");
+        listeningUDP = 1;
+        post recvUDP();
+    }
+
+    task void enableListen() // call this when exiting a state machine so we can still listen
+    {
+        atomic
+        {
+            call GpioInterrupt.enableFallingEdge();
+            if (!(call IRQPin.get())) // check if low
+            {
+                call GpioInterrupt.disable();
+                post recvUDP();
+            }
+        }
     }
 
     /** Initialization State Machine **/
@@ -183,6 +219,7 @@ implementation
                 initializingUDP = 0;
                 signal UDPSocket.initializeDone(SUCCESS);
                 call InitResource.release();
+                post enableListen();
                 break;
                 
             case state_init_fail:
@@ -190,6 +227,7 @@ implementation
                 initializingUDP = 0;
                 signal UDPSocket.initializeDone(FAIL);
                 call InitResource.release();
+                post enableListen();
                 break;
         }
     }
@@ -325,6 +363,7 @@ implementation
                 sendingUDP = 0;
                 signal UDPSocket.sendPacketDone(SUCCESS);
                 call SendResource.release();
+                post enableListen();
                 break;
 
             case state_writeudp_error:
@@ -332,8 +371,147 @@ implementation
                 sendingUDP = 0;
                 signal UDPSocket.sendPacketDone(FAIL);
                 call SendResource.release();
+                post enableListen();
                 break;
 
+        }
+    }
+
+    task void recvUDP()
+    {
+        int i; // for for loops
+
+        if (!(call RecvResource.isOwner()))
+        {
+            call RecvResource.request();
+            //call IRQPin.clear();
+            return;
+        }
+
+        switch(recvUDPstate)
+        {
+            // read IR2 register to see if our socket is triggered
+            case state_recv_init:
+                printf("UDP recv: read IR2 register for trigger\n");
+                recvUDPstate = state_recv_check_socket;
+                call SocketSpi.readRegister(0x0034, rxbuf, 1);
+                break;
+
+            case state_recv_check_socket:
+                printf("UDP recv: check socket. rxbuf is 0x%02x\n", *rxbuf);
+                if (*rxbuf & (1 << socket)) // mask for our socket number
+                {
+                    recvUDPstate = state_recv_clear_interrupt;
+                    txbuf[0] = 0;
+                    call SocketSpi.writeRegister(0x0034, _txbuf, 1);
+                    // read incoming read register
+                }
+                else // we weren't triggered
+                {
+                    printf("Trigger wasn't for this socket\n");
+                    recvUDPstate = state_recv_giveup;
+                    post recvUDP(); // advance to that state, do not pass Go, do not collect $200
+                }
+                break;
+
+            case state_recv_clear_interrupt:
+                printf("UDP recv: clear interrupt bit\n");
+                recvUDPstate = state_recv_read_incoming_size;
+                call SocketSpi.readRegister(0x4026 + socket * 0x100, rxbuf, 2);
+                break;
+
+            case state_recv_read_incoming_size:
+                recvsize = ((uint16_t)rxbuf[0] << 8) | rxbuf[1];
+                printf("UDP recv: read incoming size is %d\n", recvsize);
+                printf("rxbuf[0] = 0x%02x\n", rxbuf[0]);
+                printf("rxbuf[1] = 0x%02x\n", rxbuf[1]);
+                if (recvsize)
+                {
+                    recvUDPstate = state_recv_snrx_rd;
+                    call SocketSpi.readRegister(0x4028 + socket * 0x100, rxbuf, 2);
+                }
+                else
+                {
+                    printf("No data for this socket, although it was triggered\n");
+                    // if no data, then give up
+                    recvUDPstate = state_recv_giveup;
+                    post recvUDP();
+                }
+                break;
+
+            case state_recv_snrx_rd:
+                printf("UDP recv: read incoming data\n");
+                recvUDPstate = state_recv_increment_snrx_rd;
+                rx_ptr = ((uint16_t)rxbuf[0] << 8) | rxbuf[1];
+                printf("before rx_ptr: %d = 0x%02x\n", rx_ptr, rx_ptr);
+                //TODO: rx_ptr & RXMASK are too far up? RXBASE by itself receives 1st packet just fine
+                call SocketSpi.readRegister(RXBASE + (rx_ptr & RXMASK), rxbuf, recvsize);
+                break;
+
+            case state_recv_increment_snrx_rd:
+                printf("UDP recv: increment read pointer \n");
+                recvUDPstate = state_recv_write_read;
+
+                // copy packet contents into local buffer
+                printf("recvsize is %d\n", recvsize);
+                for (i=0;i<recvsize;i++)
+                {
+                    printf("recv[%d] = 0x%02x\n", i, rxbuf[i]);
+                }
+
+                memcpy(recvbuf, rxbuf, recvsize);
+
+                rx_ptr += recvsize;
+                txbuf[0] = rx_ptr >> 8;
+                txbuf[1] = rx_ptr && 0xff;;
+                printf("after rx_ptr: %d = 0x%02x\n", rx_ptr, rx_ptr);
+                call SocketSpi.writeRegister(0x4028 + socket * 0x100, _txbuf, 2);
+                break;
+
+            case state_recv_write_read:
+                printf("UDP recv: write RECV command\n");
+                recvUDPstate = state_recv_read_read;
+                txbuf[0] = SocketCommand_RECV;
+                call SocketSpi.writeRegister(0x4001 + socket * 0x100, _txbuf, 1);
+                break;
+
+            case state_recv_read_read:
+                recvUDPstate = state_recv_wait_write_read;
+                call SocketSpi.readRegister(0x4001 + socket * 0x100, rxbuf, 1);
+                break;
+
+            case state_recv_wait_write_read:
+                if (!(*rxbuf))
+                {
+                    recvUDPstate = state_recv_finished;
+                    post recvUDP();
+                }
+                else // read again
+                {
+                    call SocketSpi.readRegister(0x4001 + socket * 0x100, rxbuf, 1);
+                }
+                break;
+
+            case state_recv_finished:
+                printf("UDP recv: Finished listening\n");
+                listeningUDP = 0;
+                recvUDPstate = state_recv_init;
+                recvipaddress = recvbuf[3] | (recvbuf[2] << 8) | (recvbuf[1] << 16) | (recvbuf[0] << 24);
+                recvport = ((uint16_t)recvbuf[4] << 8) | recvbuf[5];
+                recvlen = (recvbuf[6] << 8) | recvbuf[7];
+                recvdata = &recvbuf[8];
+                signal UDPSocket.packetReceived(recvport, recvipaddress, recvdata, recvlen);
+                call RecvResource.release();
+                call GpioInterrupt.enableFallingEdge();
+                break;
+
+            case state_recv_giveup:
+                printf("UDP recv: give up\n");
+                listeningUDP = 0;
+                recvUDPstate = state_recv_init;
+                call RecvResource.release();
+                call GpioInterrupt.enableFallingEdge();
+                break;
         }
     }
 
