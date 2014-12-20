@@ -44,6 +44,11 @@ implementation
     uint16_t tx_ptr;
     uint16_t rx_ptr;
 
+    uint16_t src_mask;
+    uint16_t src_ptr;
+    uint16_t readsize;
+    uint16_t packetlen = 18;
+
     uint8_t socket = 0;
 
     // state machine flags
@@ -441,11 +446,32 @@ implementation
 
             case state_recv_snrx_rd:
                 printf("UDP recv: read incoming data\n");
-                recvUDPstate = state_recv_increment_snrx_rd;
                 rx_ptr = ((uint16_t)rxbuf[0] << 8) | rxbuf[1];
                 printf("before rx_ptr: %d = 0x%02x\n", rx_ptr, rx_ptr);
-                //TODO: rx_ptr & RXMASK are too far up? RXBASE by itself receives 1st packet just fine
-                call SocketSpi.readRegister(RXBASE + (rx_ptr & RXMASK), rxbuf, recvsize);
+                
+                src_mask = rx_ptr & RXMASK;
+                src_ptr = RXBASE + src_mask;
+                if ((src_mask + packetlen) > RXBUF_SIZE)
+                {
+                    readsize = RXBUF_SIZE - src_mask;
+                    recvUDPstate = state_recv_read_morepacket;
+                    printf("read this many first: %d\n", readsize);
+                    //read readsize bytes from src_ptr into buffer
+                    call SocketSpi.readRegister(src_ptr, rxbuf, readsize);
+                }
+                else // it all fits
+                {
+                    readsize = 0;
+                    recvUDPstate = state_recv_increment_snrx_rd;
+                    call SocketSpi.readRegister(src_ptr, rxbuf, packetlen);
+                }
+                break;
+
+            case state_recv_read_morepacket:
+                printf("UDP recv: read more packet\n");
+                recvUDPstate = state_recv_increment_snrx_rd;
+                memcpy(recvbuf, rxbuf, readsize);
+                call SocketSpi.readRegister(RXBASE, rxbuf, packetlen - readsize);
                 break;
 
             case state_recv_increment_snrx_rd:
@@ -453,13 +479,20 @@ implementation
                 recvUDPstate = state_recv_write_read;
 
                 // copy packet contents into local buffer
-                printf("recvsize is %d\n", recvsize);
-                for (i=0;i<recvsize;i++)
+                printf("packetlen is %d\n", packetlen);
+                for (i=0;i<packetlen;i++)
                 {
                     printf("recv[%d] = 0x%02x\n", i, rxbuf[i]);
                 }
 
-                memcpy(recvbuf, rxbuf, recvsize);
+                if (readsize)
+                {
+                    memcpy(recvbuf+readsize, rxbuf, packetlen - readsize);
+                }
+                else
+                {
+                    memcpy(recvbuf, rxbuf, packetlen);
+                }
 
                 recvlen = (recvbuf[6] << 8) | recvbuf[7];
                 rx_ptr += (recvlen + 8);
@@ -500,7 +533,7 @@ implementation
                 recvipaddress = recvbuf[3] | (recvbuf[2] << 8) | (recvbuf[1] << 16) | (recvbuf[0] << 24);
                 recvport = ((uint16_t)recvbuf[4] << 8) | recvbuf[5];
                 recvdata = &recvbuf[8];
-                recvsize -= recvlen + 8;
+                recvsize -= packetlen;
                 signal UDPSocket.packetReceived(recvport, recvipaddress, recvdata, recvlen);
                 call RecvResource.release();
                 call GpioInterrupt.enableFallingEdge();
