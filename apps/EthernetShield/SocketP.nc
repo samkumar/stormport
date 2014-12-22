@@ -33,7 +33,6 @@ implementation
     uint32_t recvipaddress;
     uint8_t recvbuf [256];
     uint8_t recvheader [8];
-    uint8_t *recvdata;
     uint16_t recvlen;
 
     // state machine vars
@@ -85,6 +84,7 @@ implementation
     //TODO: protect these send* addresses so that they aren't overwritten by another send command
     command void UDPSocket.sendPacket(uint16_t destport, uint32_t destip, struct ip_iovec data)
     {
+        printf("request to send a packet\n");
         sendport = destport;
         sendipaddress = destip;
         senddata = data;
@@ -98,6 +98,7 @@ implementation
 
     async event void GpioInterrupt.fired()
     {
+        printf("GPIO INTERRUPT\n");
         call GpioInterrupt.disable();
         post recvUDP();
     }
@@ -430,8 +431,8 @@ implementation
             case state_recv_read_incoming_size:
                 printf("UDP recv: read size on incoming buffer is %d\n", recvsize);
                 recvsize = ((uint16_t)rxbuf[0] << 8) | rxbuf[1];
-                printf("rxbuf[0] = 0x%02x\n", rxbuf[0]);
-                printf("rxbuf[1] = 0x%02x\n", rxbuf[1]);
+                //printf("rxbuf[0] = 0x%02x\n", rxbuf[0]);
+                //printf("rxbuf[1] = 0x%02x\n", rxbuf[1]);
                 if (recvsize)
                 {
                     recvUDPstate = state_recv_snrx_rd;
@@ -449,7 +450,7 @@ implementation
             case state_recv_snrx_rd:
                 printf("UDP recv: read incoming data\n");
                 rx_ptr = ((uint16_t)rxbuf[0] << 8) | rxbuf[1];
-                printf("before rx_ptr: %d = 0x%02x\n", rx_ptr, rx_ptr);
+                //printf("before rx_ptr: %d = 0x%02x\n", rx_ptr, rx_ptr);
                 
                 src_mask = rx_ptr & RXMASK;
                 src_ptr = RXBASE + src_mask;
@@ -499,6 +500,10 @@ implementation
                     {
                         printf("recvheader[%d] = 0x%02x\n", i, recvheader[i]);
                     }
+                }
+                else
+                {
+                    memcpy(recvheader, rxbuf, 8);
                 }
                 for (i=0;i<8;i++)
                 {
@@ -593,15 +598,25 @@ implementation
                 printf("UDP recv: Finished listening\n");
                 listeningUDP = 0;
                 recvUDPstate = state_recv_init;
-                recvdata = &recvbuf[0];
                 recvsize -= (packetlen + 8);
-                signal UDPSocket.packetReceived(recvport, recvipaddress, recvdata, packetlen);
                 call RecvResource.release();
-                call GpioInterrupt.enableFallingEdge();
+                //call GpioInterrupt.enableFallingEdge();
+                recvipaddress = recvheader[3] | (recvheader[2] << 8) | (recvheader[1] << 16) | (recvheader[0] << 24);
+                recvport = ((uint16_t)recvheader[4] << 8) | recvheader[5];
+                printf("recv size is now: %d\n", recvsize);
+                    for (i=0;i<8;i++)
+                    {
+                        printf("recvheader[%d] = 0x%02x\n", i, recvheader[i]);
+                    }
+                signal UDPSocket.packetReceived(recvport, recvipaddress, recvbuf, packetlen);
                 if (recvsize > 0)
                 {
                     printf("mo packets. with size %d\n", recvsize);
                     post recvUDP();
+                }
+                else
+                {
+                    post enableListen();
                 }
                 break;
 

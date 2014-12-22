@@ -73,7 +73,7 @@ implementation
         out.iov_len = 4;
         out.iov_next = NULL;
 
-        //printf("ethernetclient c trying to send packet\n");
+        printf("ethernetclient c trying to send packet\n");
         call UDPSocket.sendPacket(destport, destip, out);
     }
 }
