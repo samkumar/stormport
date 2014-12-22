@@ -109,6 +109,8 @@ typedef enum
     state_recv_getsize,
     state_recv_giveup,
     state_recv_snrx_rd,
+    state_recv_assemble_header,
+    state_recv_finish_header,
     state_recv_read_packet,
     state_recv_read_morepacket,
     state_recv_increment_snrx_rd,

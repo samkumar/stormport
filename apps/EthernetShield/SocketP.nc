@@ -32,6 +32,7 @@ implementation
     uint16_t recvport;
     uint32_t recvipaddress;
     uint8_t recvbuf [256];
+    uint8_t recvheader [8];
     uint8_t *recvdata;
     uint16_t recvlen;
 
@@ -48,6 +49,7 @@ implementation
     uint16_t src_ptr;
     uint16_t readsize;
     uint16_t packetlen = 0;
+    uint16_t amountleft;
 
     uint8_t socket = 0;
 
@@ -426,8 +428,8 @@ implementation
                 break;
 
             case state_recv_read_incoming_size:
+                printf("UDP recv: read size on incoming buffer is %d\n", recvsize);
                 recvsize = ((uint16_t)rxbuf[0] << 8) | rxbuf[1];
-                printf("UDP recv: read incoming size is %d\n", recvsize);
                 printf("rxbuf[0] = 0x%02x\n", rxbuf[0]);
                 printf("rxbuf[1] = 0x%02x\n", rxbuf[1]);
                 if (recvsize)
@@ -451,16 +453,66 @@ implementation
                 
                 src_mask = rx_ptr & RXMASK;
                 src_ptr = RXBASE + src_mask;
+                amountleft = RXBUF_SIZE - src_mask; // number of bytes left in buffer
+                printf("src_mask: 0x%02x\n", src_mask);
+                printf("src_ptr: 0x%02x\n", src_ptr);
+                printf("RXBUF_SIZE 0x%02x\n", RXBUF_SIZE);
+                printf("amountleft %d\n", amountleft);
+                if (amountleft >= 8) // here, we have enough room to read the header
+                {
+                    // read 8 byte UDP header
+                    recvUDPstate = state_recv_read_packet;
+                    call SocketSpi.readRegister(src_ptr, rxbuf, 8);
+                }
+                else // don't have enough room for header!
+                {
+                    recvUDPstate = state_recv_assemble_header;
+                    call SocketSpi.readRegister(src_ptr, rxbuf, amountleft); // should be 0 <= amountleft <= 7
+                }
+                break;
+
+            // here, we couldn't read 8 bytes off of the header
+            case state_recv_assemble_header:
+                printf("UDP rcv: read what header we can: amountleft is %d\n", amountleft);
+                memcpy(recvheader, rxbuf, amountleft); // read however much we can
+                recvUDPstate = state_recv_finish_header;
+                call SocketSpi.readRegister(RXBASE, rxbuf, 8 - amountleft); // then read the rest
+                break;
+
+            case state_recv_finish_header:
+                printf("UDP recv: finish reading header: left is %d\n", 8 - amountleft);
+                memcpy(recvheader+amountleft, rxbuf, 8 - amountleft);
                 recvUDPstate = state_recv_read_packet;
-                // read 8 byte UDP header
-                call SocketSpi.readRegister(src_ptr, rxbuf, 8);
+                memcpy(rxbuf, recvheader, 8); // copy back into rxbuf so we can continue below
+                rx_ptr += 8; // advance rx_ptr bc we just read 8 bytes
+                src_mask = rx_ptr & RXMASK;
+                src_ptr = RXBASE + src_mask;
+                post recvUDP();
                 break;
 
             case state_recv_read_packet:
+                printf("UDP recv: start reading packet\n");
+                if (amountleft < 8)
+                {
+                    printf("amount left %u %d\n", amountleft);
+                    for (i=0;i<8;i++)
+                    {
+                        printf("recvheader[%d] = 0x%02x\n", i, recvheader[i]);
+                    }
+                }
+                for (i=0;i<8;i++)
+                {
+                    printf("header[%d] = 0x%02x\n", i, rxbuf[i]);
+                }
+                printf("amount left is %d\n", amountleft);
+                printf("now read packet\n");
+                printf("src_mask: 0x%02x\n", src_mask);
+                printf("src_ptr: 0x%02x\n", src_ptr);
+                printf("RXBUF_SIZE 0x%02x\n", RXBUF_SIZE);
+
                 recvipaddress = rxbuf[3] | (rxbuf[2] << 8) | (rxbuf[1] << 16) | (rxbuf[0] << 24);
                 recvport = ((uint16_t)rxbuf[4] << 8) | rxbuf[5];
-                packetlen = (uint16_t)rxbuf[6] << 8 | rxbuf[7];
-                src_ptr += 8;
+                packetlen = ((uint16_t)rxbuf[6] << 8) | rxbuf[7];
                 if ((src_mask + packetlen) > RXBUF_SIZE)
                 {
                     readsize = RXBUF_SIZE - src_mask;
@@ -473,7 +525,7 @@ implementation
                 {
                     readsize = 0;
                     recvUDPstate = state_recv_increment_snrx_rd;
-                    call SocketSpi.readRegister(src_ptr, rxbuf, packetlen);
+                    call SocketSpi.readRegister(src_ptr+8, rxbuf, packetlen);
                 }
                 break;
 
@@ -490,23 +542,23 @@ implementation
                 recvUDPstate = state_recv_write_read;
 
                 // copy packet contents into local buffer
-                printf("packetlen is %d\n", packetlen);
+                printf("packetlen is %d readsize is %d\n", packetlen, readsize);
 
-                if (readsize)
-                {
-                    memcpy(recvbuf+readsize, rxbuf, packetlen - readsize);
-                }
-                else
-                {
-                    memcpy(recvbuf, rxbuf, packetlen);
-                }
+                memcpy(recvbuf+readsize, rxbuf, packetlen - readsize);
 
                 for (i=0;i<packetlen;i++)
                 {
                     printf("recv[%d] = 0x%02x\n", i, recvbuf[i]);
                 }
 
-                rx_ptr += (packetlen + 8);
+                if (amountleft < 8)
+                {
+                    rx_ptr += packetlen;
+                }
+                else
+                {
+                    rx_ptr += (packetlen + 8);
+                }
                 txbuf[0] = rx_ptr >> 8;
                 txbuf[1] = rx_ptr & 0xff;
                 printf("after rx_ptr: %d = 0x%02x\n", rx_ptr, rx_ptr);
