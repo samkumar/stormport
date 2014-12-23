@@ -74,6 +74,7 @@ typedef enum
     state_init_open_src_port,
     state_init_read_src_port_opened,
     state_init_wait_src_port_opened,
+    state_init_set_interrupt_mask,
     state_init_success,
     state_init_fail
 } SocketInitUDPState;

@@ -8,9 +8,11 @@ implementation
   components MainC, EthernetClientC, HplSam4lIOC;
   components SocketP, SocketSpiP;
   components new Sam4lUSART0C();
+  components new Timer32khzC() as SocketSpiTimer;
   SocketSpiP.SpiPacket -> Sam4lUSART0C.SpiPacket;
   SocketSpiP.SpiHPL -> Sam4lUSART0C;
   SocketSpiP.EthernetSS -> HplSam4lIOC.PB11;
+  SocketSpiP.Timer -> SocketPTimer;
 
   // arbiter
   components new FcfsArbiterC(ETHERNETRESOURCE_ID) as arbiter;

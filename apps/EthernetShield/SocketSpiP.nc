@@ -6,6 +6,7 @@ module SocketSpiP
     uses interface HplSam4lUSART as SpiHPL;
     uses interface SpiPacket;
     uses interface GeneralIO as EthernetSS;
+    uses interface Timer<T32khz>;
 
     provides interface SocketSpi;
     provides interface Init;
@@ -15,8 +16,8 @@ implementation
     bool ssd;
     uint8_t _rxbuf [260];
     uint8_t txbuf[4];
+    uint16_t len;
 
-    //TODO: need to figure out how to wire this to boot or init for platform?
     // initializes SPI
     command error_t Init.init()
     {
@@ -66,10 +67,17 @@ implementation
         call SpiPacket.send(txbuf, _rxbuf, ((int)len) + 4);
     }
 
+    event void Timer.fired()
+    {
+        call EthernetSS.set();
+        signal SocketSpi.taskDone(SUCCESS, &_rxbuf[4], len-4);
+    }
 
-    async event void SpiPacket.sendDone(uint8_t* txBuf, uint8_t* rxBuf, uint16_t len, error_t error)
+
+    async event void SpiPacket.sendDone(uint8_t* txBuf, uint8_t* rxBuf, uint16_t _len, error_t error)
     {
         // finished sending spipacket
-        signal SocketSpi.taskDone(error, &_rxbuf[4], len-4);
+        len = _len;
+        call Timer.startOneShot(20);
     }
 }

@@ -214,7 +214,8 @@ implementation
                 if (!(*rxbuf)) // command has been read
                 {
                     initUDPstate = state_init_success;
-                    post initUDP(); // no spi command here, so we just repost to advance state
+                    txbuf[0] = 0xFF;
+                    call SocketSpi.writeRegister(0x0016, _txbuf, 1);
                     break;
                 }
                 else // it hasn't
@@ -410,13 +411,13 @@ implementation
                 if (*rxbuf & (1 << socket)) // mask for our socket number
                 {
                     recvUDPstate = state_recv_clear_interrupt;
-                    txbuf[0] = 0;
+                    txbuf[0] = 0xFF;
                     call SocketSpi.writeRegister(0x4002 + socket * 0x100, _txbuf, 1);
                     // read incoming read register
                 }
                 else // we weren't triggered
                 {
-                    printf("Trigger wasn't for this socket\n");
+                    printf("No trigger\n");
                     recvUDPstate = state_recv_giveup;
                     post recvUDP(); // advance to that state, do not pass Go, do not collect $200
                 }
@@ -431,8 +432,6 @@ implementation
             case state_recv_read_incoming_size:
                 printf("UDP recv: read size on incoming buffer is %d\n", recvsize);
                 recvsize = ((uint16_t)rxbuf[0] << 8) | rxbuf[1];
-                //printf("rxbuf[0] = 0x%02x\n", rxbuf[0]);
-                //printf("rxbuf[1] = 0x%02x\n", rxbuf[1]);
                 if (recvsize)
                 {
                     recvUDPstate = state_recv_snrx_rd;
