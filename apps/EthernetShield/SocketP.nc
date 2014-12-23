@@ -31,8 +31,8 @@ implementation
     uint16_t recvsize = 0;
     uint16_t recvport;
     uint32_t recvipaddress;
-    uint8_t recvbuf [256];
     uint8_t recvheader [8];
+    uint8_t recvbuf [256];
     uint16_t recvlen;
 
     // state machine vars
@@ -78,6 +78,7 @@ implementation
 
         // we call request here because we are waiting to acquire the resource
         // that is currently being used by the EthernetShield initialization
+        call IRQPin.makeInput();
         call InitResource.request();
     }
 

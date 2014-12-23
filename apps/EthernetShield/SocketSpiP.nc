@@ -16,7 +16,7 @@ implementation
     bool ssd;
     uint8_t _rxbuf [260];
     uint8_t txbuf[4];
-    uint16_t len;
+    volatile norace uint8_t len;
 
     // initializes SPI
     command error_t Init.init()
@@ -40,7 +40,7 @@ implementation
 
     // initialize
     // write to W5200 register
-    command void SocketSpi.writeRegister(uint16_t reg_addr, uint8_t *buf, uint8_t len)
+    command void SocketSpi.writeRegister(uint16_t reg_addr, uint8_t *buf, uint8_t _len)
     {
         call EthernetSS.clr();
         ssd = 1;
@@ -48,23 +48,25 @@ implementation
         buf[1] = (uint8_t) reg_addr;
         //Set top bit for write
         buf[2] = 0x80; //Len MSB is null
-        buf[3] = len;
+        buf[3] = _len;
+        len = _len;
         // should copy contents of buf into the transmission buffer
-        call SpiPacket.send(buf, _rxbuf, ((int)len) + 4);
+        call SpiPacket.send(buf, _rxbuf, ((int)_len) + 4);
     }
 
     // read from W5200 register
-    command void SocketSpi.readRegister(uint16_t reg_addr, uint8_t *buf, uint8_t len)
+    command void SocketSpi.readRegister(uint16_t reg_addr, uint8_t *buf, uint8_t _len)
     {
         uint16_t i;
-        for (i = 0; i < len; i++)  txbuf[4+i] = 0;
+        for (i = 0; i < _len; i++)  txbuf[4+i] = 0;
         call EthernetSS.clr();
         ssd = 1;
+        len = _len;
         txbuf[0] = (uint8_t) (reg_addr >> 8); //network byte order
         txbuf[1] = (uint8_t) reg_addr;
         txbuf[2] = 0x00; //Clear top bit for read
-        txbuf[3] = len;
-        call SpiPacket.send(txbuf, _rxbuf, ((int)len) + 4);
+        txbuf[3] = _len;
+        call SpiPacket.send(txbuf, _rxbuf, ((int)_len) + 4);
     }
 
     event void Timer.fired()
@@ -73,11 +75,15 @@ implementation
         signal SocketSpi.taskDone(SUCCESS, &_rxbuf[4], len-4);
     }
 
+    void task startTimerOneShot()
+    {
+        call Timer.startOneShot(1);
+    }
+
 
     async event void SpiPacket.sendDone(uint8_t* txBuf, uint8_t* rxBuf, uint16_t _len, error_t error)
     {
         // finished sending spipacket
-        len = _len;
-        call Timer.startOneShot(20);
+        post startTimerOneShot();
     }
 }
