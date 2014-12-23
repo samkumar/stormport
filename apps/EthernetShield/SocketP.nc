@@ -78,7 +78,6 @@ implementation
 
         // we call request here because we are waiting to acquire the resource
         // that is currently being used by the EthernetShield initialization
-        call IRQPin.makeInput();
         call InitResource.request();
     }
 
@@ -231,6 +230,7 @@ implementation
                 signal UDPSocket.initializeDone(SUCCESS);
                 call InitResource.release();
                 call GpioInterrupt.enableFallingEdge();
+                call IRQPin.makeInput();
                 break;
                 
             case state_init_fail:
@@ -238,7 +238,6 @@ implementation
                 initializingUDP = 0;
                 signal UDPSocket.initializeDone(FAIL);
                 call InitResource.release();
-                call GpioInterrupt.enableFallingEdge();
                 break;
         }
     }
@@ -339,6 +338,7 @@ implementation
                 break;
 
             case state_writeudp_waitsendcomplete:
+                if (*rxbuf) printf("rxbuf interrupt: 0x%02x\n", *rxbuf);
                 if (!(*rxbuf & SocketInterrupt_SEND_OK)) // didn't get positive confirmation yet
                 {
                     if (*rxbuf & SocketInterrupt_TIMEOUT)
@@ -346,6 +346,7 @@ implementation
                         printf("Timeout on send\n");
                         sendUDPstate = state_writeudp_error;
                         txbuf[0] = SocketInterrupt_SEND_OK | SocketInterrupt_TIMEOUT;
+                        call GpioInterrupt.disable(); // disable interrupts before we write
                         call SocketSpi.writeRegister(0x4002 + socket * 0x100, _txbuf, 1);
                         break;
                     }
@@ -364,6 +365,7 @@ implementation
                 {
                     sendUDPstate = state_writeudp_finished;
                     txbuf[0] = SocketInterrupt_SEND_OK;
+                    call GpioInterrupt.disable(); // disable interrupts before we write
                     call SocketSpi.writeRegister(0x4002 + socket * 0x100, _txbuf, 1);
                     break;
                 }
@@ -374,7 +376,7 @@ implementation
                 sendingUDP = 0;
                 signal UDPSocket.sendPacketDone(SUCCESS);
                 call SendResource.release();
-                post enableListen();
+                post enableListen(); // reenables interrupts
                 break;
 
             case state_writeudp_error:
@@ -382,7 +384,7 @@ implementation
                 sendingUDP = 0;
                 signal UDPSocket.sendPacketDone(FAIL);
                 call SendResource.release();
-                post enableListen();
+                post enableListen(); // reenables interrupts
                 break;
 
         }
@@ -394,6 +396,7 @@ implementation
 
         if (!(call RecvResource.isOwner()))
         {
+            printf("recv request resource\n");
             call RecvResource.request();
             return;
         }
@@ -431,8 +434,8 @@ implementation
                 break;
 
             case state_recv_read_incoming_size:
-                printf("UDP recv: read size on incoming buffer is %d\n", recvsize);
                 recvsize = ((uint16_t)rxbuf[0] << 8) | rxbuf[1];
+                printf("UDP recv: read size on incoming buffer is %d\n", recvsize);
                 if (recvsize)
                 {
                     recvUDPstate = state_recv_snrx_rd;
@@ -462,6 +465,7 @@ implementation
                 if (amountleft >= 8) // here, we have enough room to read the header
                 {
                     // read 8 byte UDP header
+                    printf("Read full header\n");
                     recvUDPstate = state_recv_read_packet;
                     call SocketSpi.readRegister(src_ptr, rxbuf, 8);
                 }
@@ -493,21 +497,13 @@ implementation
 
             case state_recv_read_packet:
                 printf("UDP recv: start reading packet\n");
-                if (amountleft < 8)
-                {
-                    printf("amount left %u %d\n", amountleft);
-                    for (i=0;i<8;i++)
-                    {
-                        printf("recvheader[%d] = 0x%02x\n", i, recvheader[i]);
-                    }
-                }
-                else
+                if (amountleft >= 8)
                 {
                     memcpy(recvheader, rxbuf, 8);
                 }
                 for (i=0;i<8;i++)
                 {
-                    printf("header[%d] = 0x%02x\n", i, rxbuf[i]);
+                    printf("header[%d] = 0x%02x\n", i, recvheader[i]);
                 }
                 printf("amount left is %d\n", amountleft);
                 printf("now read packet\n");
