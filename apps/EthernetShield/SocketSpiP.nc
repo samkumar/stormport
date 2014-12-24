@@ -58,7 +58,6 @@ implementation
     command void SocketSpi.readRegister(uint16_t reg_addr, uint8_t *buf, uint8_t _len)
     {
         uint16_t i;
-        if (_len > 7) printf("read register w/ len: %d _len %d\n", len, _len);
         for (i = 0; i < _len; i++)  txbuf[4+i] = 0;
         call EthernetSS.clr();
         ssd = 1;
@@ -72,7 +71,6 @@ implementation
 
     event void Timer.fired()
     {
-        if (len > 7) printf("timer fired w/ len: %d\n", len);
         call EthernetSS.set();
         signal SocketSpi.taskDone(SUCCESS, &_rxbuf[4], len-4);
     }
