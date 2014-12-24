@@ -69,6 +69,7 @@ typedef enum
 typedef enum
 {
     state_init_readsockstate,
+    state_init_ipraw_write_ipp,
     state_init_write_protocol,
     state_init_write_src_port,
     state_init_open_src_port,

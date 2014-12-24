@@ -3,7 +3,7 @@
 interface RawSocket
 {
     // use this socket for IPRAW
-    command void initialize();
+    command void initialize(uint8_t ipprotocol); // defined by IANA
 
     event void initializeDone(error_t error);
 

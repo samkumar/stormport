@@ -10,6 +10,7 @@ generic module SocketP(uint8_t socket)
     uses interface GpioInterrupt;
 
     provides interface UDPSocket;
+    provides interface RawSocket;
 }
 implementation
 {
@@ -40,6 +41,13 @@ implementation
     SocketSendUDPState sendUDPstate;
     SocketRecvUDPState recvUDPstate = state_recv_init;
 
+    // keep track of what kind of packet we are
+    SocketType sockettype;
+    SocketState goal_socketstate;
+
+    // IP RAW vars
+    uint8_t ipp; // ip protocol
+
     // send/recv buffer pointers
     uint16_t tx_ptr;
     uint16_t rx_ptr;
@@ -69,6 +77,9 @@ implementation
     {
         localport = lp;
 
+        sockettype = SocketType_UDP;
+        goal_socketstate = SocketState_UDP; // use this for writing
+
         // have to init this stuff somewhere..
         TXBASE = TXBUF_BASE + TXBUF_SIZE * socket;
         RXBASE = RXBUF_BASE + RXBUF_SIZE * socket;
@@ -90,6 +101,21 @@ implementation
         senddata = data;
         sendUDPstate = state_connect_write_dst_ipaddress;
         call SendResource.request();
+    }
+
+    /** RawSocket implementation **/
+    command void RawSocket.initialize(uint8_t ipprotocol)
+    {
+        sockettype = SocketType_IPRAW;
+        goal_socketstate = SocketState_IPRAW; // use this for writing
+        TXBASE = TXBUF_BASE + TXBUF_SIZE * socket;
+        RXBASE = RXBUF_BASE + RXBUF_SIZE * socket;
+        initUDPstate = state_init_readsockstate;
+        call InitResource.request();
+    }
+
+    command void RawSocket.sendPacket(struct ip_iovec data)
+    {
     }
 
     event void Timer.fired()
@@ -158,24 +184,49 @@ implementation
         }
     }
 
+
     /** Initialization State Machine **/
     task void initUDP()
     {
         switch (initUDPstate)
         {
             case state_init_readsockstate:
-                printf("UDP init: read socket state\n");
+                printf("Socket init: read socket state\n");
+                switch(sockettype)
+                {
+                    case SocketType_UDP:
+                        initUDPstate = state_init_write_protocol;
+                        call SocketSpi.readRegister(0x4003 + socket * 0x100, rxbuf, 1);
+                        break;
+                    case SocketType_IPRAW: // write our IP protocol type
+                        initUDPstate = state_init_ipraw_write_ipp;
+                        txbuf[0] = ipp; // from RawSocket.initialize
+                        call SocketSpi.writeRegister(0x4014 + socket * 0x100, _txbuf, 1);
+                        break;
+                }
+                break;
+
+            case state_init_ipraw_write_ipp: // read status register in ipraw
                 initUDPstate = state_init_write_protocol;
                 call SocketSpi.readRegister(0x4003 + socket * 0x100, rxbuf, 1);
                 break;
             
             case state_init_write_protocol:
-                printf("UDP init: write protocol UDP\n");
+                printf("Socket init: write protocol type\n");
                 if (*rxbuf == SocketState_CLOSED || *rxbuf == SocketState_FIN_WAIT || *rxbuf == SocketState_CLOSE_WAIT)
                 {
                     // this means we can reuse the socket
-                    initUDPstate = state_init_write_src_port;
-                    txbuf[0] = SocketMode_UDP;
+                    switch (sockettype)
+                    {
+                        case SocketType_UDP:
+                            initUDPstate = state_init_write_src_port;
+                            txbuf[0] = SocketMode_UDP;
+                            break;
+                        case SocketType_IPRAW: //write IP RAW mode
+                            initUDPstate = state_init_open_src_port; // skip writing srcport and ip
+                            txbuf[0] = SocketMode_IPRAW;
+                            break;
+                    }
                     call SocketSpi.writeRegister(0x4000 + socket * 0x100, _txbuf, 1);
                     break;
                 }
@@ -228,7 +279,15 @@ implementation
             case state_init_success:
                 printf("UDP init: success!\n");
                 initializingUDP = 0;
-                signal UDPSocket.initializeDone(SUCCESS);
+                switch (sockettype)
+                {
+                    case SocketType_UDP:
+                        signal UDPSocket.initializeDone(SUCCESS);
+                        break;
+                    case SocketType_IPRAW:
+                        signal RawSocket.initializeDone(SUCCESS);
+                        break;
+                }
                 call InitResource.release();
                 call GpioInterrupt.enableFallingEdge();
                 call IRQPin.makeInput();
@@ -237,7 +296,15 @@ implementation
             case state_init_fail:
                 printf("UDP init: YOU FAIL!\n");
                 initializingUDP = 0;
-                signal UDPSocket.initializeDone(FAIL);
+                switch (sockettype)
+                {
+                    case SocketType_UDP:
+                        signal UDPSocket.initializeDone(FAIL);
+                        break;
+                    case SocketType_IPRAW:
+                        signal RawSocket.initializeDone(FAIL);
+                        break;
+                }
                 call InitResource.release();
                 break;
         }
@@ -294,9 +361,9 @@ implementation
                 break;
 
             case state_connect_wait_established:
-                if (*rxbuf == SocketState_UDP) // chip is ready to send
+                if (*rxbuf == goal_socketstate) // chip is ready to send
                 {
-                    printf("UDP send: established!\n");
+                    printf("Socket send: established!\n");
                     sendUDPstate = state_writeudp_copytotxbuf; 
                     // read the tx write register for next state
                     call SocketSpi.readRegister(0x4024 + socket * 0x100, rxbuf, 2);
@@ -619,4 +686,8 @@ implementation
     default event void UDPSocket.sendPacketDone(error_t error) {}
     default event void UDPSocket.initializeDone(error_t error) {}
     default event void UDPSocket.packetReceived(uint16_t srcport, uint32_t srcip, uint8_t *buf, uint16_t len) {}
+
+    default event void RawSocket.sendPacketDone(error_t error) {}
+    default event void RawSocket.initializeDone(error_t error) {}
+    default event void RawSocket.packetReceived(uint8_t *buf, uint16_t len) {}
 }

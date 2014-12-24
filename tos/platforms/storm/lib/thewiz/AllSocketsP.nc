@@ -1,6 +1,6 @@
 configuration AllSocketsP
 {
-    //provides interface RawSocket[uint8_t id];
+    provides interface RawSocket[uint8_t id];
     provides interface UDPSocket[uint8_t id];
     provides interface EthernetShieldConfig;
 }
@@ -42,6 +42,7 @@ implementation
     components new SocketP(7) as s7;
 
     UDPSocket[0] = s0.UDPSocket;
+    RawSocket[0] = s0.RawSocket;
     components new Timer32khzC() as SocketPTimer0;
     s0.SocketSpi -> SocketSpiP.SocketSpi;
     s0.Timer -> SocketPTimer0;
