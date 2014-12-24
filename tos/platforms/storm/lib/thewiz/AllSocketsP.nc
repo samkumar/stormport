@@ -54,6 +54,7 @@ implementation
     s0.IRQPin -> HplSam4lIOC.PB12;
 
     UDPSocket[1] = s1.UDPSocket;
+    RawSocket[1] = s1.RawSocket;
     components new Timer32khzC() as SocketPTimer1;
     s1.SocketSpi -> SocketSpiP.SocketSpi;
     s1.Timer -> SocketPTimer1;
@@ -64,7 +65,8 @@ implementation
     s1.GpioInterrupt -> HplSam4lIOC.PB12IRQ;
     s1.IRQPin -> HplSam4lIOC.PB12;
 
-    UDPSocket[2] = s1.UDPSocket;
+    UDPSocket[2] = s2.UDPSocket;
+    RawSocket[2] = s2.RawSocket;
     components new Timer32khzC() as SocketPTimer2;
     s2.SocketSpi -> SocketSpiP.SocketSpi;
     s2.Timer -> SocketPTimer2;
@@ -75,7 +77,8 @@ implementation
     s2.GpioInterrupt -> HplSam4lIOC.PB12IRQ;
     s2.IRQPin -> HplSam4lIOC.PB12;
 
-    UDPSocket[3] = s1.UDPSocket;
+    UDPSocket[3] = s3.UDPSocket;
+    RawSocket[3] = s3.RawSocket;
     components new Timer32khzC() as SocketPTimer3;
     s3.SocketSpi -> SocketSpiP.SocketSpi;
     s3.Timer -> SocketPTimer3;
@@ -86,7 +89,8 @@ implementation
     s3.GpioInterrupt -> HplSam4lIOC.PB12IRQ;
     s3.IRQPin -> HplSam4lIOC.PB12;
 
-    UDPSocket[4] = s1.UDPSocket;
+    UDPSocket[4] = s4.UDPSocket;
+    RawSocket[4] = s4.RawSocket;
     components new Timer32khzC() as SocketPTimer4;
     s4.SocketSpi -> SocketSpiP.SocketSpi;
     s4.Timer -> SocketPTimer4;
@@ -97,7 +101,8 @@ implementation
     s4.GpioInterrupt -> HplSam4lIOC.PB12IRQ;
     s4.IRQPin -> HplSam4lIOC.PB12;
 
-    UDPSocket[5] = s1.UDPSocket;
+    UDPSocket[5] = s5.UDPSocket;
+    RawSocket[5] = s5.RawSocket;
     components new Timer32khzC() as SocketPTimer5;
     s5.SocketSpi -> SocketSpiP.SocketSpi;
     s5.Timer -> SocketPTimer5;
@@ -108,7 +113,8 @@ implementation
     s5.GpioInterrupt -> HplSam4lIOC.PB12IRQ;
     s5.IRQPin -> HplSam4lIOC.PB12;
 
-    UDPSocket[6] = s1.UDPSocket;
+    UDPSocket[6] = s6.UDPSocket;
+    RawSocket[6] = s6.RawSocket;
     components new Timer32khzC() as SocketPTimer6;
     s6.SocketSpi -> SocketSpiP.SocketSpi;
     s6.Timer -> SocketPTimer6;
@@ -119,7 +125,8 @@ implementation
     s6.GpioInterrupt -> HplSam4lIOC.PB12IRQ;
     s6.IRQPin -> HplSam4lIOC.PB12;
 
-    UDPSocket[7] = s1.UDPSocket;
+    UDPSocket[7] = s7.UDPSocket;
+    RawSocket[7] = s7.RawSocket;
     components new Timer32khzC() as SocketPTimer7;
     s7.SocketSpi -> SocketSpiP.SocketSpi;
     s7.Timer -> SocketPTimer7;
