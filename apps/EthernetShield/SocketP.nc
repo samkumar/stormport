@@ -1,4 +1,4 @@
-module SocketP
+generic module SocketP(uint8_t socket)
 {
     uses interface SocketSpi;
     uses interface Timer<T32khz> as Timer;
@@ -50,7 +50,7 @@ implementation
     uint16_t packetlen = 0;
     uint16_t amountleft;
 
-    uint8_t socket = 0;
+    //uint8_t socket = 0;
 
     // state machine flags
     bool initializingUDP = 0;
