@@ -525,6 +525,7 @@ implementation
                 }
                 else // it all fits
                 {
+                    printf("read full packet\n");
                     readsize = 0;
                     recvUDPstate = state_recv_increment_snrx_rd;
                     call SocketSpi.readRegister(src_ptr, rxbuf, packetlen);
@@ -589,10 +590,10 @@ implementation
                 recvipaddress = recvheader[3] | (recvheader[2] << 8) | (recvheader[1] << 16) | (recvheader[0] << 24);
                 recvport = ((uint16_t)recvheader[4] << 8) | recvheader[5];
                 printf("recv size is now: %d\n", recvsize);
-                    for (i=0;i<8;i++)
-                    {
-                        printf("recvheader[%d] = 0x%02x\n", i, recvheader[i]);
-                    }
+                for (i=0;i<8;i++)
+                {
+                    printf("recvheader[%d] = 0x%02x\n", i, recvheader[i]);
+                }
                 signal UDPSocket.packetReceived(recvport, recvipaddress, recvbuf, packetlen);
                 if (recvsize > 0)
                 {

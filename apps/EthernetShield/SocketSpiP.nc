@@ -15,7 +15,7 @@ implementation
 {
     bool ssd;
     uint8_t _rxbuf [260];
-    uint8_t txbuf[4];
+    uint8_t txbuf[260];
     volatile norace uint8_t len;
 
     // initializes SPI
@@ -58,14 +58,14 @@ implementation
     command void SocketSpi.readRegister(uint16_t reg_addr, uint8_t *buf, uint8_t _len)
     {
         uint16_t i;
-        for (i = 0; i < _len; i++)  txbuf[4+i] = 0;
+        //for (i = 0; i < _len; i++)  txbuf[4+i] = 0;
         call EthernetSS.clr();
         ssd = 1;
-        len = _len+4;
         txbuf[0] = (uint8_t) (reg_addr >> 8); //network byte order
         txbuf[1] = (uint8_t) reg_addr;
         txbuf[2] = 0x00; //Clear top bit for read
         txbuf[3] = _len;
+        len = _len+4;
         call SpiPacket.send(txbuf, _rxbuf, ((int)_len) + 4);
     }
 
