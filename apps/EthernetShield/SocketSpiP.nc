@@ -58,7 +58,7 @@ implementation
     command void SocketSpi.readRegister(uint16_t reg_addr, uint8_t *buf, uint8_t _len)
     {
         uint16_t i;
-        //for (i = 0; i < _len; i++)  txbuf[4+i] = 0;
+        for (i = 0; i < 256; i++)  txbuf[4+i] = 0;
         call EthernetSS.clr();
         ssd = 1;
         txbuf[0] = (uint8_t) (reg_addr >> 8); //network byte order
