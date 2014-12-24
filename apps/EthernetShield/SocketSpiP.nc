@@ -49,7 +49,7 @@ implementation
         //Set top bit for write
         buf[2] = 0x80; //Len MSB is null
         buf[3] = _len;
-        len = _len;
+        len = _len+4;
         // should copy contents of buf into the transmission buffer
         call SpiPacket.send(buf, _rxbuf, ((int)_len) + 4);
     }
@@ -58,10 +58,11 @@ implementation
     command void SocketSpi.readRegister(uint16_t reg_addr, uint8_t *buf, uint8_t _len)
     {
         uint16_t i;
+        if (_len > 7) printf("read register w/ len: %d _len %d\n", len, _len);
         for (i = 0; i < _len; i++)  txbuf[4+i] = 0;
         call EthernetSS.clr();
         ssd = 1;
-        len = _len;
+        len = _len+4;
         txbuf[0] = (uint8_t) (reg_addr >> 8); //network byte order
         txbuf[1] = (uint8_t) reg_addr;
         txbuf[2] = 0x00; //Clear top bit for read
@@ -71,6 +72,7 @@ implementation
 
     event void Timer.fired()
     {
+        if (len > 7) printf("timer fired w/ len: %d\n", len);
         call EthernetSS.set();
         signal SocketSpi.taskDone(SUCCESS, &_rxbuf[4], len-4);
     }
