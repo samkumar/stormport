@@ -9,8 +9,6 @@ module EthernetClientC
     uses interface Timer<T32khz> as Timer;
     uses interface UDPSocket;
     uses interface EthernetShieldConfig;
-
-    uses interface ArbiterInfo;
 }
 implementation
 {
@@ -22,8 +20,6 @@ implementation
         //uint32_t srcip = 192 << 24 | 168 << 16 | 1 << 8 | 177;
         //uint32_t gateway = 192 << 24 | 168 << 16 | 1 << 8 | 1;
         uint8_t *mac = "\xde\xad\xbe\xef\xfe\xed";
-
-        //printf("user %d\n", call ArbiterInfo.userId());
 
         call EthernetShieldConfig.initialize(srcip, netmask, gateway, mac);
 

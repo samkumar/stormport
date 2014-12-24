@@ -617,5 +617,6 @@ implementation
     }
 
     default event void UDPSocket.sendPacketDone(error_t error) {}
+    default event void UDPSocket.initializeDone(error_t error) {}
     default event void UDPSocket.packetReceived(uint16_t srcport, uint32_t srcip, uint8_t *buf, uint16_t len) {}
 }

@@ -1,8 +1,8 @@
 #include "ethernetshield.h"
 
-generic module SocketC ()
+generic configuration SocketC ()
 {
-    provides interface RawSocket;
+    //provides interface RawSocket;
     provides interface UDPSocket;
 }
 implementation
@@ -11,6 +11,6 @@ implementation
     enum {
         sock_id = unique(SOCKET_ID)
     };
-    RawSocket = AllSocketsP[sock_id];
-    UDPSocket = AllSocketsP[sock_id];
+    //RawSocket = AllSocketsP[sock_id];
+    UDPSocket = AllSocketsP.UDPSocket[sock_id];
 }
