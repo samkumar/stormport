@@ -19,6 +19,7 @@ PFLAGS += -I%T/chips/cortex/m4/sam4/l/wdt
 PFLAGS += -I%T/platforms/storm/
 PFLAGS += -I%T/platforms/storm/lib/softi2c
 PFLAGS += -I%T/platforms/storm/lib/firestorm
+PFLAGS += -I%T/platforms/storm/lib/thewiz
 PFLAGS += -I%T/platforms/storm/chips/rf230
 PFLAGS += -I%T/platforms/storm/lib/printf
 PFLAGS += -I%T/lib/rfxlink/layers
