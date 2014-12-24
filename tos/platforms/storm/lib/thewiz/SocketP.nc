@@ -44,6 +44,7 @@ implementation
     // keep track of what kind of packet we are
     SocketType sockettype;
     SocketState goal_socketstate;
+    uint8_t headerlength;
 
     // IP RAW vars
     uint8_t ipp; // ip protocol
@@ -79,6 +80,7 @@ implementation
 
         sockettype = SocketType_UDP;
         goal_socketstate = SocketState_UDP; // use this for writing
+        headerlength = 8; // 8 byte header for UDP
 
         // have to init this stuff somewhere..
         TXBASE = TXBUF_BASE + TXBUF_SIZE * socket;
@@ -108,6 +110,7 @@ implementation
     {
         sockettype = SocketType_IPRAW;
         goal_socketstate = SocketState_IPRAW; // use this for writing
+        headerlength = 6; // 6 byte header for IP RAW
         TXBASE = TXBUF_BASE + TXBUF_SIZE * socket;
         RXBASE = RXBUF_BASE + RXBUF_SIZE * socket;
         initUDPstate = state_init_readsockstate;
@@ -116,6 +119,12 @@ implementation
 
     command void RawSocket.sendPacket(struct ip_iovec data)
     {
+        uint8_t sia [4];
+        sendUDPstate = state_connect_write_dst_ipaddress;
+        senddata = data;
+        iov_read(&senddata, 0, 4, sia);
+        sendipaddress = sia[3] | (sia[2] << 8) | (sia[1] << 16) | (sia[0] << 24);
+        call SendResource.request();
     }
 
     event void Timer.fired()
@@ -124,7 +133,6 @@ implementation
 
     async event void GpioInterrupt.fired()
     {
-        //printf("GPIO INTERRUPT\n");
         call GpioInterrupt.disable();
         post recvUDP();
     }
@@ -279,15 +287,8 @@ implementation
             case state_init_success:
                 printf("UDP init: success!\n");
                 initializingUDP = 0;
-                switch (sockettype)
-                {
-                    case SocketType_UDP:
-                        signal UDPSocket.initializeDone(SUCCESS);
-                        break;
-                    case SocketType_IPRAW:
-                        signal RawSocket.initializeDone(SUCCESS);
-                        break;
-                }
+                if (sockettype == SocketType_UDP) signal UDPSocket.initializeDone(SUCCESS);
+                else if (sockettype == SocketType_IPRAW) signal RawSocket.initializeDone(SUCCESS);
                 call InitResource.release();
                 call GpioInterrupt.enableFallingEdge();
                 call IRQPin.makeInput();
@@ -296,15 +297,8 @@ implementation
             case state_init_fail:
                 printf("UDP init: YOU FAIL!\n");
                 initializingUDP = 0;
-                switch (sockettype)
-                {
-                    case SocketType_UDP:
-                        signal UDPSocket.initializeDone(FAIL);
-                        break;
-                    case SocketType_IPRAW:
-                        signal RawSocket.initializeDone(FAIL);
-                        break;
-                }
+                if (sockettype == SocketType_UDP) signal UDPSocket.initializeDone(FAIL);
+                else if (sockettype == SocketType_IPRAW) signal RawSocket.initializeDone(FAIL);
                 call InitResource.release();
                 break;
         }
@@ -316,7 +310,8 @@ implementation
         {
             case state_connect_write_dst_ipaddress:
                 printf("UDP send: write dest address %u\n", sendipaddress);
-                sendUDPstate = state_connect_write_dst_port;
+                if (sockettype == SocketType_UDP) sendUDPstate = state_connect_write_dst_port;
+                else if (sockettype == SocketType_IPRAW) sendUDPstate = state_connect_write_connect; // skip port for IP RAW
                 txbuf[0] = sendipaddress >> 24;
                 txbuf[1] = (sendipaddress >> 16) & 0xff;
                 txbuf[2] = (sendipaddress >> 8) & 0xff;
@@ -396,6 +391,7 @@ implementation
                 printf("UDP send: write SEND command\n");
                 txbuf[0] = SocketCommand_SEND;
                 sendUDPstate = state_writeudp_waitsendcomplete;
+                call GpioInterrupt.disable();
                 call SocketSpi.writeRegister(0x4001 + socket * 0x100, _txbuf, 1);
                 break;
 
@@ -442,7 +438,8 @@ implementation
             case state_writeudp_finished:
                 printf("UDP send: Success!\n");
                 sendingUDP = 0;
-                signal UDPSocket.sendPacketDone(SUCCESS);
+                if (sockettype == SocketType_UDP) signal UDPSocket.sendPacketDone(SUCCESS);
+                else if (sockettype == SocketType_IPRAW) signal RawSocket.sendPacketDone(SUCCESS);
                 call SendResource.release();
                 post enableListen(); // reenables interrupts
                 break;
@@ -450,7 +447,8 @@ implementation
             case state_writeudp_error:
                 printf("UDP send: FAIL!\n");
                 sendingUDP = 0;
-                signal UDPSocket.sendPacketDone(FAIL);
+                if (sockettype == SocketType_UDP) signal UDPSocket.sendPacketDone(FAIL);
+                else if (sockettype == SocketType_IPRAW) signal RawSocket.sendPacketDone(FAIL);
                 call SendResource.release();
                 post enableListen(); // reenables interrupts
                 break;
@@ -530,12 +528,12 @@ implementation
                 printf("src_ptr: 0x%02x\n", src_ptr);
                 printf("RXBUF_SIZE 0x%02x\n", RXBUF_SIZE);
                 printf("amountleft %d\n", amountleft);
-                if (amountleft >= 8) // here, we have enough room to read the header
+                if (amountleft >= headerlength) // here, we have enough room to read the header
                 {
                     // read 8 byte UDP header
                     printf("Read full header\n");
                     recvUDPstate = state_recv_read_full_header;
-                    call SocketSpi.readRegister(src_ptr, rxbuf, 8);
+                    call SocketSpi.readRegister(src_ptr, rxbuf, headerlength);
                 }
                 else // don't have enough room for header!
                 {
@@ -549,38 +547,47 @@ implementation
                 printf("UDP rcv: read what header we can: amountleft is %d\n", amountleft);
                 memcpy(recvheader, rxbuf, amountleft); // read however much we can
                 recvUDPstate = state_recv_finish_header;
-                call SocketSpi.readRegister(RXBASE, rxbuf, 8 - amountleft); // then read the rest
+                call SocketSpi.readRegister(RXBASE, rxbuf, headerlength - amountleft); // then read the rest
                 break;
 
             case state_recv_finish_header:
-                printf("UDP recv: finish reading header: left is %d\n", 8 - amountleft);
-                memcpy(recvheader+amountleft, rxbuf, 8 - amountleft);
+                printf("UDP recv: finish reading header: left is %d\n", headerlength - amountleft);
+                memcpy(recvheader+amountleft, rxbuf, headerlength - amountleft);
                 recvUDPstate = state_recv_read_packet;
                 post recvUDP();
                 break;
 
             case state_recv_read_full_header:
-                memcpy(recvheader, rxbuf, 8); // copy read header into our header struct
+                memcpy(recvheader, rxbuf, headerlength); // copy read header into our header struct
                 printf("recvheader: 0x%02x\n", recvheader[4]);
                 recvUDPstate = state_recv_read_packet;
                 post recvUDP();
                 break;
 
             case state_recv_read_packet:
-                rx_ptr += 8; // advance rx_ptr bc we just read 8 bytes
+                rx_ptr += headerlength; // advance rx_ptr bc we just read headerlength bytes
                 src_mask = rx_ptr & RXMASK; // recalculate offset
                 src_ptr = RXBASE + src_mask;
                 printf("UDP recv: start reading packet\n");
-                for (i=0;i<8;i++)
+                for (i=0;i<headerlength;i++)
                 {
                     printf("header[%d] = 0x%02x\n", i, recvheader[i]);
                 }
                 printf("src_mask: 0x%02x\n", src_mask);
                 printf("src_ptr: 0x%02x\n", src_ptr);
 
+                // decode header
                 recvipaddress = recvheader[3] | (recvheader[2] << 8) | (recvheader[1] << 16) | (recvheader[0] << 24);
-                recvport = ((uint16_t)recvheader[4] << 8) | recvheader[5];
-                packetlen = ((uint16_t)recvheader[6] << 8) | recvheader[7];
+                if (sockettype == SocketType_UDP)
+                {
+                    recvport = ((uint16_t)recvheader[4] << 8) | recvheader[5];
+                    packetlen = ((uint16_t)recvheader[6] << 8) | recvheader[7];
+                }
+                else if (sockettype == SocketType_IPRAW)
+                {
+                    packetlen = ((uint16_t)recvheader[4] << 8) | recvheader[5];
+                }
+
                 printf("packet len is %d\n", packetlen);
                 if ((src_mask + packetlen) > RXBUF_SIZE)
                 {
@@ -651,17 +658,20 @@ implementation
                 printf("UDP recv: Finished listening\n");
                 listeningUDP = 0;
                 recvUDPstate = state_recv_init;
-                recvsize -= (packetlen + 8);
+                recvsize -= (packetlen + headerlength);
                 call RecvResource.release();
                 //call GpioInterrupt.enableFallingEdge();
                 recvipaddress = recvheader[3] | (recvheader[2] << 8) | (recvheader[1] << 16) | (recvheader[0] << 24);
                 recvport = ((uint16_t)recvheader[4] << 8) | recvheader[5];
                 printf("recv size is now: %d\n", recvsize);
-                for (i=0;i<8;i++)
+                for (i=0;i<headerlength;i++)
                 {
                     printf("recvheader[%d] = 0x%02x\n", i, recvheader[i]);
                 }
-                signal UDPSocket.packetReceived(recvport, recvipaddress, recvbuf, packetlen);
+
+                if (sockettype == SocketType_UDP) signal UDPSocket.packetReceived(recvport, recvipaddress, recvbuf, packetlen);
+                else if (sockettype == SocketType_IPRAW) signal RawSocket.packetReceived(recvbuf, packetlen);
+
                 if (recvsize > 0)
                 {
                     printf("mo packets. with size %d\n", recvsize);
