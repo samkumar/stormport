@@ -296,7 +296,6 @@ implementation
             rv = call UartByte.receive(buf + ret, 200);
             if (rv != SUCCESS)
                 return ret;
-            buf++;
         }
         return ret;
     }

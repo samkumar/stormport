@@ -31,16 +31,19 @@ MEMORY
 }
 
 /* The stack size used by the application. NOTE: you need to adjust according to your application. */
-__stack_size__ = DEFINED(__stack_size__) ? __stack_size__ : 0x1000;
+__stack_size__ = 0x2000;
 __ram_end__ = ORIGIN(ram) + LENGTH(ram) - 4;
+_estack = __ram_end__ - 4;
 
 /* Section Definitions */
 SECTIONS
 {
+    stext = .;
     .text :
     {
         . = ALIGN(4);
         _sfixed = .;
+        KEEP(*(.text._start .text._start2))
         *(.text .text.* .gnu.linkonce.t.*)
         *(.glue_7t) *(.glue_7)
         *(.rodata .rodata* .gnu.linkonce.r.*)
@@ -95,6 +98,7 @@ SECTIONS
 
     . = ALIGN(4);
     _etext = .;
+    etext = .;
 
     .relocate : AT (_etext)
     {
@@ -121,17 +125,7 @@ SECTIONS
         _ezero = .;
     } > ram
 
-    /* stack section */
-    .stack (NOLOAD):
-    {
-        . = ALIGN(8);
-         _sstack = .;
-        . = . + __stack_size__;
-        . = ALIGN(8);
-        _estack = .;
-    } > ram
-
     . = ALIGN(4);
     _end = . ;
-
+    end = .;
 }

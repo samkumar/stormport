@@ -1,4 +1,4 @@
-CFLAGS = -T kernelpayload.ld -mthumb -DARM_MATH_CM4=true  -fdata-sections
+kCFLAGS = -T kernelpayload.ld -mthumb -DARM_MATH_CM4=true  -fdata-sections
 CFLAGS += -ffunction-sections -mlong-calls -g3 -mcpu=cortex-m4 -fno-strict-aliasing
 CFLAGS += -std=gnu99 -ffunction-sections -fdata-sections
 CFLAGS += -nostartfiles

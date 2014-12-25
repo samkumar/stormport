@@ -3,7 +3,7 @@
 #include "interface.h"
 
 volatile uint32_t foobar;
-void main()
+int main()
 {
     char inarray [80];
     while(1)
@@ -14,6 +14,7 @@ void main()
         //_write(10, (uint8_t*) 20, 30);
         fgets(inarray, 78, stdin);
         printf("got line '%s'", inarray);
+        printf("foobar '%d'", foobar);
         foobar = 2;
     }
 }

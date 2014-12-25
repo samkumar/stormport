@@ -97,12 +97,6 @@ SECTIONS
 
 
     . = ALIGN(4);
-    .kernelabi 0x41000:
-    {
-        *(.kernelabi)
-    } > rom
-
-    . = ALIGN(4);
     _etext = .;
     _textend = .;
 

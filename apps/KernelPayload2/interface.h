@@ -5,19 +5,11 @@
 #include <stdint.h>
 
 #define __syscall(code) asm volatile (\
-    "push {r4-r11,lr}\n\t"\
+    "push {r1-r12,r14}\n\t"\
     "svc %[immediate]\n\t"\
-    "pop {r4-r11,lr}\n\t"\
-    "bx lr"::[immediate] "I" (code):"memory", "r0", "r1", "r2", "r3")
+    "pop {r1-r12,r14}\n\t"\
+    "bx lr"::[immediate] "I" (code):"memory", "r0")
 
-
-#if 0
-#define __syscall(code, rv) asm volatile (\
-    "push {r4-r11,lr}\n\t"\
-    "svc %[immediate]\n\t"\
-    "mov %[rv],r0\n\t"\
-    "pop {r4-r11,lr}":=r"rv":[immediate] "I" (code):"memory", "r0", "r1", "r2", "r3")
-#endif
 /**
  * Get the version of the kernel on the system.
  *

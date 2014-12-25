@@ -151,6 +151,9 @@ implementation
             case 0:
                 rv = storm_read(dst, size);
                 return rv;
+               /* if (size > 6) size =6;
+                strncpy(dst,"foobi\n", size);
+                return size;*/
             default:
                 return -1;
         }
@@ -181,7 +184,7 @@ implementation
         r_i32 = (int32_t *) &svc_args[0];
         r_u32 = (uint32_t *) &svc_args[0];
 
-        //printf("svc number: %d\n", svc_number);
+        //printf("svc number: %d %08x %08x %08x\n", svc_number, svc_args[0], svc_args[1], svc_args[2]);
         switch(svc_number)
         {
             case ABI_ID_GET_KERNEL_VERSION:
