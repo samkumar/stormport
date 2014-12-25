@@ -70,6 +70,8 @@ configuration KernelC {
   components IPForwardingEngineP;
   IPForwardingEngineP.IPForward[ROUTE_IFACE_ETH0] -> EthernetP.IPForward;
 
+  components PlatformSerialC;
+  KernelMainP.UartStream -> PlatformSerialC;
 
 
   // prints the routing table

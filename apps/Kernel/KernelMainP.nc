@@ -41,10 +41,8 @@
 
 #define REPORT_PERIOD 60L
 extern void __bootstrap_payload(uint32_t base_addr);
-#define __syscall(code) asm volatile (\
-    "push {r4-r11,lr}\n\t"\
-    "svc %[immediate]\n\t"\
-    "pop {r4-r11,lr}"::[immediate] "I" (code):"memory")
+//fptr, rptr, arg0, arg1
+extern void __inject_function(void*, void*, uint32_t, uint32_t);
 
 module KernelMainP
 {
@@ -55,14 +53,83 @@ module KernelMainP
         interface UDP as Dmesg;
         interface FlashAttr;
         interface Timer<T32khz> as Timer;
+        interface UartStream;
     }
 }
 implementation
 {
+    enum {
+        procstate_init,
+        procstate_runnable,
+        procstate_wait_stdin,
+        procstate_wait_event,
+        procstate_flush_event
+    } procstate = procstate_init;
+ 
+    #define STDIN_SIZE 128
+    #define STDOUT_SIZE 256
+    
+    uint8_t process_stdin_ringbuffer [STDIN_SIZE];
+    uint8_t process_stdout_ringbuffer [STDOUT_SIZE];
+    uint32_t *process_syscall_rv;
+    uint32_t *syscall_args;
+
+    uint16_t norace stdin_rptr = 0;
+    uint16_t norace stdin_wptr = 0;
+    uint16_t norace stdout_rptr = 0;
+    uint16_t norace stdout_wptr = 0;
+
+    //----
+    // Various state flags for callbacks
+    //----
+    cb_u32_t  cb_read_f_ptr = NULL;
+    void     *cb_read_r_ptr;
+    uint32_t  cb_read_len;
+    uint8_t  *cb_read_buf;
+
+    inline void stdout_enqueue(uint8_t c)
+    {
+        if (((stdout_wptr + 1) & (STDOUT_SIZE-1)) == stdout_rptr)
+            return; //full
+            
+        process_stdout_ringbuffer[stdout_wptr] = c;
+        stdout_wptr = (stdout_wptr + 1) & (STDOUT_SIZE - 1);
+    }
+    inline int stdout_dequeue()
+    {
+        int rv;
+        if (stdout_rptr == stdout_wptr) return -1;
+        rv = process_stdout_ringbuffer[stdout_rptr];
+        stdout_rptr = (stdout_rptr + 1) & (STDOUT_SIZE - 1);
+        return rv;
+    }
+    inline void stdin_enqueue(uint8_t c)
+    {
+        atomic
+        {
+            if (((stdin_wptr + 1) & (STDIN_SIZE-1)) == stdin_rptr)
+                return; //full
+
+            process_stdin_ringbuffer[stdin_wptr] = c;
+            stdin_wptr = (stdin_wptr + 1) & (STDIN_SIZE - 1);
+        }
+    }
+    inline int stdin_dequeue()
+    {
+        atomic
+        {
+            int rv;
+            if (stdin_rptr == stdin_wptr) return -1;
+            rv = process_stdin_ringbuffer[stdin_rptr];
+            stdin_rptr = (stdin_rptr + 1) & (STDIN_SIZE - 1);
+            return rv;
+        }
+    }
     struct sockaddr_in6 route_dest;
     task void launch_payload();
     event void Boot.booted() {
         call RadioControl.start();
+        //call UartStream.enableReceiveInterrupt();
         printf("Booting kernel %d.%d.%d.%d (%s)\n",VER_MAJOR, VER_MINOR, VER_SUBMINOR, VER_BUILD, GITCOMMIT);
 
         route_dest.sin6_port = htons(7);
@@ -70,17 +137,10 @@ implementation
 
         call Dmesg.bind(514);
 
-        post launch_payload();
-
+        //post launch_payload();
+        call Timer.startPeriodic(32000);
     }
 
-    task void selftest()
-    {
-        uint8_t f [11];
-        strcpy(f, "hello");
-        call Dmesg.sendto(&route_dest, &f[0], 5);
-    }
-    bool payload_running = FALSE;
     task void launch_payload()
     {
         uint8_t key [10];
@@ -105,11 +165,9 @@ implementation
             return;
         }
         printf("Found payload start at 0x%04x\n", addr);
-        payload_running = TRUE;
         __bootstrap_payload(addr);
         printf("Payload stack generated\n");
-        __syscall(1);
-        printf("after le jump");
+        procstate = procstate_runnable;
     }
     event void RadioControl.startDone(error_t e)
     {
@@ -125,8 +183,38 @@ implementation
     {
         printf("Got traffic on dmesg port\n");
     }
-
-
+    
+    event void Timer.fired()
+    {
+        printf("alive\n");
+    }
+    task void flush_process_stdout()
+    {
+        error_t e;
+        uint16_t eptr;
+        printf("FPS run\n");
+        if (stdout_wptr == stdout_rptr)
+            return; //Empty
+        if (stdout_wptr < stdout_rptr) //Can't do write across ringbuffer wrap
+        {
+            eptr = STDOUT_SIZE;
+        }
+        else
+        {
+            eptr = stdout_wptr;
+        }
+        storm_write(process_stdout_ringbuffer + stdout_rptr, eptr - stdout_rptr);
+        stdout_rptr = eptr & (STDOUT_SIZE - 1);
+    }
+    async event void UartStream.sendDone(uint8_t* buf, uint16_t len, error_t error )
+    {
+        post flush_process_stdout();
+    }
+    async event void UartStream.receivedByte(uint8_t byte)
+    {
+        stdin_enqueue(byte);
+    }
+    async event void UartStream.receiveDone( uint8_t* buf, uint16_t len, error_t error ) {}
 
     uint32_t kabi_get_kernel_version()
     {
@@ -134,70 +222,145 @@ implementation
     }
     int32_t kabi_write(uint32_t fd, uint8_t const *src, uint32_t size)
     {
-        switch(fd)
+        if (fd == 1)
         {
-            case 1:
-                return storm_write(src, size);
-            default:
-                return -1;
+            int i;
+            for (i = 0; i < size; i++)
+            {
+                stdout_enqueue(src[i]);
+            }
+            printf("posted FPS\n");
+            post flush_process_stdout();
+            return size;
         }
-
+        return -1;
     }
     int32_t kabi_read(uint32_t fd, uint8_t *dst, uint32_t size)
     {
-        uint32_t rv;
-        switch(fd)
+        int c;
+        uint32_t i;
+        for (i = 0; i < size; i++)
         {
-            case 0:
-                rv = storm_read(dst, size);
-                return rv;
-               /* if (size > 6) size =6;
-                strncpy(dst,"foobi\n", size);
-                return size;*/
-            default:
-                return -1;
+            c = stdin_dequeue();
+            if (c < 0) return i;
+            dst[i] = (uint8_t) c;
         }
     }
     int32_t kabi_request_timeslice(uint32_t ticks, uint8_t oneshot, void (*callback)())
     {
 
     }
-    event void Timer.fired()
-    {
 
+    bool run_process() @C() @spontaneous()
+    {
+        uint32_t tmp;
+        printf("run process called\n");
+        switch(procstate)
+        {
+            case procstate_runnable:
+                printf("[SCH:R]\n");
+                __syscall(KABI_RESUME_PROCESS);
+                return TRUE;
+            case procstate_wait_stdin:
+                if (stdin_rptr != stdin_wptr)
+                {
+                    printf("[SCH:I]\n");
+                    tmp = kabi_read(syscall_args[0], &((uint8_t*)(syscall_args[1]))[0], syscall_args[2]);
+                    printf("rd:%d\n",tmp);
+                    *process_syscall_rv = tmp;
+                    procstate = procstate_runnable;
+                    __syscall(KABI_RESUME_PROCESS);
+                    return TRUE;
+                }
+                return FALSE;
+            case procstate_wait_event:
+            case procstate_flush_event:
+                //Check for special static callbacks - like read_async
+                if (cb_read_buf != NULL && (stdin_rptr != stdin_wptr))
+                {
+                    tmp = kabi_read(0, cb_read_buf, cb_read_len);
+                    __inject_function(cb_read_f_ptr, cb_read_r_ptr, tmp, 0);
+                    procstate = procstate_runnable;
+                    __syscall(KABI_RESUME_PROCESS);
+                    return TRUE;    
+                }
+                //if there was an event, we would process it and return, bypassing this if statement.
+                if (procstate == procstate_flush_event) { //If/when event queue is empty, flush_event becomes runnable, wait_event doesn't exit on empty queue, only on an event.
+                    procstate = procstate_runnable;
+                }
+                return FALSE;
+            default:
+                //printf("[SCH:W]\n");
+                return FALSE;
+        }
     }
 
     #define RET_KERNEL 1
     #define RET_USER 0
+    #define STACKED 8
 
-    uint32_t sv_call_handler_main(unsigned int *svc_args)
+    uint32_t sv_call_handler_main(uint32_t *svc_args)
     {
         unsigned int svc_number;
-        int32_t *r_i32, *r_u32;
-        /*
-         * We can extract the SVC number from the SVC instruction. svc_args[6]
-         * points to the program counter (the code executed just before the svc
-         * call). We need to add an offset of -2 to get to the upper byte of
-         * the SVC instruction (the immediate value).
-         */
+        int32_t tmp;
         svc_number = ((char *)svc_args[6])[-2];
-        r_i32 = (int32_t *) &svc_args[0];
-        r_u32 = (uint32_t *) &svc_args[0];
+        process_syscall_rv = &svc_args[0];
+        syscall_args = &svc_args[0];
 
-        //printf("svc number: %d %08x %08x %08x\n", svc_number, svc_args[0], svc_args[1], svc_args[2]);
+        printf("svc number: %d %08x %08x %08x\n", svc_number, svc_args[0], svc_args[1], svc_args[2]);
         switch(svc_number)
         {
+            case KABI_RESUME_PROCESS:
+                return RET_USER;
             case ABI_ID_GET_KERNEL_VERSION:
-                *r_u32 = kabi_get_kernel_version();
-                return RET_USER;
+                *process_syscall_rv = kabi_get_kernel_version();
+                procstate = procstate_runnable;
+                return RET_KERNEL;
             case ABI_ID_WRITE:
-                *r_i32 = kabi_write(svc_args[0], (uint8_t*)(svc_args[1]), svc_args[2]);
-                return RET_USER;
+                *process_syscall_rv = (uint32_t) kabi_write(syscall_args[0], (uint8_t*)(syscall_args[1]), syscall_args[2]);
+                procstate = procstate_runnable;
+                return RET_KERNEL;
             case ABI_ID_YIELD:
+                procstate = procstate_runnable;
                 return RET_KERNEL;
             case ABI_ID_READ:
-                *r_i32 = kabi_read(svc_args[0], &((uint8_t*)(svc_args[1]))[0], svc_args[2]);
-                return RET_USER;
+                tmp = kabi_read(syscall_args[0], &((uint8_t*)(syscall_args[1]))[0], syscall_args[2]);
+                if (tmp == 0)
+                {
+                    procstate = procstate_wait_stdin;
+                } else {
+                    *process_syscall_rv = tmp;
+                    procstate = procstate_runnable;
+                }
+                return RET_KERNEL;
+            case ABI_ID_READ_ASYNC:
+                if (syscall_args[0] != 0)
+                {
+                    *process_syscall_rv = -9; //-EBADF
+                    procstate = procstate_runnable;
+                    return RET_KERNEL;
+                }
+                if (cb_read_buf != NULL)
+                {
+                    *process_syscall_rv = -EBUSY;
+                    procstate = procstate_runnable;
+                    return RET_KERNEL;
+                }
+                cb_read_buf = (uint8_t*) syscall_args[1]; //Check bounds on this
+                cb_read_len = syscall_args[2];
+                cb_read_f_ptr = (cb_u32_t) syscall_args[3];
+                cb_read_r_ptr = (void*) syscall_args[STACKED + 0];
+                procstate = procstate_runnable;
+                return RET_KERNEL;
+            case ABI_ID_EJECT:
+                asm volatile(
+                    "mrs r0, psp\n\t"
+                    "add r0, r0, 32\n\t"
+                    "msr psp, r0"
+                     : : : "r0"
+                );
+                procstate = procstate_runnable;
+                return RET_KERNEL;
             default:
                 printf("bad svc number\n");
                 //switch

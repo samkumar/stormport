@@ -6,7 +6,7 @@
   /*; Exported functions*/
   .globl __bootstrap_payload
   .globl __context_switch
-
+  .globl __inject_function
 
 .thumb_func
 /* r0 is payload base address */
@@ -24,6 +24,28 @@ __bootstrap_payload:
     msr psp, r1
     bx lr
 
+.thumb_func
+__eject_function:
+/* we return here in process mode when the callback completes */
+    svc #0x81 /* eject() */
+    /* we don't return from that ISR because magic */
+    
+.thumb_func
+/* inject the function r3 with arguments r0, r1, r2 into the process */
+__inject_function:
+    push {r5,r6,r7}
+    mrs r7, psp /* use r7 as process sp */
+    /* push fake ISR frame */
+    movw r5, #0
+    movt r5, #0x100 /* xPSR */
+    stmdb r7!, {r0, r5} /* PC, xPSR */
+    ldr  r6, =__eject_function
+    stmdb r7!, {r1, r2, r3, r4, r5, r6} /* r0:=r1, .. r12:=r5, lr:=__eject_function */
+    msr psp, r7
+    pop {r5,r6,r7}
+    bx lr
+        
+    
 .thumb_func
 __context_switch:
     cbnz r0, to_master
