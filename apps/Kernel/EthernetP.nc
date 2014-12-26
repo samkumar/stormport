@@ -11,8 +11,8 @@ module EthernetP
         interface SplitControl as IPControl;
         interface ForwardingTable;
         interface RootControl;
-
-        interface PacketSender;
+        interface EthernetShieldConfig;
+        interface GRESocket;
     }
     provides
     {
@@ -23,11 +23,26 @@ implementation
 {
     void *ipf_data;
     bool busy;
+    uint32_t destip;
 
     event void IPControl.startDone (error_t error) {
+
         printf("Added default route to forwarding table\n");
         call ForwardingTable.addRoute(NULL, 0, NULL, ROUTE_IFACE_ETH0);
         busy = FALSE;
+        destip = 0x0a040a32; //10.4.10.50
+        {
+            uint32_t srcip   = 10  << 24 | 4   << 16 | 10  << 8 | 144;
+            uint32_t netmask = 255 << 24 | 255 << 16 | 255 << 8 | 0  ;
+            uint32_t gateway = 10  << 24 | 4   << 16 | 10  << 8 | 1  ;
+            uint8_t *mac = "\xde\xad\xbe\xef\xfe\xef";
+
+            call EthernetShieldConfig.initialize(srcip, netmask, gateway, mac);
+        }
+        call GRESocket.initialize();
+    }
+    event void GRESocket.initializeDone(error_t error) {
+
     }
     event void IPControl.stopDone (error_t error) {}
 
@@ -38,21 +53,22 @@ implementation
                                  void *data) {
         struct ip_iovec hvec;
         if (busy) return EBUSY;
-
+        busy=TRUE;
         hvec.iov_base = (uint8_t*) &msg->ip6_hdr;
         hvec.iov_len = sizeof(struct ip6_hdr);
         hvec.iov_next = msg->ip6_data;
         ipf_data = data;
-        call PacketSender.sendPacket(&hvec);
+        call GRESocket.sendPacket(destip, &hvec);
 
         return SUCCESS;
     }
 
-    event void PacketSender.sendPacketDone(error_t error)
+    event void GRESocket.sendPacketDone(error_t error)
     {
+        busy = FALSE;
     }
 
-    event void PacketSender.packetReceived(uint8_t *buf, uint16_t len)
+    event void GRESocket.packetReceived(uint8_t *buf, uint16_t len)
     {
         struct ip6_hdr *iph = (struct ip6_hdr *)buf;
         void *payload = (iph + 1);
