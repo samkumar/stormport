@@ -3,7 +3,7 @@ COMPONENT=KernelC
 # BOOTLOADER=tosboot
 
 PFLAGS += -DLONG_ADDR_SUFFIX=0x40
-
+PFLAGS += -DBLIP_STFU
 
 # radio options
 # CFLAGS += -DCC2420_DEF_CHANNEL=26
@@ -89,6 +89,7 @@ PFLAGS += -DREPORT_DEST=\"fe80::7\"
 GOALS += blip rpl
 
 PFLAGS += -DGITCOMMIT=\"$(shell git rev-parse HEAD)\"
+LDFLAGS += util.s
 
 TINYOS_ROOT_DIR?=../..
 TOSMAKE_FIRST_FLAGS += -I$(TINYOS_ROOT_DIR)/tos/platforms/storm/lib/printf

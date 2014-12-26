@@ -287,6 +287,18 @@ implementation
         }
         return ret;
     }
+    int storm_read(uint8_t *buf, int len) @C() @spontaneous()
+    {
+        int ret;
+        for(ret = 0; ret < len; ret++)
+        {
+            error_t rv;
+            rv = call UartByte.receive(buf + ret, 200);
+            if (rv != SUCCESS)
+                return ret;
+        }
+        return ret;
+    }
     command error_t Init.init()
     {
         return SUCCESS;

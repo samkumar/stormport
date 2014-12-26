@@ -35,14 +35,30 @@ void Dummy_Handler(void)
 	while (1) {
 	}
 }
+void Dummy_Handler_HF(void)
+{
+	while (1) {
+	}
+}
+void Dummy_Handler_BF(void)
+{
+	while (1) {
+	}
+}
+void Dummy_Handler_UF(void)
+{
+	while (1) {
+	}
+}
+
+extern void SVC_Handler(void);
 
 void Reset_Handler(void);
 void NMI_Handler(void)          __attribute__ ((weak, alias("Dummy_Handler")));
-void HardFault_Handler(void)    __attribute__ ((weak, alias("Dummy_Handler")));
+void HardFault_Handler(void)    __attribute__ ((weak, alias("Dummy_Handler_HF")));
 void MemManage_Handler(void)    __attribute__ ((weak, alias("Dummy_Handler")));
-void BusFault_Handler(void)     __attribute__ ((weak, alias("Dummy_Handler")));
-void UsageFault_Handler(void)   __attribute__ ((weak, alias("Dummy_Handler")));
-void SVC_Handler(void)          __attribute__ ((weak, alias("Dummy_Handler")));
+void BusFault_Handler(void)     __attribute__ ((weak, alias("Dummy_Handler_BF")));
+void UsageFault_Handler(void)   __attribute__ ((weak, alias("Dummy_Handler_UF")));
 void DebugMon_Handler(void)     __attribute__ ((weak, alias("Dummy_Handler")));
 void PendSV_Handler(void)       __attribute__ ((weak, alias("Dummy_Handler")));
 void SysTick_Handler(void)      __attribute__ ((weak, alias("Dummy_Handler")));
