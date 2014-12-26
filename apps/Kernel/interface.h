@@ -87,17 +87,18 @@ typedef void (*cb_i32_t) (void *r, int32_t);
 /**
  *
  * Read bytes from kernel, asynchronously. Callback happens when there is more than zero bytes
- * available to read. The callback gets deregistered upon invocation. Only one read callback
+ * read into the buffer. The callback gets deregistered upon invocation. Only one read callback
  * can be registered at a time. The dst buffer must remain available until the
  * callback is invoked.
  * @param      fd   The file descriptor number (only 0 is implemented)
  * @param[out] dst  The buffer to write to
  * @param      size The maximum number of bytes to read
  * @param      cb   The callback(int32_t) to invoke. The parameter value is the same as the return value
-                    for k_read()
+ *                  for k_read()
+ * @param      r    Data to be passed to the callback for disambiguation
  * @return 0 on successful registration, EBUSY if there was already a callback registered.
  */
-//int32_t k_read_async(uint32_t fd, uint8_t *dst, uint32_t size, cb_i32_t cb, void* r);
+//int32_t k_read_async(uint32_t fd, uint8_t *dst, uint32_t size, cb_i32_t cb, void *r);
 #define ABI_ID_READ_ASYNC 5
 
 /**
