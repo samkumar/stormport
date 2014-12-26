@@ -129,7 +129,7 @@ implementation
     task void launch_payload();
     event void Boot.booted() {
         call RadioControl.start();
-        //call UartStream.enableReceiveInterrupt();
+        call UartStream.enableReceiveInterrupt();
         printf("Booting kernel %d.%d.%d.%d (%s)\n",VER_MAJOR, VER_MINOR, VER_SUBMINOR, VER_BUILD, GITCOMMIT);
 
         route_dest.sin6_port = htons(7);
@@ -249,7 +249,8 @@ implementation
 
     }
 
-
+    // return TRUE if the process has more to do
+    // FALSE if it is ok to go to sleep
     bool run_process() @C() @spontaneous()
     {
         uint32_t tmp;
@@ -263,7 +264,7 @@ implementation
             case procstate_wait_stdin:
                 if (stdin_rptr != stdin_wptr)
                 {
-                    //printf("[SCH:I]\n");
+                    printf("[SCH:I]\n");
                     tmp = kabi_read(syscall_args[0], &((uint8_t*)(syscall_args[1]))[0], syscall_args[2]);
                     printf("rd:%d\n",tmp);
                     *process_syscall_rv = tmp;
@@ -277,7 +278,9 @@ implementation
                 //Check for special static callbacks - like read_async
                 if (cb_read_buf != NULL && (stdin_rptr != stdin_wptr))
                 {
+                    printf("vptr = %08x\n",cb_read_r_ptr);
                     tmp = kabi_read(0, cb_read_buf, cb_read_len);
+                    cb_read_buf = NULL;
                     __inject_function(cb_read_f_ptr, cb_read_r_ptr, tmp, 0);
                     procstate = procstate_runnable;
                     __syscall(KABI_RESUME_PROCESS);
@@ -286,6 +289,7 @@ implementation
                 //if there was an event, we would process it and return, bypassing this if statement.
                 if (procstate == procstate_flush_event) { //If/when event queue is empty, flush_event becomes runnable, wait_event doesn't exit on empty queue, only on an event.
                     procstate = procstate_runnable;
+                    return TRUE;
                 }
                 return FALSE;
             default:
@@ -296,7 +300,8 @@ implementation
 
     #define RET_KERNEL 1
     #define RET_USER 0
-    #define STACKED 8
+    //8 for the ISR frame, 8 for the syscall frame
+    #define STACKED 16
 
     uint32_t sv_call_handler_main(uint32_t *svc_args)
     {
@@ -350,6 +355,12 @@ implementation
                 cb_read_f_ptr = (cb_u32_t) syscall_args[3];
                 cb_read_r_ptr = (void*) syscall_args[STACKED + 0];
                 procstate = procstate_runnable;
+                return RET_KERNEL;
+            case ABI_ID_RUN_CALLBACK:
+                procstate = procstate_flush_event;
+                return RET_KERNEL;
+            case ABI_ID_WAIT_CALLBACK:
+                procstate = procstate_wait_event;
                 return RET_KERNEL;
             case KABI_EJECT:
                 asm volatile(

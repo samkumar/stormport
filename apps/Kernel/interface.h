@@ -5,15 +5,15 @@
 #include <stdint.h>
 
 #define __syscall_body(code) asm volatile (\
-    "push {r1-r12,r14}\n\t"\
+    "push {r4-r11}\n\t"\
     "svc %[immediate]\n\t"\
-    "pop {r1-r12,r14}\n\t"\
+    "pop {r4-r11}\n\t"\
     "bx lr"::[immediate] "I" (code):"memory", "r0")
 
 #define __syscall(code) asm volatile (\
-    "push {r1-r12,r14}\n\t"\
+    "push {r4-r11}\n\t"\
     "svc %[immediate]\n\t"\
-    "pop {r1-r12,r14}"\
+    "pop {r4-r11}\n\t"\
     ::[immediate] "I" (code):"memory", "r0")
 
 #define KABI_RESUME_PROCESS 0x80
