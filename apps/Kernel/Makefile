@@ -86,9 +86,7 @@ PFLAGS += -DNEW_PRINTF_SEMANTICS -DPRINTFUART_ENABLED
 # you can log this information using the util/Listener.py script
 PFLAGS += -DREPORT_DEST=\"fe80::7\"
 
-GOALS += blip rpl util
-
-# PFLAGS += util.s
+GOALS += blip rpl
 
 PFLAGS += -DGITCOMMIT=\"$(shell git rev-parse HEAD)\"
 LDFLAGS += utils.o

@@ -29,7 +29,7 @@ __eject_function:
 /* we return here in process mode when the callback completes */
     svc #0x81 /* eject() */
     /* we don't return from that ISR because magic */
-    
+
 .thumb_func
 /* inject the function r3 with arguments r0, r1, r2 into the process */
 __inject_function:
@@ -44,8 +44,8 @@ __inject_function:
     msr psp, r7
     pop {r5,r6,r7}
     bx lr
-        
-    
+
+
 .thumb_func
 __context_switch:
     cbnz r0, to_master

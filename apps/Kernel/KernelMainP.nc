@@ -65,10 +65,10 @@ implementation
         procstate_wait_event,
         procstate_flush_event
     } procstate = procstate_init;
- 
+
     #define STDIN_SIZE 128
     #define STDOUT_SIZE 256
-    
+
     uint8_t process_stdin_ringbuffer [STDIN_SIZE];
     uint8_t process_stdout_ringbuffer [STDOUT_SIZE];
     uint32_t *process_syscall_rv;
@@ -91,7 +91,7 @@ implementation
     {
         if (((stdout_wptr + 1) & (STDOUT_SIZE-1)) == stdout_rptr)
             return; //full
-            
+
         process_stdout_ringbuffer[stdout_wptr] = c;
         stdout_wptr = (stdout_wptr + 1) & (STDOUT_SIZE - 1);
     }
@@ -183,7 +183,7 @@ implementation
     {
         printf("Got traffic on dmesg port\n");
     }
-    
+
     event void Timer.fired()
     {
         printf("alive\n");
@@ -282,7 +282,7 @@ implementation
                     __inject_function(cb_read_f_ptr, cb_read_r_ptr, tmp, 0);
                     procstate = procstate_runnable;
                     __syscall(KABI_RESUME_PROCESS);
-                    return TRUE;    
+                    return TRUE;
                 }
                 //if there was an event, we would process it and return, bypassing this if statement.
                 if (procstate == procstate_flush_event) { //If/when event queue is empty, flush_event becomes runnable, wait_event doesn't exit on empty queue, only on an event.
