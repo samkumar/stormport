@@ -29,7 +29,7 @@ implementation
     // destination for sending
     uint16_t sendport;
     uint32_t sendipaddress;
-    struct ip_iovec *senddata; // send data
+    struct ip_iovec senddata; // send data
     int senddata_len;
 
     // vars for receiving
@@ -108,7 +108,7 @@ implementation
         printf("request to send a packet\n");
         sendport = destport;
         sendipaddress = destip;
-        senddata = data;
+        senddata = *data;
         sendUDPstate = state_connect_write_dst_ipaddress;
         call SendResource.request();
     }
@@ -132,7 +132,7 @@ implementation
             return;
         }
         sendUDPstate = state_connect_write_dst_ipaddress;
-        senddata = data;
+        senddata = *data;
         sendipaddress = destip;
         call SendResource.request();
     }
@@ -383,8 +383,8 @@ implementation
             case state_writeudp_copytotxbuf:
                 printf("UDP send: copy data to TX buffer\n");
                 tx_ptr = ((uint16_t)rxbuf[0] << 8) | rxbuf[1];
-                senddata_len = iov_len(senddata);
-                iov_read(senddata, 0, senddata_len, txbuf);
+                senddata_len = iov_len(&senddata);
+                iov_read(&senddata, 0, senddata_len, txbuf);
                 sendUDPstate = state_writeudp_advancetxwr;
                 call SocketSpi.writeRegister(TXBASE + (tx_ptr & TXMASK), _txbuf, senddata_len);
                 break;
