@@ -2,6 +2,7 @@ configuration AllSocketsP
 {
     provides interface RawSocket[uint8_t id];
     provides interface UDPSocket[uint8_t id];
+    provides interface GRESocket;
     provides interface EthernetShieldConfig;
 }
 implementation
@@ -9,6 +10,7 @@ implementation
     components MainC;
     components HplSam4lIOC;
     components SocketSpiP;
+    components GRESocketP;
     components new Sam4lUSART0C();
     components new Timer32khzC() as SocketSpiTimer;
     SocketSpiP.SpiPacket -> Sam4lUSART0C.SpiPacket;
@@ -43,6 +45,8 @@ implementation
 
     UDPSocket[0] = s0.UDPSocket;
     RawSocket[0] = s0.RawSocket;
+    GRESocketP.RawSocket -> s0.RawSocket;
+    GRESocket = GRESocketP;
     components new Timer32khzC() as SocketPTimer0;
     s0.SocketSpi -> SocketSpiP.SocketSpi;
     s0.Timer -> SocketPTimer0;
