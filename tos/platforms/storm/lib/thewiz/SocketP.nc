@@ -103,6 +103,7 @@ implementation
     {
         if (!isinitialized) {
             signal UDPSocket.sendPacketDone(FAIL);
+            return;
         }
         printf("request to send a packet\n");
         sendport = destport;
@@ -129,6 +130,7 @@ implementation
         uint8_t sia [4];
         if (!isinitialized) {
             signal RawSocket.sendPacketDone(FAIL);
+            return;
         }
         sendUDPstate = state_connect_write_dst_ipaddress;
         senddata = data;
