@@ -2,7 +2,6 @@ configuration AllSocketsP
 {
     provides interface RawSocket[uint8_t id];
     provides interface UDPSocket[uint8_t id];
-    provides interface GRESocket;
     provides interface EthernetShieldConfig;
 }
 implementation
@@ -45,8 +44,6 @@ implementation
 
     UDPSocket[0] = s0.UDPSocket;
     RawSocket[0] = s0.RawSocket;
-    GRESocketP.RawSocket -> s0.RawSocket;
-    GRESocket = GRESocketP; // can't multiplex IPRAW sockets, so we just use the one
     components new Timer32khzC() as SocketPTimer0;
     s0.SocketSpi -> SocketSpiP.SocketSpi;
     s0.Timer -> SocketPTimer0;

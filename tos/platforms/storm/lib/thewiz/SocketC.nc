@@ -4,7 +4,6 @@ generic configuration SocketC ()
 {
     provides interface RawSocket;
     provides interface UDPSocket;
-    provides interface GRESocket;
 }
 implementation
 {
@@ -14,5 +13,4 @@ implementation
     };
     RawSocket = AllSocketsP.RawSocket[sock_id];
     UDPSocket = AllSocketsP.UDPSocket[sock_id];
-    GRESocket = AllSocketsP.GRESocket;
 }
