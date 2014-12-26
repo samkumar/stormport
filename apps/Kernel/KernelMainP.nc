@@ -137,7 +137,7 @@ implementation
 
         call Dmesg.bind(514);
 
-        //post launch_payload();
+        post launch_payload();
         call Timer.startPeriodic(32000);
     }
 
@@ -192,7 +192,6 @@ implementation
     {
         error_t e;
         uint16_t eptr;
-        printf("FPS run\n");
         if (stdout_wptr == stdout_rptr)
             return; //Empty
         if (stdout_wptr < stdout_rptr) //Can't do write across ringbuffer wrap
@@ -229,7 +228,6 @@ implementation
             {
                 stdout_enqueue(src[i]);
             }
-            printf("posted FPS\n");
             post flush_process_stdout();
             return size;
         }
@@ -251,20 +249,21 @@ implementation
 
     }
 
+
     bool run_process() @C() @spontaneous()
     {
         uint32_t tmp;
-        printf("run process called\n");
+
         switch(procstate)
         {
             case procstate_runnable:
-                printf("[SCH:R]\n");
+                //printf("[SCH:R]\n");
                 __syscall(KABI_RESUME_PROCESS);
                 return TRUE;
             case procstate_wait_stdin:
                 if (stdin_rptr != stdin_wptr)
                 {
-                    printf("[SCH:I]\n");
+                    //printf("[SCH:I]\n");
                     tmp = kabi_read(syscall_args[0], &((uint8_t*)(syscall_args[1]))[0], syscall_args[2]);
                     printf("rd:%d\n",tmp);
                     *process_syscall_rv = tmp;
@@ -307,7 +306,7 @@ implementation
         process_syscall_rv = &svc_args[0];
         syscall_args = &svc_args[0];
 
-        printf("svc number: %d %08x %08x %08x\n", svc_number, svc_args[0], svc_args[1], svc_args[2]);
+        //printf("svc number: %d %08x %08x %08x\n", svc_number, svc_args[0], svc_args[1], svc_args[2]);
         switch(svc_number)
         {
             case KABI_RESUME_PROCESS:
@@ -352,7 +351,7 @@ implementation
                 cb_read_r_ptr = (void*) syscall_args[STACKED + 0];
                 procstate = procstate_runnable;
                 return RET_KERNEL;
-            case ABI_ID_EJECT:
+            case KABI_EJECT:
                 asm volatile(
                     "mrs r0, psp\n\t"
                     "add r0, r0, 32\n\t"

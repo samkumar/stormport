@@ -4,13 +4,20 @@
 
 #include <stdint.h>
 
-#define __syscall(code) asm volatile (\
+#define __syscall_body(code) asm volatile (\
     "push {r1-r12,r14}\n\t"\
     "svc %[immediate]\n\t"\
     "pop {r1-r12,r14}\n\t"\
     "bx lr"::[immediate] "I" (code):"memory", "r0")
 
+#define __syscall(code) asm volatile (\
+    "push {r1-r12,r14}\n\t"\
+    "svc %[immediate]\n\t"\
+    "pop {r1-r12,r14}"\
+    ::[immediate] "I" (code):"memory", "r0")
+
 #define KABI_RESUME_PROCESS 0x80
+#define KABI_EJECT 0x81
 
 /**
  * Callback signature for a void function taking a single uint32_t argument
@@ -103,19 +110,11 @@ typedef void (*cb_i32_t) (void *r, int32_t);
 
 /**
  *
- * Run all callbacks in the callback queues. If the callback queues are empty, wait until there
- * is a callback to run, then run it. This can be used after an asynchronous call to make it
- * synchronous.
+ * Run a callback in the callback queues. If the callback queues are empty, wait until there
+ * is a callback to run, then run it.
  */
 //void k_wait_callback();
 #define ABI_ID_WAIT_CALLBACK 7
 
-/**
- *
- * Returns from a callback. The kernel will do this (in process mode) for the process, so this
- * function should never be called by user code
- */
-//void k_eject();
-#define ABI_ID_EJECT 8
 
 #endif
