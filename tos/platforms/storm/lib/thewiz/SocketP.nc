@@ -124,6 +124,7 @@ implementation
         TXBASE = TXBUF_BASE + TXBUF_SIZE * socket;
         RXBASE = RXBUF_BASE + RXBUF_SIZE * socket;
         initUDPstate = state_init_readsockstate;
+        ipp = ipprotocol;
         call InitResource.request();
     }
 
