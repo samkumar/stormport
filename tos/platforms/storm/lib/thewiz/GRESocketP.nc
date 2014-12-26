@@ -24,7 +24,7 @@ implementation
      * Bits 16-31: ether protocol type of encapsulated payload (ipv4 is 0x0800, ipv6 is 0x86dd)
      * if any bits 0-3 were set, we'd have more fields here, else we just start the packet
      */
-    command void GRESocket.sendPacket(struct ip_iovec data)
+    command void GRESocket.sendPacket(uint32_t destip, struct ip_iovec data)
     {
         // add the GRE packet header
         struct ip_iovec greh;
@@ -34,7 +34,7 @@ implementation
         greh.iov_base = (uint8_t*) header;
         greh.iov_next = &data;
 
-        call RawSocket.sendPacket(greh);
+        call RawSocket.sendPacket(destip, greh);
     }
 
     event void RawSocket.sendPacketDone(error_t error)

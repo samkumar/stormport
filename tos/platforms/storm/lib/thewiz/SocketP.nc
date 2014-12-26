@@ -125,17 +125,15 @@ implementation
         call InitResource.request();
     }
 
-    command void RawSocket.sendPacket(struct ip_iovec data)
+    command void RawSocket.sendPacket(uint32_t destip, struct ip_iovec data)
     {
-        uint8_t sia [4];
         if (!isinitialized) {
             signal RawSocket.sendPacketDone(FAIL);
             return;
         }
         sendUDPstate = state_connect_write_dst_ipaddress;
         senddata = data;
-        iov_read(&senddata, 0, 4, sia);
-        sendipaddress = sia[3] | (sia[2] << 8) | (sia[1] << 16) | (sia[0] << 24);
+        sendipaddress = destip;
         call SendResource.request();
     }
 
