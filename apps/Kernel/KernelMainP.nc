@@ -138,7 +138,7 @@ implementation
         call Dmesg.bind(514);
 
         post launch_payload();
-        call Timer.startPeriodic(32000);
+        //call Timer.startPeriodic(32000);
     }
 
     task void launch_payload()
