@@ -138,7 +138,7 @@ implementation
         call Dmesg.bind(514);
 
         post launch_payload();
-        //call Timer.startPeriodic(32000);
+        call Timer.startPeriodic(16000);
     }
 
     task void launch_payload()
@@ -184,9 +184,12 @@ implementation
         printf("Got traffic on dmesg port\n");
     }
 
+    char *msg = "FUCKYEAHBUD";
     event void Timer.fired()
     {
-        printf("alive\n");
+        printf("sending\n");
+
+        call Dmesg.sendto(&route_dest, &msg[0], 11);
     }
     task void flush_process_stdout()
     {
@@ -254,7 +257,7 @@ implementation
     bool run_process() @C() @spontaneous()
     {
         uint32_t tmp;
-
+        return FALSE;
         switch(procstate)
         {
             case procstate_runnable:
@@ -264,9 +267,9 @@ implementation
             case procstate_wait_stdin:
                 if (stdin_rptr != stdin_wptr)
                 {
-                    printf("[SCH:I]\n");
+                    //printf("[SCH:I]\n");
                     tmp = kabi_read(syscall_args[0], &((uint8_t*)(syscall_args[1]))[0], syscall_args[2]);
-                    printf("rd:%d\n",tmp);
+                    //printf("rd:%d\n",tmp);
                     *process_syscall_rv = tmp;
                     procstate = procstate_runnable;
                     __syscall(KABI_RESUME_PROCESS);
