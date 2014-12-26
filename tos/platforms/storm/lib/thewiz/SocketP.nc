@@ -14,6 +14,10 @@ generic module SocketP(uint8_t socket)
 }
 implementation
 {
+
+    // ignores recv/send until this is set by the initialization finishing
+    bool isinitialized = 0;
+
     // buffers for SPI
     uint8_t _txbuf [260];
     uint8_t * const txbuf = &_txbuf[4];
@@ -97,6 +101,9 @@ implementation
     //TODO: protect these send* addresses so that they aren't overwritten by another send command
     command void UDPSocket.sendPacket(uint16_t destport, uint32_t destip, struct ip_iovec data)
     {
+        if (!isinitialized) {
+            signal UDPSocket.sendPacketDone(FAIL);
+        }
         printf("request to send a packet\n");
         sendport = destport;
         sendipaddress = destip;
@@ -120,6 +127,9 @@ implementation
     command void RawSocket.sendPacket(struct ip_iovec data)
     {
         uint8_t sia [4];
+        if (!isinitialized) {
+            signal RawSocket.sendPacketDone(FAIL);
+        }
         sendUDPstate = state_connect_write_dst_ipaddress;
         senddata = data;
         iov_read(&senddata, 0, 4, sia);
@@ -289,6 +299,7 @@ implementation
                 initializingUDP = 0;
                 if (sockettype == SocketType_UDP) signal UDPSocket.initializeDone(SUCCESS);
                 else if (sockettype == SocketType_IPRAW) signal RawSocket.initializeDone(SUCCESS);
+                isinitialized = 1;
                 call InitResource.release();
                 call GpioInterrupt.enableFallingEdge();
                 call IRQPin.makeInput();
