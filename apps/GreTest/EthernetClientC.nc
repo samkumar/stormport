@@ -59,6 +59,7 @@ implementation
     {
         // send a packet out
         uint8_t packet [12];
+        uint32_t destip;
         struct ip_iovec out;
 
         packet[0] = 0x0a;
@@ -78,7 +79,9 @@ implementation
         out.iov_len = 12;
         out.iov_next = NULL;
 
+        destip = packet[3] | (packet[2] << 8) | (packet[1] << 16) | (packet[0] << 24);
+
         printf("ethernetclient c trying to send packet\n");
-        call GRESocket.sendPacket(out);
+        call GRESocket.sendPacket(destip, out);
     }
 }
