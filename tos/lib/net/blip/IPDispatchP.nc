@@ -588,9 +588,9 @@ void SENDINFO_DECR(struct send_info *si) {
       if (frag_len < 0) {
         printf(" get frag error: %i\n", frag_len);
       }
-
+      #ifndef BLIP_STFU
       printf("fragment length: %i offset: %i\n", frag_len, ctx.offset);
-
+      #endif
 
       if (frag_len <= 0) {
         call FragPool.put(outgoing);
@@ -668,7 +668,9 @@ void SENDINFO_DECR(struct send_info *si) {
     } else if (s_entry->info->link_fragment_attempts ==
                s_entry->info->link_fragments) {
       signal IPLower.sendDone(s_entry->info);
-      printf("senddone ok (%d retries)\n", call PacketLink.getRetries(msg));
+      #ifndef BLIP_STFU
+        printf("senddone ok (%d retries)\n", call PacketLink.getRetries(msg));
+      #endif
     }
 
   done:

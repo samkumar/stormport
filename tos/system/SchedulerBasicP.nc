@@ -50,7 +50,7 @@
  */
 
 #include "hardware.h"
-
+extern bool run_process();
 module SchedulerBasicP @safe() {
   provides interface Scheduler;
   provides interface TaskBasic[uint8_t id];
@@ -93,7 +93,7 @@ implementation
       return NO_TASK;
     }
   }
-  
+
   bool isWaiting( uint8_t id )
   {
     return (m_next[id] != NO_TASK) || (m_tail == id);
@@ -120,7 +120,7 @@ implementation
       return FALSE;
     }
   }
-  
+
   command void Scheduler.init()
   {
     atomic
@@ -130,7 +130,7 @@ implementation
       m_tail = NO_TASK;
     }
   }
-  
+
   command bool Scheduler.runNextTask()
   {
     uint8_t nextTask;
@@ -146,6 +146,15 @@ implementation
     return TRUE;
   }
 
+  uint8_t run_process_with_irq()
+  {
+    uint8_t processRan;
+    __nesc_enable_interrupt();
+    processRan = run_process();
+	__nesc_disable_interrupt();
+	asm volatile("" : : : "memory");
+    return processRan;
+  }
   command void Scheduler.taskLoop()
   {
     for (;;)
@@ -156,6 +165,7 @@ implementation
       {
 	while ((nextTask = popTask()) == NO_TASK)
 	{
+	  if(run_process_with_irq()) continue;
 	  call McuSleep.sleep();
 	}
       }

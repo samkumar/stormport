@@ -203,8 +203,9 @@ module IPForwardingEngineP {
 
     if (call IPAddress.isLocalAddress(&pkt->ip6_hdr.ip6_dst) &&
         pkt->ip6_hdr.ip6_dst.s6_addr[0] != 0xff) {
-      printf("Forwarding -- send with local unicast address!\n");
-
+        #ifndef BLIP_STFU
+            printf("Forwarding -- send with local unicast address!\n");
+        #endif
       return FAIL;
     } else if (call IPAddress.isLLAddress(&pkt->ip6_hdr.ip6_dst) &&
                (!next_hop_entry || next_hop_entry->prefixlen < 128)) {
@@ -219,9 +220,11 @@ module IPForwardingEngineP {
          addressed don't work on other links...  we should probably do
          ND in this case, or at least keep a cache so we can reply to
          messages on the right interface. */
+      #ifndef BLIP_STFU
       printf("Forwarding -- send to LL address:");
       printf_in6addr(&pkt->ip6_hdr.ip6_dst);
       printf("\n");
+      #endif
       pkt->ip6_hdr.ip6_hlim = 1;
       // only do this for unicast packets
       if (pkt->ip6_hdr.ip6_dst.s6_addr[0] != 0xff) {
@@ -321,8 +324,9 @@ module IPForwardingEngineP {
     struct in6_iid *iid = (struct in6_iid *)status->upper_data;
     memset(next.s6_addr, 0, 16);
     next.s6_addr16[0] = htons(0xfe80);
+    #ifndef BLIP_STFU
     printf("sendDone: iface: %d key: %p\n", ifindex, iid);
-
+    #endif
     if (iid != NULL) {
       memcpy(&next.s6_addr[8], iid->data, 8);
       signal ForwardingEvents.linkResult[ifindex](&next, status);
@@ -332,6 +336,7 @@ module IPForwardingEngineP {
 
 #ifdef PRINTFUART_ENABLED
   event void PrintTimer.fired() {
+    #ifndef BLIP_STFU
     int i, ctr=0;
     static char print_buf[44];
     char* buf;
@@ -357,6 +362,7 @@ module IPForwardingEngineP {
     }
     printf("\n");
     //printfflush();
+    #endif
   }
 #endif
 
