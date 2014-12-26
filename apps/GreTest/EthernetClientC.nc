@@ -82,6 +82,6 @@ implementation
         destip = packet[3] | (packet[2] << 8) | (packet[1] << 16) | (packet[0] << 24);
 
         printf("ethernetclient c trying to send packet\n");
-        call GRESocket.sendPacket(destip, out);
+        call GRESocket.sendPacket(destip, &out);
     }
 }

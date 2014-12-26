@@ -70,6 +70,6 @@ implementation
         out.iov_next = NULL;
 
         printf("ethernetclient c trying to send packet\n");
-        call UDPSocket.sendPacket(destport, destip, out);
+        call UDPSocket.sendPacket(destport, destip, &out);
     }
 }
