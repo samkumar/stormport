@@ -29,7 +29,7 @@ implementation
     // destination for sending
     uint16_t sendport;
     uint32_t sendipaddress;
-    struct ip_iovec senddata; // send data
+    struct ip_iovec *senddata; // send data
     int senddata_len;
 
     // vars for receiving
@@ -99,7 +99,7 @@ implementation
     }
 
     //TODO: protect these send* addresses so that they aren't overwritten by another send command
-    command void UDPSocket.sendPacket(uint16_t destport, uint32_t destip, struct ip_iovec data)
+    command void UDPSocket.sendPacket(uint16_t destport, uint32_t destip, struct ip_iovec *data)
     {
         if (!isinitialized) {
             signal UDPSocket.sendPacketDone(FAIL);
@@ -125,7 +125,7 @@ implementation
         call InitResource.request();
     }
 
-    command void RawSocket.sendPacket(uint32_t destip, struct ip_iovec data)
+    command void RawSocket.sendPacket(uint32_t destip, struct ip_iovec *data)
     {
         if (!isinitialized) {
             signal RawSocket.sendPacketDone(FAIL);
@@ -383,8 +383,8 @@ implementation
             case state_writeudp_copytotxbuf:
                 printf("UDP send: copy data to TX buffer\n");
                 tx_ptr = ((uint16_t)rxbuf[0] << 8) | rxbuf[1];
-                senddata_len = iov_len(&senddata);
-                iov_read(&senddata, 0, senddata_len, txbuf);
+                senddata_len = iov_len(senddata);
+                iov_read(senddata, 0, senddata_len, txbuf);
                 sendUDPstate = state_writeudp_advancetxwr;
                 call SocketSpi.writeRegister(TXBASE + (tx_ptr & TXMASK), _txbuf, senddata_len);
                 break;

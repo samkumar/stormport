@@ -7,7 +7,7 @@ interface RawSocket
 
     event void initializeDone(error_t error);
 
-    command void sendPacket(uint32_t destip, struct ip_iovec data);
+    command void sendPacket(uint32_t destip, struct ip_iovec *data);
 
     // called when the packet has finished sending
     event void sendPacketDone(error_t error);

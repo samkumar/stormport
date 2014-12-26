@@ -9,7 +9,7 @@ interface UDPSocket
   event void initializeDone(error_t error);
 
   // Destport is in little endian, destip is in big endian (network byte order).
-  command void sendPacket(uint16_t destport, uint32_t destip, struct ip_iovec data);
+  command void sendPacket(uint16_t destport, uint32_t destip, struct ip_iovec *data);
 
   // called when the packet has finished sending
   event void sendPacketDone(error_t error);
