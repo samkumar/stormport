@@ -138,7 +138,7 @@ implementation
         call Dmesg.bind(514);
 
         post launch_payload();
-        call Timer.startPeriodic(16000);
+        //call Timer.startPeriodic(16000);
     }
 
     task void launch_payload()
@@ -257,7 +257,6 @@ implementation
     bool run_process() @C() @spontaneous()
     {
         uint32_t tmp;
-        return FALSE;
         switch(procstate)
         {
             case procstate_runnable:
