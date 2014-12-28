@@ -33,53 +33,60 @@
 
 #include <lib6lowpan/6lowpan.h>
 
-configuration KernelC {
+configuration KernelC
+{
 
-} implementation {
-  components MainC, LedsC;
-  components KernelMainP;
+}
+implementation
+{
+    components MainC, LedsC;
+    components KernelMainP;
 
-  KernelMainP.Boot -> MainC;
+    KernelMainP.Boot -> MainC;
 
-  components IPStackC;
+    components IPStackC;
 
-  KernelMainP.RadioControl ->  IPStackC;
-  components new UdpSocketC() as Dmesg;
+    KernelMainP.RadioControl ->  IPStackC;
+    components new UdpSocketC() as Dmesg;
 
-  KernelMainP.Dmesg -> Dmesg;
+    KernelMainP.Dmesg -> Dmesg;
 
-  components FlashAttrC;
-  KernelMainP.FlashAttr -> FlashAttrC;
+    components FlashAttrC;
+    KernelMainP.FlashAttr -> FlashAttrC;
 
-  components new Timer32khzC();
-  KernelMainP.Timer -> Timer32khzC;
+    components new Timer32khzC();
+    KernelMainP.Timer -> Timer32khzC;
 
-  components UdpC, IPDispatchC;
-  components RPLRoutingC;
+    components UdpC, IPDispatchC;
+    components RPLRoutingC;
 
-  components PlatformSerialC;
-  KernelMainP.UartStream -> PlatformSerialC;
+    components PlatformSerialC;
+    KernelMainP.UartStream -> PlatformSerialC;
 
-  #ifdef WITH_WIZ
-  components IPPacketC;
-  components EthernetP;
-  components IPForwardingEngineP;
-  components RplBorderRouterP;
-  RplBorderRouterP.IPPacket -> IPPacketC;
-  RplBorderRouterP.ForwardingEvents -> IPStackC.ForwardingEvents[ROUTE_IFACE_ETH0];
-  IPForwardingEngineP.IPForward[ROUTE_IFACE_ETH0] -> EthernetP.IPForward;
-  components GRESocketP;
-  components new SocketC();
-  GRESocketP.RawSocket -> SocketC;
-  components EthernetShieldConfigC;
-  EthernetP.IPControl -> IPStackC;
-  EthernetP.RootControl -> RPLRoutingC;
-  EthernetP.ForwardingTable -> IPStackC;
-  EthernetP.GRESocket -> GRESocketP;
-  EthernetP.EthernetShieldConfig -> EthernetShieldConfigC;
-  #endif
+    #ifdef WITH_WIZ
+    components IPPacketC;
+    components EthernetP;
+    components IPForwardingEngineP;
+    components RplBorderRouterP;
+    RplBorderRouterP.IPPacket -> IPPacketC;
+    RplBorderRouterP.ForwardingEvents -> IPStackC.ForwardingEvents[ROUTE_IFACE_ETH0];
+    IPForwardingEngineP.IPForward[ROUTE_IFACE_ETH0] -> EthernetP.IPForward;
+    components GRESocketP;
+    components new SocketC();
+    GRESocketP.RawSocket -> SocketC;
+    components EthernetShieldConfigC;
+    EthernetP.IPControl -> IPStackC;
+    EthernetP.RootControl -> RPLRoutingC;
+    EthernetP.ForwardingTable -> IPStackC;
+    EthernetP.GRESocket -> GRESocketP;
+    EthernetP.EthernetShieldConfig -> EthernetShieldConfigC;
+    #endif
 
-  components StaticIPAddressC; // Use LocalIeee154 in address
-  components SerialPrintfC;
+    components StaticIPAddressC; // Use LocalIeee154 in address
+    components SerialPrintfC;
+
+    //Drivers
+    components StormSimpleGPIOC;
+    KernelMainP.GPIO_Driver -> StormSimpleGPIOC.Driver;
 
 }

@@ -54,6 +54,7 @@ module KernelMainP
         interface FlashAttr;
         interface Timer<T32khz> as Timer;
         interface UartStream;
+        interface Driver as GPIO_Driver;
     }
 }
 implementation
@@ -372,6 +373,10 @@ implementation
                      : : : "r0"
                 );
                 procstate = procstate_runnable;
+                return RET_KERNEL;
+            case ABI_ID_SYSCALL_EX:
+                //printf("doing EX syscall %d\n", syscall_args[0]);
+                if (( syscall_args[0] >> 8) == 1 ) *process_syscall_rv = call GPIO_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
                 return RET_KERNEL;
             default:
                 printf("bad svc number\n");
