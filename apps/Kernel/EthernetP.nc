@@ -12,7 +12,7 @@ module EthernetP
         interface ForwardingTable;
         interface RootControl;
         interface EthernetShieldConfig;
-        interface GRESocket;
+        interface RawSocket;
     }
     provides
     {
@@ -30,18 +30,21 @@ implementation
         printf("Added default route to forwarding table\n");
         call ForwardingTable.addRoute(NULL, 0, NULL, ROUTE_IFACE_ETH0);
         busy = FALSE;
-        destip = 0x0a040a32; //10.4.10.50
+        //destip = 0x0a040a32; //10.4.10.50
+        destip = 0x0a040a8e; //10.4.10.142
+        //destip = 0x0a040a87; // 10.4.10.135
+        //destip = 0x364365f1; //54.67.101.241
         {
-            uint32_t srcip   = 10  << 24 | 4   << 16 | 10  << 8 | 144;
+            uint32_t srcip   = 10  << 24 | 4   << 16 | 10  << 8 | 135;
             uint32_t netmask = 255 << 24 | 255 << 16 | 255 << 8 | 0  ;
             uint32_t gateway = 10  << 24 | 4   << 16 | 10  << 8 | 1  ;
             uint8_t *mac = "\xde\xad\xbe\xef\xfe\xef";
 
             call EthernetShieldConfig.initialize(srcip, netmask, gateway, mac);
         }
-        call GRESocket.initialize();
+        call RawSocket.initialize(41);
     }
-    event void GRESocket.initializeDone(error_t error) {
+    event void RawSocket.initializeDone(error_t error) {
 
     }
     event void IPControl.stopDone (error_t error) {}
@@ -58,20 +61,21 @@ implementation
         hvec.iov_len = sizeof(struct ip6_hdr);
         hvec.iov_next = msg->ip6_data;
         ipf_data = data;
-        call GRESocket.sendPacket(destip, &hvec);
+        call RawSocket.sendPacket(destip, &hvec);
 
         return SUCCESS;
     }
 
-    event void GRESocket.sendPacketDone(error_t error)
+    event void RawSocket.sendPacketDone(error_t error)
     {
         busy = FALSE;
     }
 
-    event void GRESocket.packetReceived(uint8_t *buf, uint16_t len)
+    event void RawSocket.packetReceived(uint8_t *buf, uint16_t len)
     {
         struct ip6_hdr *iph = (struct ip6_hdr *)buf;
         void *payload = (iph + 1);
+        printf("got a packet!!\n");
         signal IPForward.recv(iph, payload, NULL);
     }
 

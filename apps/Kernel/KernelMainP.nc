@@ -132,13 +132,14 @@ implementation
         call UartStream.enableReceiveInterrupt();
         printf("Booting kernel %d.%d.%d.%d (%s)\n",VER_MAJOR, VER_MINOR, VER_SUBMINOR, VER_BUILD, GITCOMMIT);
 
-        route_dest.sin6_port = htons(7);
-        inet_pton6("2001:470:4899:a::3", &route_dest.sin6_addr);
+        route_dest.sin6_port = htons(7000);
+        //inet_pton6("2001:470:4899:a::3", &route_dest.sin6_addr);
+        inet_pton6("2001:470:4885:1:f::0", &route_dest.sin6_addr);
 
         call Dmesg.bind(514);
 
         post launch_payload();
-        call Timer.startPeriodic(16000);
+        call Timer.startPeriodic(60000);
     }
 
     task void launch_payload()
