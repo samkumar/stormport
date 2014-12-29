@@ -43,6 +43,7 @@ implementation
             call EthernetShieldConfig.initialize(srcip, netmask, gateway, mac);
         }
         call RawSocket.initialize(41);
+        call RootControl.setRoot();
     }
     event void RawSocket.initializeDone(error_t error) {
 
