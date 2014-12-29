@@ -40,8 +40,9 @@ implementation
         netmask = nm;
         gateway = gw;
         mac = m;
+        call SpiResource.immediateRequest();
 #ifndef BLIP_STFU
-        printf("eth shield config immediate request spi: %d %d\n", call SpiResource.immediateRequest(), SUCCESS);
+        printf("eth shield initialize start\n");
 #endif
         post init();
     }
