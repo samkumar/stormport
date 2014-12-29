@@ -40,18 +40,18 @@ implementation
         netmask = nm;
         gateway = gw;
         mac = m;
+#ifndef BLIP_STFU
         printf("eth shield config immediate request spi: %d %d\n", call SpiResource.immediateRequest(), SUCCESS);
+#endif
         post init();
     }
 
     task void init()
     {
         int i;
-        printf("current state %d\n", state);
         switch(state)
         {
         case state_reset:
-            printf("state reset\n");
             state = state_write_ipaddress;
             txbuf[0] = 0x80;
             call SocketSpi.writeRegister(0x0000, _txbuf, 1);
@@ -59,7 +59,6 @@ implementation
 
         // Write which address we are
         case state_write_ipaddress:
-            printf("state_write_ipaddress\n");
             state = state_write_gatewayip;
             txbuf[0] = src_ip >> (3 * 8);
             txbuf[1] = (src_ip >> (2 * 8)) & 0x00ff;
@@ -130,9 +129,10 @@ implementation
 
         // termination case
         case state_initialize_finished:
+            call SpiResource.release();
+#ifndef BLIP_STFU
             printf("Ethernet shield initialized!\n");
-            printf("released: %d\n", call SpiResource.release());
-            printf("ami owner %d\n", call SpiResource.isOwner());
+#endif
             break;
         }
     }
@@ -153,7 +153,6 @@ implementation
 
     event void SpiResource.granted()
     {
-        printf("granted shoudl not see\n");
     }
 
 }

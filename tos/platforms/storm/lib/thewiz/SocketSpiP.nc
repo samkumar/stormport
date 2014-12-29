@@ -21,7 +21,9 @@ implementation
     // initializes SPI
     command error_t Init.init()
     {
+#ifndef BLIP_STFU
         printf("Initializing Spi to talk to Wiz5200\n");
+#endif
         call EthernetSS.makeOutput();
         call EthernetSS.set();
         call SpiHPL.enableUSARTPin(USART0_CLK_PB13);
@@ -32,10 +34,6 @@ implementation
         call SpiHPL.setSPIBaudRate(20000);
         call SpiHPL.enableTX();
         call SpiHPL.enableRX();
-
-        //TODO: initialize internal state
-        printf("SPI initialized\n");
-
     }
 
     // initialize
