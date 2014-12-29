@@ -88,5 +88,7 @@ implementation
     //Drivers
     components StormSimpleGPIOC;
     KernelMainP.GPIO_Driver -> StormSimpleGPIOC.Driver;
+    components TimerDriverC;
+    KernelMainP.Timer_Driver -> TimerDriverC.Driver;
 
 }

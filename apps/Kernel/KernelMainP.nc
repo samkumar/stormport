@@ -42,7 +42,10 @@
 #define REPORT_PERIOD 60L
 extern void __bootstrap_payload(uint32_t base_addr);
 //fptr, rptr, arg0, arg1
-extern void __inject_function(void*, void*, uint32_t, uint32_t);
+extern void __inject_function0(void* f);
+extern void __inject_function1(void* f, void* r);
+extern void __inject_function2(void* f, void* r, uint32_t);
+extern void __inject_function3(void* f, void* r, uint32_t, uint32_t);
 
 module KernelMainP
 {
@@ -55,6 +58,7 @@ module KernelMainP
         interface Timer<T32khz> as Timer;
         interface UartStream;
         interface Driver as GPIO_Driver;
+        interface Driver as Timer_Driver;
     }
 }
 implementation
@@ -133,13 +137,13 @@ implementation
         call UartStream.enableReceiveInterrupt();
         printf("Booting kernel %d.%d.%d.%d (%s)\n",VER_MAJOR, VER_MINOR, VER_SUBMINOR, VER_BUILD, GITCOMMIT);
 
-        route_dest.sin6_port = htons(7);
-        inet_pton6("2001:470:4899:a::3", &route_dest.sin6_addr);
+        route_dest.sin6_port = htons(7000);
+        inet_pton6("2001:470:4885:1:f::", &route_dest.sin6_addr);
 
         call Dmesg.bind(514);
 
         post launch_payload();
-        //call Timer.startPeriodic(16000);
+        call Timer.startPeriodic(16000);
     }
 
     task void launch_payload()
@@ -185,12 +189,12 @@ implementation
         printf("Got traffic on dmesg port\n");
     }
 
-    char *msg = "FUCKYEAHBUD";
+    char *msg = "FUCKYEAHBUD[REMOTE]\n  ";
     event void Timer.fired()
     {
         printf("sending\n");
 
-        call Dmesg.sendto(&route_dest, &msg[0], 11);
+        call Dmesg.sendto(&route_dest, &msg[0], 19);
     }
     task void flush_process_stdout()
     {
@@ -278,15 +282,27 @@ implementation
                 return FALSE;
             case procstate_wait_event:
             case procstate_flush_event:
+            {
+                pcallback_t cb;
                 //Check for special static callbacks - like read_async
                 if (cb_read_buf != NULL && (stdin_rptr != stdin_wptr))
                 {
                     printf("vptr = %08x\n",cb_read_r_ptr);
                     tmp = kabi_read(0, cb_read_buf, cb_read_len);
                     cb_read_buf = NULL;
-                    __inject_function(cb_read_f_ptr, cb_read_r_ptr, tmp, 0);
+                    __inject_function3(cb_read_f_ptr, cb_read_r_ptr, tmp, 0);
                     procstate = procstate_runnable;
                     __syscall(KABI_RESUME_PROCESS);
+                    return TRUE;
+                }
+                //check for timer callbacks:
+                cb = call Timer_Driver.peek_callback();
+                if (cb != NULL)
+                {
+                    __inject_function1((void*)cb->addr, cb->r);
+                    procstate = procstate_runnable;
+                    __syscall(KABI_RESUME_PROCESS);
+                    call Timer_Driver.pop_callback();
                     return TRUE;
                 }
                 //if there was an event, we would process it and return, bypassing this if statement.
@@ -295,6 +311,7 @@ implementation
                     return TRUE;
                 }
                 return FALSE;
+            }
             default:
                 //printf("[SCH:W]\n");
                 return FALSE;
@@ -375,8 +392,9 @@ implementation
                 procstate = procstate_runnable;
                 return RET_KERNEL;
             case ABI_ID_SYSCALL_EX:
-                //printf("doing EX syscall %d\n", syscall_args[0]);
+                printf("doing EX syscall %d\n", syscall_args[0]);
                 if (( syscall_args[0] >> 8) == 1 ) *process_syscall_rv = call GPIO_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
+                if (( syscall_args[0] >> 8) == 2 ) *process_syscall_rv = call Timer_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
                 return RET_KERNEL;
             default:
                 printf("bad svc number\n");

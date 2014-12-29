@@ -2,9 +2,15 @@
 #define __DRIVER_H__
 
 //TODO
-typedef void* callback_t @combine("cbcombine");
+typedef struct
+{
+    uint32_t addr;
+    void* r;
+} callback_t;
 
-callback_t cbcombine(callback_t a, callback_t b)
+typedef callback_t* pcallback_t @combine("cbcombine");
+
+pcallback_t cbcombine(pcallback_t a, pcallback_t b)
 {
     if (a != NULL) return a; return b;
 }

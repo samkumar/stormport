@@ -53,6 +53,8 @@ void Dummy_Handler_UF(void)
 
 extern void SVC_Handler(void);
 
+extern void TC00_Handler(void);
+
 void Reset_Handler(void);
 void NMI_Handler(void)          __attribute__ ((weak, alias("Dummy_Handler")));
 void HardFault_Handler(void)    __attribute__ ((weak, alias("Dummy_Handler_HF")));
@@ -124,7 +126,7 @@ void PEVC_TR_Handler(void)      __attribute__ ((weak, alias("Dummy_Handler")));
 void PM_Handler(void)           __attribute__ ((weak, alias("Dummy_Handler")));
 void SCIF_Handler(void)         __attribute__ ((weak, alias("Dummy_Handler")));
 void SPI_Handler(void)          __attribute__ ((weak, alias("Dummy_Handler")));
-void TC00_Handler(void)        __attribute__ ((weak, alias("Dummy_Handler")));
+//void TC00_Handler(void)        __attribute__ ((weak, alias("Dummy_Handler")));
 void TC01_Handler(void)        __attribute__ ((weak, alias("Dummy_Handler")));
 void TC02_Handler(void)        __attribute__ ((weak, alias("Dummy_Handler")));
 void TC10_Handler(void)        __attribute__ ((weak, alias("Dummy_Handler")));
