@@ -44,6 +44,7 @@ implementation
         }
         call RootControl.setRoot();
         call RawSocket.initialize(41);
+        call RootControl.setRoot();
     }
     event void RawSocket.initializeDone(error_t error) {
 
