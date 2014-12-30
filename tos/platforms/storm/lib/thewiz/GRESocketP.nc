@@ -28,10 +28,11 @@ implementation
     {
         // add the GRE packet header
         struct ip_iovec greh;
-        uint32_t header = 0x86DD; // all bits are 0 except for protocol type
+        uint32_t header = 0xDD860000; // all bits are 0 except for protocol type
+        int i;
 
         greh.iov_len = 4;
-        greh.iov_base = (uint8_t*) header;
+        greh.iov_base = (uint8_t*) &header;
         greh.iov_next = data;
 
         call RawSocket.sendPacket(destip, &greh);

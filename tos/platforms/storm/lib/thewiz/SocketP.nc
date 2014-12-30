@@ -30,7 +30,6 @@ implementation
     uint16_t sendport;
     uint32_t sendipaddress;
     uint8_t senddata [256];
-    //struct ip_iovec senddata; // send data
     int senddata_len;
 
     // vars for receiving
