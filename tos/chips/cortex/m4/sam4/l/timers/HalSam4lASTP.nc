@@ -112,19 +112,11 @@ implementation
             }
         }
         else
-        {
-            if (t0 <= t1)
-            {
-                call ast.enable();
-                signal Alarm.fired();
-            }
-            else
-            {
-                call ast.setAlarm(t1 >> 1);
-                call ast.enableAlarmIRQ();
-                call ast.enable();
-            }
+        {   //t0 is always in the past, so if we are not in-between, the event is in the past
+            call ast.enable();
+            signal Alarm.fired();
         }
+
     }
     async command uint32_t Alarm.getNow()
     {
