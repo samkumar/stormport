@@ -7,11 +7,14 @@ module EthernetClientC
 {
     uses interface Boot;
     uses interface Timer<T32khz> as Timer;
+    uses interface Timer<T32khz> as SpamTimer;
     uses interface UDPSocket;
     uses interface EthernetShieldConfig;
 }
 implementation
 {
+    void SVC_Handler() @C() @spontaneous() __attribute__(( naked )) {}
+    bool run_process() @C() @spontaneous() { return FALSE; }
     event void Boot.booted()
     {
         uint32_t srcip = 10 << 24 | 4 << 16 | 10 << 8 | 143;
@@ -33,13 +36,14 @@ implementation
         {
             call Timer.startOneShot(50000);
         }
+        //call SpamTimer.startPeriodic(10);
     }
 
     event void UDPSocket.sendPacketDone(error_t error)
     {
         printf("sent a packet\n");
         // send another packet when we finish
-        call Timer.startOneShot(50000);
+        call Timer.startOneShot(10000);
     }
 
     event void UDPSocket.packetReceived(uint16_t srcport, uint32_t srcip, uint8_t *buf, uint16_t len)
