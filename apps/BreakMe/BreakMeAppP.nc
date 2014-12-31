@@ -14,11 +14,11 @@ module BreakMeAppP
 implementation
 {
     void SVC_Handler() @C() @spontaneous() __attribute__(( naked )) {}
-    bool run_process() @C() @spontaneous() { return FALSE; }
+    bool run_process() @C() @spontaneous() { return TRUE; }
 
     task void nulltask()
     {
-        printf("a");
+        printf("\n");
     }
 
     task void restartoneshot()

@@ -6,7 +6,10 @@
   /*; Exported functions*/
   .globl __bootstrap_payload
   .globl __context_switch
-  .globl __inject_function
+  .globl __inject_function0
+  .globl __inject_function1
+  .globl __inject_function2
+  .globl __inject_function3
 
 .thumb_func
 /* r0 is payload base address */
@@ -31,8 +34,14 @@ __eject_function:
     /* we don't return from that ISR because magic */
 
 .thumb_func
-/* inject the function r3 with arguments r0, r1, r2 into the process */
-__inject_function:
+/* inject the function r0 with arguments r1, r2, r3 into the process */
+__inject_function0:
+.thumb_func
+__inject_function1:
+.thumb_func
+__inject_function2:
+.thumb_func
+__inject_function3:
     push {r5,r6,r7}
     mrs r7, psp /* use r7 as process sp */
     /* push fake ISR frame */

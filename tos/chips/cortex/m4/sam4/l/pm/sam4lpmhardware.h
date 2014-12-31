@@ -157,7 +157,7 @@ typedef union
         uint32_t crccu      : 1;
         uint32_t usbc       : 1;
         uint32_t pevc       : 1;
-        uint32_t reserved0  : 26;
+        uint32_t reserved0  : 25;
     } __attribute__((__packed__)) bits;
 } pm_pbbmask_t;
 
@@ -325,8 +325,8 @@ typedef struct
     pm_interrupt_t   icr;
     pm_interrupt_t   sr;
     uint32_t         reserved6[2];
-    //0x100
-    uint32_t         reserved7[24];
+    //0xe0
+    uint32_t         reserved7[32];
     //0x160
     pm_ppcr_t        ppcr;
     uint32_t         reserved8[7];

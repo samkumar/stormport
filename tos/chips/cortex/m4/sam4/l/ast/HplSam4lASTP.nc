@@ -2,7 +2,7 @@
 
 #include <asthardware.h>
 #include <nvichardware.h>
-
+#include <printf.h>
 module HplSam4lASTP
 {
     provides interface HplSam4lAST;
@@ -42,6 +42,7 @@ implementation
 	{
 	    while(AST->sr.bits.busy == 1);
 		AST->cr.bits.en = 0;
+		while(AST->sr.bits.busy == 1);
 	}
 
 	async command void HplSam4lAST.setPrescalarBit(uint8_t bit)
@@ -189,6 +190,10 @@ implementation
 	async command void HplSam4lAST.setAlarm(uint32_t val)
 	{
 	    while(AST->sr.bits.busy == 1);
+	   // if (AST->cv >= val)
+	    {
+	        printf("cv=%d v=%d\n",AST->cv, val);
+	    }
 		AST->ar0 = val;
 	}
 
