@@ -7,7 +7,6 @@ module EthernetClientC
 {
     uses interface Boot;
     uses interface Timer<T32khz> as Timer;
-    uses interface Timer<T32khz> as SpamTimer;
     uses interface UDPSocket;
     uses interface EthernetShieldConfig;
 }
