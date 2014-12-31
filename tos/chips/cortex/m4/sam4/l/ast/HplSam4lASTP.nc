@@ -190,10 +190,14 @@ implementation
 	async command void HplSam4lAST.setAlarm(uint32_t val)
 	{
 	    while(AST->sr.bits.busy == 1);
-	   // if (AST->cv >= val)
-	    {
-	        printf("cv=%d v=%d\n",AST->cv, val);
-	    }
+	    /*
+	     * There is a weird behaviour that as far as I am concerned is a hw bug...
+	     * if you read AST->cv with the clock stopped, it can actually change...
+	     * this means that by the time setAlarm is called, val might be less
+	     * than or equal to cv. This is catastrophic, so we manually bump forward
+	     * the alarm time in this situation
+	     */
+	    if (AST->cv >= val) val = AST->cv+1;
 		AST->ar0 = val;
 	}
 

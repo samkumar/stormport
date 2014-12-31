@@ -144,7 +144,7 @@ implementation
         call Dmesg.bind(514);
 
         post launch_payload();
-        call Timer.startPeriodic(15000);
+       // call Timer.startPeriodic(15000);
     }
 
     task void launch_payload()
@@ -393,7 +393,7 @@ implementation
                 procstate = procstate_runnable;
                 return RET_KERNEL;
             case ABI_ID_SYSCALL_EX:
-                printf("doing EX syscall %d\n", syscall_args[0]);
+                //printf("doing EX syscall %d\n", syscall_args[0]);
                 if (( syscall_args[0] >> 8) == 1 ) *process_syscall_rv = call GPIO_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
                 if (( syscall_args[0] >> 8) == 2 ) *process_syscall_rv = call Timer_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
                 return RET_KERNEL;
