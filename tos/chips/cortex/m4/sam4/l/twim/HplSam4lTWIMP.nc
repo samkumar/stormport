@@ -23,8 +23,6 @@ implementation
 
     enum { STATE_IDLE, STATE_BUSYTX, STATE_BUSYRX };
 
-
-
     norace uint32_t state[4];
     uint8_t *buffers [4];
 
