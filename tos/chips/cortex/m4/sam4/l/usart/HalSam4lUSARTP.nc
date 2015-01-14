@@ -15,6 +15,8 @@ generic module HalSam4lUSARTP()
         interface HplSam4lUSART as usart;
         interface HplSam4lUSART_IRQ as usart_irq;
         interface HplSam4Clock as sysclock;
+        interface HplSam4lPDCA as tx_dmac;
+        interface HplSam4lPDCA as rx_dmac;
     }
 }
 implementation
@@ -449,6 +451,7 @@ implementation
         return call usart.readData();
     }
 
+    uint8_t other_irq_fired;
     /**
     * Send a message over the SPI bus.
     *
@@ -471,6 +474,20 @@ implementation
         }
         atomic
         {
+            call tx_dmac.setAddressCountReload((uint32_t)txBuf,len);
+            call rx_dmac.setAddressCountReload((uint32_t)rxBuf,len);
+            tx_buf = txBuf;
+            rx_buf = rxBuf;
+            tx_len = len;
+            call tx_dmac.enableTransfersCompleteIRQ();
+            call rx_dmac.enableTransfersCompleteIRQ();
+            other_irq_fired = FALSE;
+            call rx_dmac.enableTransfer();
+            call tx_dmac.enableTransfer();
+        }
+        /*
+        atomic
+        {
         irqmode_spi = TRUE;
         tx_buf = txBuf;
         rx_buf = rxBuf;
@@ -480,9 +497,76 @@ implementation
         call usart_irq.enableTXRdyIRQ();
         call usart_irq.enableRXRdyIRQ();
         }
+        */
         return SUCCESS;
     }
 
+
+    async event void tx_dmac.transfersCompleteFired()
+    {
+        uint8_t dofire = FALSE;
+        call tx_dmac.disableTransfersCompleteIRQ();
+        atomic
+        {
+            if (other_irq_fired)
+            {
+                dofire = TRUE;
+            }
+            else
+            {
+                other_irq_fired = TRUE;
+            }
+        }
+        if (dofire)
+        {
+            atomic
+            {
+                uint8_t *txbufcpy = tx_buf;
+                uint8_t *rxbufcpy = rx_buf;
+                rx_buf = NULL;
+                tx_buf = NULL;
+                signal SpiPacket.sendDone(txbufcpy, rxbufcpy, tx_len, SUCCESS);
+            }
+        }
+    }
+    async event void tx_dmac.reloadableFired() {}
+    async event void tx_dmac.transferErrorFired()
+    {
+        printf("TX Transfer error\n");
+    }
+
+    async event void rx_dmac.transfersCompleteFired()
+    {
+        uint8_t dofire = FALSE;
+        call rx_dmac.disableTransfersCompleteIRQ();
+        atomic
+        {
+            if (other_irq_fired)
+            {
+                dofire = TRUE;
+            }
+            else
+            {
+                other_irq_fired = TRUE;
+            }
+        }
+        if (dofire)
+        {
+            atomic
+            {
+                uint8_t *txbufcpy = tx_buf;
+                uint8_t *rxbufcpy = rx_buf;
+                rx_buf = NULL;
+                tx_buf = NULL;
+                signal SpiPacket.sendDone(txbufcpy, rxbufcpy, tx_len, SUCCESS);
+            }
+        }
+    }
+    async event void rx_dmac.reloadableFired() {}
+    async event void rx_dmac.transferErrorFired()
+    {
+        printf("RX Transfer error\n");
+    }
   /**
    * Notification that the send command has completed.
    *

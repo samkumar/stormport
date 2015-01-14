@@ -93,6 +93,34 @@ implementation
     components new HalSam4lUSARTP() as hal_usart2;
     components new HalSam4lUSARTP() as hal_usart3;
 
+    //This sucks, we prealloc 8 dma channels? wow. so stupid.
+    components new Sam4lDMAChannelC() as dmatx0;
+    components new Sam4lDMAChannelC() as dmatx1;
+    components new Sam4lDMAChannelC() as dmatx2;
+    components new Sam4lDMAChannelC() as dmatx3;
+    components new Sam4lDMAChannelC() as dmarx0;
+    components new Sam4lDMAChannelC() as dmarx1;
+    components new Sam4lDMAChannelC() as dmarx2;
+    components new Sam4lDMAChannelC() as dmarx3;
+
+    hal_usart0.tx_dmac ->dmatx0;
+    hal_usart0.rx_dmac ->dmarx0;
+    hal_usart1.tx_dmac ->dmatx1;
+    hal_usart1.rx_dmac ->dmarx1;
+    hal_usart2.tx_dmac ->dmatx2;
+    hal_usart2.rx_dmac ->dmarx2;
+    hal_usart3.tx_dmac ->dmatx3;
+    hal_usart3.rx_dmac ->dmarx3;
+
+    usart0.tx_dmac -> dmatx0;
+    usart0.rx_dmac -> dmarx0;
+    usart1.tx_dmac -> dmatx1;
+    usart1.rx_dmac -> dmarx1;
+    usart2.tx_dmac -> dmatx2;
+    usart2.rx_dmac -> dmarx2;
+    usart3.tx_dmac -> dmatx3;
+    usart3.rx_dmac -> dmarx3;
+
     hal_usart0.usart -> usart0;
     hal_usart1.usart -> usart1;
     hal_usart2.usart -> usart2;

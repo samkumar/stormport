@@ -1,5 +1,7 @@
 #include <usarthardware.h>
 #include <nvichardware.h>
+#include <pdcahardware.h>
+
 generic module HplSam4lUSARTP(uint32_t address, uint8_t usartnumber)
 {
     provides
@@ -10,6 +12,8 @@ generic module HplSam4lUSARTP(uint32_t address, uint8_t usartnumber)
     {
         interface HplSam4PeripheralClockCntl as ClockCtl;
         interface HplSam4Clock as MainClock;
+        interface HplSam4lPDCA as tx_dmac;
+        interface HplSam4lPDCA as rx_dmac;
     }
 }
 implementation
@@ -99,6 +103,12 @@ implementation
 		USART->mr.bits.mode = 0b1110; //SPI Master
 		USART->mr.bits.clko = 1;
 		USART->ttgr = 4;
+		call tx_dmac.setWordSize(PDCA_SIZE_BYTE);
+		call tx_dmac.setRingBuffered(0);
+		call rx_dmac.setWordSize(PDCA_SIZE_BYTE);
+		call rx_dmac.setRingBuffered(0);
+		call tx_dmac.setPeripheral(SAM4L_PID_USART0_TX + usartnumber);
+		call rx_dmac.setPeripheral(SAM4L_PID_USART0_RX + usartnumber);
 	}
 	async command uint8_t usart.readData()
 	{
@@ -163,5 +173,10 @@ implementation
         //Don't hate, appreciate.
         USART->mr.bits.sync_cpha = (cpha == 0);
     }
-
+    async event void tx_dmac.transfersCompleteFired(){}
+    async event void tx_dmac.reloadableFired() {}
+    async event void tx_dmac.transferErrorFired() {}
+    async event void rx_dmac.transfersCompleteFired(){}
+    async event void rx_dmac.reloadableFired() {}
+    async event void rx_dmac.transferErrorFired() {}
 }

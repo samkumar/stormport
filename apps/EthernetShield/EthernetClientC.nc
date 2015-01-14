@@ -16,7 +16,7 @@ implementation
     bool run_process() @C() @spontaneous() { return FALSE; }
     event void Boot.booted()
     {
-        uint32_t srcip = 10 << 24 | 4 << 16 | 10 << 8 | 143;
+        uint32_t srcip = 10 << 24 | 4 << 16 | 10 << 8 | 145;
         uint32_t netmask = 255 << 24 | 255 << 16 | 255 << 8 | 0;
         uint32_t gateway = 10 << 24 | 4 << 16 | 10 << 8 | 1;
         //uint32_t srcip = 192 << 24 | 168 << 16 | 1 << 8 | 177;
@@ -63,13 +63,13 @@ implementation
     event void Timer.fired()
     {
         // send a packet out
-        char* hello = "\x68\x65\x6c\x6c";//\x6f";
-        uint32_t destip = 10 << 24 | 4 << 16 | 10 << 8 | 142;
+        char* hello = "\x68\x65\x6c\x6c\n";//\x6f";
+        uint32_t destip = 10 << 24 | 4 << 16 | 10 << 8 | 50;
         uint16_t destport = 7000;
 
         struct ip_iovec out;
         out.iov_base = hello;
-        out.iov_len = 4;
+        out.iov_len = 5;
         out.iov_next = NULL;
 
         printf("ethernetclient c trying to send packet\n");
