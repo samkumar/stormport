@@ -498,9 +498,11 @@ implementation{
     if (!running) return;
     if (I_AM_LEAF) return;
 
+    #ifndef BLIP_STFU
     printf("RPL: DIS SOURCE: ");
     printf_in6addr(&iph->ip6_src);
     printf("\n");
+    #endif
 
     // Check if this packet was destined for this node (either multicast, or
     // unicast directly to it)
@@ -510,9 +512,11 @@ implementation{
         // This is a multicast message: reset Trickle (Section 8.3)
         call RPLRouteInfo.resetTrickle();
       } else {
+        #ifndef BLIP_STFU
         printf("RPL: unicast DIO: ");
         printf_in6addr(&iph->ip6_src);
         printf("\n");
+        #endif
         UNICAST_DIO = TRUE;
         memcpy(&UNICAST_DIO_ADDR, &(iph->ip6_src), sizeof(struct in6_addr));
         post sendDIOTask();
