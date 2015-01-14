@@ -381,6 +381,14 @@ serial => fe eb
 In this case, our hex serial number is `fe:eb`. So, our IPv6 address is thus
 `2001:470:4885:a:212:6d02::feeb`.
 
+If you do not have a serial number, you can add one:
+
+```
+sload sattr -x 0 serial feeb # feeb is your serial
+```
+
+but if you already have a serial number, please do not change it.
+
 Running `ping6 2001:470:4885:a:212:6d02::feeb` should give us some responses
 from the mote. If you don't, then open up Wireshark and start looking at the
 traffic.
