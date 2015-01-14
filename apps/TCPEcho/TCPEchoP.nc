@@ -36,6 +36,7 @@
 #include <lib6lowpan/ip.h>
 
 #include "UDPReport.h"
+#include "blip_printf.h"
 
 #define REPORT_PERIOD 75L
 
@@ -60,6 +61,9 @@ module TCPEchoP {
   }
 
 } implementation {
+  // stubs for MPA kernel
+  void SVC_Handler() @C() @spontaneous() __attribute__(( naked )) {}
+  bool run_process() @C() @spontaneous() { return FALSE; }
 
   bool timerStarted;
   nx_struct udp_report stats;
@@ -72,6 +76,7 @@ module TCPEchoP {
 #endif
 
   event void Boot.booted() {
+    printf("Booted! TOS_NODE_ID is %i\n", TOS_NODE_ID);
     CHECK_NODE_ID;
     call RadioControl.start();
     timerStarted = FALSE;
