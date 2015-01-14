@@ -60,6 +60,9 @@ module UDPEchoP {
   }
 
 } implementation {
+  // stubs for MPA kernel
+  void SVC_Handler() @C() @spontaneous() __attribute__(( naked )) {}
+  bool run_process() @C() @spontaneous() { return FALSE; }
 
   bool timerStarted;
   nx_struct udp_report stats;
