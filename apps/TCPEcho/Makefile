@@ -68,7 +68,7 @@ PFLAGS += -DLPL_DEF_REMOTE_WAKEUP=512
 ### Configure printf() output
 ################################################################################
 
-#PFLAGS += -DNEW_PRINTF_SEMANTICS -DPRINTFUART_ENABLED
+PFLAGS += -DNEW_PRINTF_SEMANTICS -DPRINTFUART_ENABLED
 
 ################################################################################
 ### Configure this application
@@ -82,4 +82,5 @@ PFLAGS += -DLPL_DEF_REMOTE_WAKEUP=512
 GOALS += blip rpl
 
 TINYOS_ROOT_DIR?=../..
+TOSMAKE_FIRST_FLAGS += -I$(TINYOS_ROOT_DIR)/tos/platforms/storm/lib/printf
 include $(TINYOS_ROOT_DIR)/Makefile.include
