@@ -92,6 +92,7 @@ typedef enum
     state_connect_wait_established,
     state_writeudp_copytotxbuf,
     state_writeudp_advancetxwr,
+    state_writeudp_writemorepacket,
     state_writeudp_writesendcmd,
     state_writeudp_readsendcmd,
     state_writeudp_waitsendcomplete,

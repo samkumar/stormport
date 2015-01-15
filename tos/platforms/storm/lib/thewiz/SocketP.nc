@@ -58,8 +58,11 @@ implementation
     uint16_t rx_ptr;
 
     uint16_t src_mask;
+    uint16_t tx_src_mask;
     uint16_t src_ptr;
+    uint16_t tx_src_ptr;
     uint16_t readsize;
+    uint16_t writesize;
     uint16_t packetlen = 0;
     uint16_t amountleft;
 
@@ -311,6 +314,7 @@ implementation
 
     task void sendUDP()
     {
+        int i;
         switch(sendUDPstate)
         {
             case state_connect_write_dst_ipaddress:
@@ -370,9 +374,30 @@ implementation
 
             case state_writeudp_copytotxbuf:
                 tx_ptr = ((uint16_t)rxbuf[0] << 8) | rxbuf[1];
-                memcpy(txbuf, senddata, senddata_len);
+                tx_src_mask = tx_ptr & TXMASK;
+                tx_src_ptr = TXBASE + tx_src_mask;
+                if ((tx_src_mask + senddata_len) > TXBUF_SIZE) // can't write it all; need to circle around
+                {
+                    writesize = TXBUF_SIZE - tx_src_mask;
+                    memcpy(txbuf, senddata, writesize); // copy what we can over
+                    sendUDPstate = state_writeudp_writemorepacket;
+                    call SocketSpi.writeRegister(tx_src_ptr, _txbuf, writesize); // write [writesize] bytes
+                }
+                else // it allf its
+                {
+                    memcpy(txbuf, senddata, senddata_len); // copy it all over
+                    writesize = 0;
+                    sendUDPstate = state_writeudp_advancetxwr;
+                    call SocketSpi.writeRegister(tx_src_ptr, _txbuf, senddata_len);
+                }
+                //sendUDPstate = state_writeudp_advancetxwr;
+                //call SocketSpi.writeRegister(TXBASE + (tx_ptr & TXMASK), _txbuf, senddata_len);
+                break;
+            
+            case state_writeudp_writemorepacket:
                 sendUDPstate = state_writeudp_advancetxwr;
-                call SocketSpi.writeRegister(TXBASE + (tx_ptr & TXMASK), _txbuf, senddata_len);
+                memcpy(txbuf, senddata+writesize, senddata_len - writesize); // copy the rest over
+                call SocketSpi.writeRegister(TXBUF_BASE, _txbuf, senddata_len - writesize);
                 break;
 
             case state_writeudp_advancetxwr:

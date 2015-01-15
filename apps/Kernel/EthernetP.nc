@@ -25,10 +25,12 @@ implementation
     bool busy;
     uint32_t destip;
 
+    struct sockaddr_in6 route_dest_154;
     event void IPControl.startDone (error_t error) {
         printf("Ethernet set as default route\n");
+        inet_pton6(IN6_PREFIX, &route_dest_154.sin6_addr);
         call ForwardingTable.addRoute(NULL, 0, NULL, ROUTE_IFACE_ETH0);
-
+        call ForwardingTable.addRoute((uint8_t*) &route_dest_154.sin6_addr, 64, NULL, ROUTE_IFACE_154);
         busy = FALSE;
         destip = 0x0a040a32; //10.4.10.50
         //destip = 0x0a040a8e; //10.4.10.150
