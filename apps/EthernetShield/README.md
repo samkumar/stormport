@@ -149,9 +149,9 @@ sent a packet
 
 You will notice that the first few packets fail to send. This is because when
 the mote connects to the network, no one initially knows how to route traffic
-to it (that is, which MAC address is associated with its IP). To our knowledge,
-the Wiz5200 does not respond to ARP queries (which is how this is usually
-resolved), so the mote has to send traffic before traffic can be routed to it.
+to it (that is, which MAC address is associated with its IP). Sending this initial
+traffic is optional in a production setting, because the Wiz5200 chip should respond
+to ARP queries.
 
 After those first few packets, you should see the word "hell" appear on your
 listening socket, at roughly the rate the mote is sending.
