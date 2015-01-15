@@ -33,10 +33,6 @@
 #include <lib6lowpan/ip.h>
 
 #define min(X,Y) (((X) > (Y)) ? (Y) : (X))
-#ifndef PC
-#define printf(X, args ...) dbg("stdout", X, ## args)
-#define fprintf(X, Y, args ...) dbg("fprintf", Y, ## args)
-#endif
 
 typedef enum {
   TCP_CLOSED = 0,

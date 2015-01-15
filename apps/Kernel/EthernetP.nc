@@ -26,19 +26,19 @@ implementation
     uint32_t destip;
 
     event void IPControl.startDone (error_t error) {
-
-        printf("Added default route to forwarding table\n");
+        printf("Ethernet set as default route\n");
         call ForwardingTable.addRoute(NULL, 0, NULL, ROUTE_IFACE_ETH0);
+
         busy = FALSE;
-        //destip = 0x0a040a32; //10.4.10.50
-        destip = 0x0a040a8e; //10.4.10.142
+        destip = 0x0a040a32; //10.4.10.50
+        //destip = 0x0a040a8e; //10.4.10.150
         //destip = 0x0a040a87; // 10.4.10.135
         //destip = 0x364365f1; //54.67.101.241
         {
-            uint32_t srcip   = 10  << 24 | 4   << 16 | 10  << 8 | 135;
+            uint32_t srcip   = 10  << 24 | 4   << 16 | 10  << 8 | 146;
             uint32_t netmask = 255 << 24 | 255 << 16 | 255 << 8 | 0  ;
             uint32_t gateway = 10  << 24 | 4   << 16 | 10  << 8 | 1  ;
-            uint8_t *mac = "\xde\xad\xbe\xef\xfe\xef";
+            uint8_t *mac = "\xde\xad\xbe\xef\xfe\xec";
 
             call EthernetShieldConfig.initialize(srcip, netmask, gateway, mac);
         }
@@ -77,7 +77,6 @@ implementation
     {
         struct ip6_hdr *iph = (struct ip6_hdr *)buf;
         void *payload = (iph + 1);
-        printf("got a packet!!\n");
         signal IPForward.recv(iph, payload, NULL);
     }
 

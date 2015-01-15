@@ -74,7 +74,9 @@ module IPNeighborDiscoveryP {
 
 #if BLIP_SEND_ROUTER_SOLICITATIONS
     // Set timer to send RS messages
+    #ifndef BLIP_STFU
     printf("IPNeighborDiscovery - start timer to send router solicitations\n");
+    #endif BLIP_STFU
     call RSTimer.startOneShot(call Random.rand32() % RTR_SOLICITATION_INTERVAL);
 #endif
 
@@ -513,8 +515,10 @@ module IPNeighborDiscoveryP {
 
     if (call NeighborDiscovery.resolveAddress(&local_addr, &fr_addr.ieee_src) !=
         SUCCESS) {
+      #ifndef BLIP_STFU
       printf("IPND - local address resolution failed\n");
-      return FAIL;
+      #endif
+        return FAIL;
     }
 
     if (call NeighborDiscovery.resolveAddress(next, &fr_addr.ieee_dst) !=

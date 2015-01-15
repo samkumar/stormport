@@ -4,8 +4,8 @@ COMPONENT=KernelC
 
 PFLAGS += -DLONG_ADDR_SUFFIX=0x40
 PFLAGS += -DBLIP_STFU
-
-# PFLAGS += -DWITH_WIZ
+#PFLAGS += -DKERNEL_STFU
+#PFLAGS += -DWITH_WIZ
 
 # radio options
 # CFLAGS += -DCC2420_DEF_CHANNEL=26
@@ -21,7 +21,7 @@ CFLAGS += -DRF230_DEF_CHANNEL=26
 
 # Use IN6_PREFIX with static addressing modes
 #PFLAGS += -DIN6_PREFIX=\"2001:470:4889:a::\"
-PFLAGS += -DIN6_PREFIX=\"2001:470:4885:a::\"
+PFLAGS += -DIN6_PREFIX=\"2001:470:4885:ff::\"
 # Use BLIP Neighbor Discovery to autoconfigure an address
 #PFLAGS += -DBLIP_ADDR_AUTOCONF=0
 # Use RPL and prefix information in DIO messages to autoconfigure an address

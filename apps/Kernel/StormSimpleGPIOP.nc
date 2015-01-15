@@ -15,7 +15,7 @@ module StormSimpleGPIOP
 }
 implementation
 {
-    command pcallback_t Driver.peek_callback()
+    command driver_callback_t Driver.peek_callback()
     {
         return NULL;
     }

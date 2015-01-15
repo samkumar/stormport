@@ -11,6 +11,12 @@ module TimerDriverP
 implementation
 {
 
+    typedef struct
+    {
+        uint32_t addr;
+        void* r;
+    } callback_t;
+
     #define FLAG_ALLOCATED  1
     #define FLAG_PENDING    2
     #define FLAG_PERIODIC   4
@@ -142,7 +148,7 @@ implementation
             }
         }
     }
-    command pcallback_t Driver.peek_callback()
+    command driver_callback_t Driver.peek_callback()
     {
         if (cb_ridx == cb_widx) return NULL;
         return &callback_queue[cb_ridx];

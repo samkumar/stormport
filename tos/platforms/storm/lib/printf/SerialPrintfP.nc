@@ -268,16 +268,29 @@ implementation
         va_start(va, fmt);
         ret = storm_vsnprintf(storm_printf_buffer, 256, fmt, va);
         va_end(va);
-
+        #ifndef KERNEL_STFU
         for (i=0;i<ret;i++)
         {
+
             call UartByte.send(storm_printf_buffer[i]);
         }
-
+        #endif
         return ret;
     }
 
     int storm_write(uint8_t const *buf, int len) @C() @spontaneous()
+    {
+        #ifndef KERNEL_STFU
+        int ret;
+        for(ret = 0; ret < len; ret++)
+        {
+            call UartByte.send(*buf);
+            buf++;
+        }
+        return ret;
+        #endif
+    }
+    int storm_write_payload(uint8_t const *buf, int len) @C() @spontaneous()
     {
         int ret;
         for(ret = 0; ret < len; ret++)

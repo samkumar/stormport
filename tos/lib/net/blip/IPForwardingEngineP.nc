@@ -233,8 +233,9 @@ module IPForwardingEngineP {
         return call IPForward.send[ROUTE_IFACE_154](&pkt->ip6_hdr.ip6_dst, pkt, NULL);
       }
     } else if (next_hop_entry) {
+      #ifndef BLIP_STFU
       printf("Forwarding -- got from routing table\n");
-
+      #endif
       /* control messages do not need routing headers */
       if (!(signal ForwardingEvents.initiate[next_hop_entry->ifindex](pkt,
                                              &next_hop_entry->next_hop)))
@@ -243,10 +244,12 @@ module IPForwardingEngineP {
       return do_send(next_hop_entry->ifindex, &next_hop_entry->next_hop, pkt);
     }
 
+    #ifndef BLIP_STFU
     printf("Forwarding -- no route found for packet. FAIL.\n");
     printf("Forwarding -- dest addr: ");
     printf_in6addr(&pkt->ip6_hdr.ip6_dst);
     printf("\n");
+    #endif
 
     return FAIL;
   }

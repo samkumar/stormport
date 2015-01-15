@@ -66,6 +66,10 @@ implementation
     components StaticIPAddressC; // Use LocalIeee154 in address
     components SerialPrintfC;
 
+    //STDIO socket
+    components new TcpSocketC();
+    KernelMainP.TcpSTDIO -> TcpSocketC;
+
   #ifdef WITH_WIZ
   components IPPacketC;
   components EthernetP;
@@ -92,5 +96,6 @@ implementation
     KernelMainP.GPIO_Driver -> StormSimpleGPIOC.Driver;
     components TimerDriverC;
     KernelMainP.Timer_Driver -> TimerDriverC.Driver;
-
+    components UDPDriverC;
+    KernelMainP.UDP_Driver -> UDPDriverC;
 }

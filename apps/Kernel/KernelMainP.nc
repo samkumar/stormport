@@ -46,7 +46,6 @@ extern void __inject_function0(void* f);
 extern void __inject_function1(void* f, void* r);
 extern void __inject_function2(void* f, void* r, uint32_t);
 extern void __inject_function3(void* f, void* r, uint32_t, uint32_t);
-
 module KernelMainP
 {
     uses
@@ -59,6 +58,8 @@ module KernelMainP
         interface UartStream;
         interface Driver as GPIO_Driver;
         interface Driver as Timer_Driver;
+        interface Driver as UDP_Driver;
+        interface Tcp as TcpSTDIO;
     }
 }
 implementation
@@ -133,19 +134,49 @@ implementation
     struct sockaddr_in6 route_dest;
     task void launch_payload();
     event void Boot.booted() {
+        char vbuf[80];
+        int ln;
         call RadioControl.start();
         call UartStream.enableReceiveInterrupt();
-        printf("Booting kernel %d.%d.%d.%d (%s)\n",VER_MAJOR, VER_MINOR, VER_SUBMINOR, VER_BUILD, GITCOMMIT);
+        ln = snprintf(vbuf, 80, "Booting kernel %d.%d.%d.%d (%s)\n",VER_MAJOR, VER_MINOR, VER_SUBMINOR, VER_BUILD, GITCOMMIT);
+        storm_write_payload(vbuf, ln);
 
         route_dest.sin6_port = htons(7000);
 
-        inet_pton6("2001:470:4885:1:f::", &route_dest.sin6_addr);
+        inet_pton6("2001:470:4885:ff::1", &route_dest.sin6_addr);
 
         call Dmesg.bind(514);
 
         post launch_payload();
-       // call Timer.startPeriodic(15000);
+        call TcpSTDIO.bind(23);
+        //call Timer.startPeriodic(100000);
     }
+
+    /*
+   * Example code for setting up a TCP echo socket.
+   */
+
+    bool sock_connected = FALSE;
+    char tcp_buf[150];
+
+    event bool TcpSTDIO.accept(struct sockaddr_in6 *from,
+                            void **tx_buf, int *tx_buf_len) {
+        *tx_buf = tcp_buf;
+        *tx_buf_len = 150;
+        return TRUE;
+    }
+    event void TcpSTDIO.connectDone(error_t e) {
+
+    }
+    event void TcpSTDIO.recv(void *payload, uint16_t len) {
+        call TcpSTDIO.send(payload,len);
+    }
+    event void TcpSTDIO.closed(error_t e) {
+        printf ("CLOSED: ERR: %d\n", e);
+        call TcpSTDIO.bind(23);
+    }
+    event void TcpSTDIO.acked() {}
+
 
     task void launch_payload()
     {
@@ -170,9 +201,7 @@ implementation
             printf("Did not find expected payload entry point");
             return;
         }
-        printf("Found payload start at 0x%04x\n", addr);
         __bootstrap_payload(addr);
-        printf("Payload stack generated\n");
         procstate = procstate_runnable;
     }
     event void RadioControl.startDone(error_t e)
@@ -193,7 +222,7 @@ implementation
     char *msg = "FUCKYEAHBUD[REMOTE]\n  ";
     event void Timer.fired()
     {
-        printf("sending\n");
+        //printf("sending\n");
 
         call Dmesg.sendto(&route_dest, &msg[0], 19);
     }
@@ -211,7 +240,7 @@ implementation
         {
             eptr = stdout_wptr;
         }
-        storm_write(process_stdout_ringbuffer + stdout_rptr, eptr - stdout_rptr);
+        storm_write_payload(process_stdout_ringbuffer + stdout_rptr, eptr - stdout_rptr);
         stdout_rptr = eptr & (STDOUT_SIZE - 1);
     }
     async event void UartStream.sendDone(uint8_t* buf, uint16_t len, error_t error )
@@ -284,7 +313,7 @@ implementation
             case procstate_wait_event:
             case procstate_flush_event:
             {
-                pcallback_t cb;
+                driver_callback_t cb;
                 //Check for special static callbacks - like read_async
                 if (cb_read_buf != NULL && (stdin_rptr != stdin_wptr))
                 {
@@ -300,12 +329,28 @@ implementation
                 cb = call Timer_Driver.peek_callback();
                 if (cb != NULL)
                 {
-                    __inject_function1((void*)cb->addr, cb->r);
+                    simple_callback_t *c = (simple_callback_t*) cb;
+                    __inject_function1((void*)c->addr, c->r);
                     procstate = procstate_runnable;
                     __syscall(KABI_RESUME_PROCESS);
                     call Timer_Driver.pop_callback();
                     return TRUE;
                 }
+
+                //check for UDP callbacks:
+                cb = call UDP_Driver.peek_callback();
+                if (cb != NULL)
+                {
+                    char v6addr[40];
+                    udp_callback_t *c = (udp_callback_t*) cb;
+                    inet_ntop6((struct in6_addr*)c->src_address, v6addr, 40);
+                    __inject_function3((void*)c->addr, c->r, (uint32_t)c, (uint32_t) v6addr);
+                    procstate = procstate_runnable;
+                    __syscall(KABI_RESUME_PROCESS);
+                    call UDP_Driver.pop_callback();
+                    return TRUE;
+                }
+
                 //if there was an event, we would process it and return, bypassing this if statement.
                 if (procstate == procstate_flush_event) { //If/when event queue is empty, flush_event becomes runnable, wait_event doesn't exit on empty queue, only on an event.
                     procstate = procstate_runnable;
@@ -396,6 +441,7 @@ implementation
                 //printf("doing EX syscall %d\n", syscall_args[0]);
                 if (( syscall_args[0] >> 8) == 1 ) *process_syscall_rv = call GPIO_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
                 if (( syscall_args[0] >> 8) == 2 ) *process_syscall_rv = call Timer_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
+                if (( syscall_args[0] >> 8) == 3 ) *process_syscall_rv = call UDP_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
                 return RET_KERNEL;
             default:
                 printf("bad svc number\n");

@@ -162,7 +162,6 @@ void SENDINFO_DECR(struct send_info *si) {
 }
 
   command error_t SplitControl.start() {
-    printf("XX ipdispatchp splitcontrol.start\n");
     return call RadioControl.start();
   }
 
@@ -179,7 +178,6 @@ void SENDINFO_DECR(struct send_info *si) {
   }
 
   event void RadioControl.startDone(error_t error) {
-    printf("XX radio control start done err: %d\n", error);
 #ifdef LPL_SLEEP_INTERVAL
     call LowPowerListening.setLocalWakeupInterval(LPL_SLEEP_INTERVAL);
 #endif

@@ -10,6 +10,7 @@
   .globl __inject_function1
   .globl __inject_function2
   .globl __inject_function3
+  .globl __inject_function5
 
 .thumb_func
 /* r0 is payload base address */

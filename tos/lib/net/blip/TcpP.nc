@@ -6,7 +6,7 @@
 #include <lib6lowpan/ip.h>
 #include <table.h>
 
-#include "blip_printf.h"
+//#include "blip_printf.h"
 
 module TcpP {
   provides interface Tcp[uint8_t client];

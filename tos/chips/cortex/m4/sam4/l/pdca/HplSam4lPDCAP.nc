@@ -17,7 +17,6 @@ implementation
     }
     async command void DMAChannel.setPeripheral[uint8_t id] (uint8_t peripheral)
     {
-        printf("setting peripheral ID on DMA channel %d to %d\n", id, peripheral);
         PDCA->ch[id].psr = peripheral;
     }
     async command void DMAChannel.setWordSize[uint8_t id] (uint8_t wordsize)

@@ -20,8 +20,9 @@ module UdpP {
   }
 } implementation {
 
+    //For IoT class, we hack this. You can have a max of 32 UDP ports. The lower 8 are reserved for the kernel
   enum {
-    N_CLIENTS = uniqueCount("UDP_CLIENT"),
+    N_CLIENTS = 40,//uniqueCount("UDP_CLIENT"),
   };
 
   udp_statistics_t stats;
@@ -78,11 +79,11 @@ module UdpP {
     struct udp_hdr *udph = (struct udp_hdr *)packet;
     uint16_t my_cksum, rx_cksum = ntohs(udph->chksum);
     struct ip_iovec v;
-
+    #ifndef BLIP_STFU
     printf("UDP - IP.recv: len: %i (%i, %i) srcport: %u dstport: %u\n",
         ntohs(iph->ip6_plen), len, ntohs(udph->len),
         ntohs(udph->srcport), ntohs(udph->dstport));
-
+    #endif
     for (i = 0; i < N_CLIENTS; i++)
       if (local_ports[i] == udph->dstport)
         break;
