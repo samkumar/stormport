@@ -219,7 +219,7 @@ implementation
         printf("Got traffic on dmesg port\n");
     }
 
-    char *msg = "FUCKYEAHBUD[REMOTE]\n  ";
+    char *msg = "F***YEAHBUD[REMOTE]\n  ";
     event void Timer.fired()
     {
         //printf("sending\n");

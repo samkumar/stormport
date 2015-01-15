@@ -45,7 +45,6 @@ implementation
             }
             else if (sockets[scanidx].recv_callback.buffer != NULL)
             {
-                printf("returning a callback\n");
                 return (driver_callback_t) &sockets[scanidx].recv_callback;
             }
         } while(scanidx != startidx);
@@ -53,7 +52,6 @@ implementation
     }
     command void Driver.pop_callback()
     {
-        printf("bufferfree\n");
         ip_free(sockets[scanidx].recv_callback.buffer);
         sockets[scanidx].recv_callback.buffer = NULL;
     }
@@ -102,7 +100,6 @@ implementation
                         return -1;
                     if (sockets[arg0].recv_callback.buffer != NULL)
                     {
-                        printf("bufferfree2\n");
                         ip_free(sockets[arg0].recv_callback.buffer);
                         sockets[arg0].recv_callback.buffer = NULL;
                     }
