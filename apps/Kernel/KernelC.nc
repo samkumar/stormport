@@ -98,4 +98,6 @@ implementation
     KernelMainP.Timer_Driver -> TimerDriverC.Driver;
     components UDPDriverC;
     KernelMainP.UDP_Driver -> UDPDriverC;
+    components StormSysInfoC;
+    KernelMainP.SysInfo_Driver -> StormSysInfoC;
 }
