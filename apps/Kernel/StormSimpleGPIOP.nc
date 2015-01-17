@@ -36,6 +36,7 @@ implementation
     uint32_t irq_enabled [] = {0,0,0};
     void* irq_callback [3][32];
     void* irq_r [3][32];
+    uint32_t irq_repeat [] = {0,0,0};
 
     async command syscall_rv_t Driver.syscall_ex(
         uint32_t number, uint32_t arg0, 
@@ -108,10 +109,10 @@ implementation
             case 0x03: //get(pinspec)
             {
                 uint32_t base_addr = 0x400E1000;
-                uint8_t port = arg1 >> 8;
+                uint8_t port = arg0 >> 8;
                 if (port > 3)
                     return (uint32_t) - 1;
-                return (*((uint32_t*)(base_addr + (0x200*port) + 0x060)) >> (arg1 & 0xFF)) & 1;
+                return (*((uint32_t*)(base_addr + (0x200*port) + 0x060)) >> (arg0 & 0xFF)) & 1;
             }
             case 0x04: //set_pull(dir, pinspec) 0=off, 1=up, 2=down, 3=keeper
             {
@@ -153,26 +154,34 @@ implementation
             case 0x05: //getd(pinspect) //get drive shadow
             {
                 uint32_t base_addr = 0x400E1000;
-                uint8_t port = arg1 >> 8;
+                uint8_t port = arg0 >> 8;
                 if (port > 3)
                     return (uint32_t) -1;
-                return (*((uint32_t*)(base_addr + (0x200*port) + 0x050)) >> (arg1 & 0xFF)) & 1;
+                return (*((uint32_t*)(base_addr + (0x200*port) + 0x050)) >> (arg0 & 0xFF)) & 1;
             }
-            case 0x06: //enable_irq(pinspec)
+                       //            arg1     arg2
+            case 0x06: //enable_irq(pinspec, repeat, cb, void *r)
             {
                 /*
-                uint8_t port = arg1 >> 8;
-                uint8_t pin = arg1 && 0xFF;
-                uint32_t pinmask = 1 << (arg1 & 0xFF);
+                uint8_t port = arg0 >> 8;
+                uint8_t pin = arg0 && 0xFF;
+                uint32_t pinmask = 1 << (arg0 & 0xFF);
                 if (irq_allowed[port] & pinmask == 0)
                     return (uint32_t) -1;
+                irq_callback[port][pin] = (void*)
+                if (arg1) { //repeat
+                    irq_repeat[port] |= pinmask;
+                } else {
+                    irq_repeat[port] &= ~pinmask;
+                }
                 irq_enabled[port] |= pinmask;
                 switch (port)
                 {
                     case 0: PortA.enableIrq(pin); break;
                     case 1: PortB.enableIrq(pin); break;
-                    case 2: PortC.enableIrq
-                }*/
+                    case 2: PortC.enableIrq(pin); break;
+                }
+                */
                 return -1;
             }
             default:
