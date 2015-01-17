@@ -283,10 +283,6 @@ implementation
             dst[i] = (uint8_t) c;
         }
     }
-    int32_t kabi_request_timeslice(uint32_t ticks, uint8_t oneshot, void (*callback)())
-    {
-
-    }
 
     // return TRUE if the process has more to do
     // FALSE if it is ok to go to sleep
@@ -337,7 +333,17 @@ implementation
                     call Timer_Driver.pop_callback();
                     return TRUE;
                 }
-
+                //check for io pin callbacks:
+                cb = call GPIO_Driver.peek_callback();
+                if (cb != NULL)
+                {
+                    simple_callback_t *c = (simple_callback_t*) cb;
+                    __inject_function1((void*)c->addr, c->r);
+                    procstate = procstate_runnable;
+                    __syscall(KABI_RESUME_PROCESS);
+                    call GPIO_Driver.pop_callback();
+                    return TRUE;
+                }
                 //check for UDP callbacks:
                 cb = call UDP_Driver.peek_callback();
                 if (cb != NULL)

@@ -22,7 +22,7 @@ implementation
 
     uint8_t scanidx;
 
-    socket_t  sockets [NUM_SOCKETS];
+    socket_t  norace sockets [NUM_SOCKETS];
     command error_t Init.init()
     {
         int i;
