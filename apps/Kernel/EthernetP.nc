@@ -13,6 +13,7 @@ module EthernetP
         interface RootControl;
         interface EthernetShieldConfig;
         interface RawSocket;
+        interface LocalIeeeEui64;
     }
     provides
     {
@@ -26,11 +27,24 @@ implementation
     uint32_t destip;
 
     struct sockaddr_in6 route_dest_154;
+    ieee_eui64_t address;
+
     event void IPControl.startDone (error_t error) {
         printf("Ethernet set as default route\n");
         inet_pton6(IN6_PREFIX, &route_dest_154.sin6_addr);
         call ForwardingTable.addRoute(NULL, 0, NULL, ROUTE_IFACE_ETH0);
         call ForwardingTable.addRoute((uint8_t*) &route_dest_154.sin6_addr, 64, NULL, ROUTE_IFACE_154);
+        {
+            address = call LocalIeeeEui64.getId(); // This is how we autogenerate the MAC address from the serial number -- GTF
+            uint8_t mac [6];
+            int i;
+            mac[0] = address.data[0];
+            mac[1] = address.data[1];
+            mac[2] = address.data[2];
+            mac[3] = address.data[3];
+            mac[4] = address.data[6];
+            mac[5] = address.data[7];
+        }
         busy = FALSE;
         destip = 0x0a040a32; //10.4.10.50
         //destip = 0x0a040a8e; //10.4.10.150

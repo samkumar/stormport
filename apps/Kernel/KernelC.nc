@@ -72,9 +72,11 @@ implementation
 
   #ifdef WITH_WIZ
   components IPPacketC;
+  components LocalIeeeEui64P;
   components EthernetP;
   components IPForwardingEngineP;
   components RplBorderRouterP;
+  EthernetP.LocalIeeeEui64 -> LocalIeeeEui64P;
   RplBorderRouterP.IPPacket -> IPPacketC;
   RplBorderRouterP.ForwardingEvents -> IPStackC.ForwardingEvents[ROUTE_IFACE_ETH0];
   IPForwardingEngineP.IPForward[ROUTE_IFACE_ETH0] -> EthernetP.IPForward;
@@ -98,4 +100,6 @@ implementation
     KernelMainP.Timer_Driver -> TimerDriverC.Driver;
     components UDPDriverC;
     KernelMainP.UDP_Driver -> UDPDriverC;
+    components StormSysInfoC;
+    KernelMainP.SysInfo_Driver -> StormSysInfoC;
 }

@@ -652,6 +652,7 @@ void tcplib_retx_expire(struct tcplib_sock *sock) {
       // printf("tcplib_output from timer\n");
       tcplib_output(sock, circ_get_seqno(sock->tx_buf));
       sock->timer.retx = 6;
+      sock->retxcnt = 0;
     } else {
       sock->retxcnt--;
     }
