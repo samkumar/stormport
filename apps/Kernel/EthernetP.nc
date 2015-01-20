@@ -35,9 +35,9 @@ implementation
         call ForwardingTable.addRoute(NULL, 0, NULL, ROUTE_IFACE_ETH0);
         call ForwardingTable.addRoute((uint8_t*) &route_dest_154.sin6_addr, 64, NULL, ROUTE_IFACE_154);
         {
-            address = call LocalIeeeEui64.getId(); // This is how we autogenerate the MAC address from the serial number -- GTF
             uint8_t mac [6];
             int i;
+            address = call LocalIeeeEui64.getId(); // This is how we autogenerate the MAC address from the serial number -- GTF
             mac[0] = address.data[0];
             mac[1] = address.data[1];
             mac[2] = address.data[2];
