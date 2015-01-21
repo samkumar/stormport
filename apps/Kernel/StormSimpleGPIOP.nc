@@ -17,7 +17,11 @@ implementation
 {
     uint8_t scanport;
     uint8_t scanpin;
-    const uint32_t irq_allowed [] = {0x93DA0, 0xFE3F, 0xFF67D275};
+    #ifdef WITH_WIZ
+        const uint32_t irq_allowed [] = {0x93DA0, 0xEE3F, 0xFF67D275};
+    #else
+        const uint32_t irq_allowed [] = {0x93DA0, 0xFE3F, 0xFF67D275};
+    #endif
     uint32_t norace irq_enabled [] = {0,0,0};
     simple_callback_t norace irq_callback [3][32];
     volatile norace uint32_t irq_fired [] = {0,0,0};
@@ -66,19 +70,19 @@ implementation
     }
     async event void PortA_IRQ.fired[uint8_t id]()
     {
-        uint32_t irqs = *((volatile uint32_t*)(0x400E1000 + 0x0D0)) & irq_allowed[0];
+        uint32_t irqs = *((volatile uint32_t*)(0x400E1000 + 0x0D0)) & irq_allowed[0] & irq_enabled[0];
         irq_fired[0] |= irqs;
         *((volatile uint32_t*)(0x400E1000 + 0x0D8)) = irqs;
     }
     async event void PortB_IRQ.fired[uint8_t id]()
     {
-        uint32_t irqs = *((volatile uint32_t*)(0x400E1200 + 0x0D0)) & irq_allowed[1];
+        uint32_t irqs = *((volatile uint32_t*)(0x400E1200 + 0x0D0)) & irq_allowed[1] & irq_enabled[1];
         irq_fired[1] |= irqs;
         *((volatile uint32_t*)(0x400E1200 + 0x0D8)) = irqs;
     }
     async event void PortC_IRQ.fired[uint8_t id]()
     {
-        uint32_t irqs = *((volatile uint32_t*)(0x400E1400 + 0x0D0)) & irq_allowed[2];
+        uint32_t irqs = *((volatile uint32_t*)(0x400E1400 + 0x0D0)) & irq_allowed[2] & irq_enabled[2];
         irq_fired[2] |= irqs;
         *((volatile uint32_t*)(0x400E1400 + 0x0D8)) = irqs;
     }
