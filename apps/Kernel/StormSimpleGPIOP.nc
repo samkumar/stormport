@@ -17,7 +17,7 @@ implementation
 {
     uint8_t scanport;
     uint8_t scanpin;
-    const uint32_t irq_allowed [] = {0x00000000, 0x00000000, 0x00000000};
+    const uint32_t irq_allowed [] = {0x93DA0, 0xFE3F, 0xFF67D275};
     uint32_t norace irq_enabled [] = {0,0,0};
     simple_callback_t norace irq_callback [3][32];
     volatile norace uint32_t irq_fired [] = {0,0,0};
