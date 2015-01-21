@@ -28,6 +28,7 @@ implementation
 
     struct sockaddr_in6 route_dest_154;
     ieee_eui64_t address;
+    uint8_t mac [6];
 
     event void IPControl.startDone (error_t error) {
         printf("Ethernet set as default route\n");
@@ -35,9 +36,8 @@ implementation
         call ForwardingTable.addRoute(NULL, 0, NULL, ROUTE_IFACE_ETH0);
         call ForwardingTable.addRoute((uint8_t*) &route_dest_154.sin6_addr, 64, NULL, ROUTE_IFACE_154);
         {
-            address = call LocalIeeeEui64.getId(); // This is how we autogenerate the MAC address from the serial number -- GTF
-            uint8_t mac [6];
             int i;
+            address = call LocalIeeeEui64.getId(); // This is how we autogenerate the MAC address from the serial number -- GTF
             mac[0] = address.data[0];
             mac[1] = address.data[1];
             mac[2] = address.data[2];
@@ -54,7 +54,7 @@ implementation
             uint32_t srcip   = 10  << 24 | 4   << 16 | 10  << 8 | 146;
             uint32_t netmask = 255 << 24 | 255 << 16 | 255 << 8 | 0  ;
             uint32_t gateway = 10  << 24 | 4   << 16 | 10  << 8 | 1  ;
-            uint8_t *mac = "\xde\xad\xbe\xef\xfe\xec";
+            //uint8_t *mac = "\xde\xad\xbe\xef\xfe\xec";
 
             call EthernetShieldConfig.initialize(srcip, netmask, gateway, mac);
         }
