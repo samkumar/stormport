@@ -151,6 +151,40 @@ implementation
         post launch_payload();
         call TcpSTDIO.bind(23);
         //call Timer.startPeriodic(100000);
+        //TEST OF CORE CLOCK
+
+        #if 0
+        atomic
+        {
+            volatile uint32_t* dst = (volatile uint32_t*)(0x400E1000 + 0x05C);
+            uint32_t pinmask = 1<<16;
+            *((volatile uint32_t*)(0x400E1000 + 0x004)) = (1<<16); //enable GPIO
+            *((volatile uint32_t*)(0x400E1000 + 0x044)) = (1<<16); //enable DRIVER
+            *((volatile uint32_t*)(0x400E1000 + 0x168)) = (1<<16); //disable ST
+            while(1)
+            {
+                *dst = pinmask;
+                asm("nop");
+            }
+        }
+
+        atomic
+        {
+            //pa19 as gclk0 (peripheral E)
+            //DFLL/48
+            //*((volatile uint32_t*)(0x400E0800 + 0x074)) = 0x00170203; //GCLK0=dfll/48
+            //RCSYS NO DIV
+            *((volatile uint32_t*)(0x400E0800 + 0x074)) = 0x00170001;
+            //RC32
+            //*((volatile uint32_t*)(0x400E0800 + 0x074)) = 0x00170d01;
+            *((volatile uint32_t*)(0x400E1000 + 0x008)) = (1<<19); //disable GPIO
+            *((volatile uint32_t*)(0x400E1000 + 0x168)) = (1<<19); //disable ST
+            *((volatile uint32_t*)(0x400E1000 + 0x018)) = (1<<19); //pmr0c
+            *((volatile uint32_t*)(0x400E1000 + 0x028)) = (1<<19); //pmr1c
+            *((volatile uint32_t*)(0x400E1000 + 0x034)) = (1<<19); //pmr2s
+            while(1);
+        }
+        #endif
     }
 
     /*
