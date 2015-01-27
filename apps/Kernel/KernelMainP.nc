@@ -348,7 +348,6 @@ implementation
                 //Check for special static callbacks - like read_async
                 if (cb_read_buf != NULL && (stdin_rptr != stdin_wptr))
                 {
-                    printf("vptr = %08x\n",cb_read_r_ptr);
                     tmp = kabi_read(0, cb_read_buf, cb_read_len);
                     cb_read_buf = NULL;
                     __inject_function3(cb_read_f_ptr, cb_read_r_ptr, tmp, 0);
