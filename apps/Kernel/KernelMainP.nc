@@ -382,6 +382,7 @@ implementation
                 if (cb != NULL)
                 {
                     simple_callback_t *c = (simple_callback_t*) cb;
+                    printf ("injecting i2c callback\n");
                     __inject_function1((void*)c->addr, c->r);
                     procstate = procstate_runnable;
                     __syscall(KABI_RESUME_PROCESS);
@@ -489,7 +490,7 @@ implementation
                 procstate = procstate_runnable;
                 return RET_KERNEL;
             case ABI_ID_SYSCALL_EX:
-                //printf("doing EX syscall %d\n", syscall_args[0]);
+                printf("doing EX syscall %d\n", syscall_args[0]);
                 if (( syscall_args[0] >> 8) == 1 ) *process_syscall_rv = call GPIO_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
                 if (( syscall_args[0] >> 8) == 2 ) *process_syscall_rv = call Timer_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
                 if (( syscall_args[0] >> 8) == 3 ) *process_syscall_rv = call UDP_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);

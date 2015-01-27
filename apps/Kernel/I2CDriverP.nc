@@ -20,6 +20,10 @@ implementation
 
     command error_t Init.init()
     {
+        done[0] = 0;
+        done[1] = 0;
+        call HplSam4lTWIM.init[1]();
+        call HplSam4lTWIM.init[2]();
         return SUCCESS;
     }
     //address byte 1 is the I2C channel, can be 1 (ex i2c) or 2 (internal)
@@ -35,6 +39,7 @@ implementation
             {
                 error_t rv;
                 uint8_t chan = arg0>>8;
+                printf("doing i2c read\n");
                 if (chan < 1 || chan > 2)
                     return -1;
                 if (callback[chan-1].addr != 0)
@@ -54,6 +59,7 @@ implementation
             {
                 error_t rv;
                 uint8_t chan = arg0>>8;
+                printf("doing i2c write\n");
                 if (chan < 1 || chan > 2)
                     return -1;
                 if (callback[chan-1].addr != 0)
@@ -78,6 +84,7 @@ implementation
         {
             if (done[seekidx]) return &callback[seekidx];
         }
+        return NULL;
     }
     command void Driver.pop_callback()
     {

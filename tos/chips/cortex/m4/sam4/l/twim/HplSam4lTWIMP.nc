@@ -36,10 +36,10 @@ implementation
     default async command bool dmac.transferBusy [uint8_t id] () {printf("default impl\n");return 1;}
     async command void TWIM.enablePins [uint8_t id] ()
     {
-
         switch(id)
         {
             case 0:
+                printf("enabling pins for 0\n");
                 GPIO_PORT_A->gperc = (0b11 << 23); //PA23 dat, PA24 clk
                 GPIO_PORT_A->pmr0c = (0b11 << 23); //Peripheral A
                 GPIO_PORT_A->pmr1c = (0b11 << 23);
@@ -55,6 +55,7 @@ implementation
                 //GPIO_PORT_B->sterc = (0b11 << 0);
                 break;
             case 2:
+                printf("enabling pins for 2\n");
                 GPIO_PORT_A->gperc = (0b11 << 21); //PA21 dat, PA22 clk
                 GPIO_PORT_A->pmr0c = (0b11 << 21); //Peripheral E
                 GPIO_PORT_A->pmr1c = (0b11 << 21);
@@ -62,6 +63,7 @@ implementation
                 //GPIO_PORT_A->sterc = (0b11 << 21);
                 break;
             case 3:
+                printf("enabling pins for 3\n");
                 GPIO_PORT_B->gperc = (0b11 << 14); //PA21 dat, PA22 clk
                 GPIO_PORT_B->pmr0c = (0b11 << 14); //Peripheral C
                 GPIO_PORT_B->pmr1s = (0b11 << 14);
@@ -73,6 +75,7 @@ implementation
 
     async command void TWIM.init [uint8_t id] ()
     {
+        printf("twim init called\n");
         call TWIM.enablePins[id]();
         call ClockCtl.enable[id]();
         TWIMx[id]->cr.flat = 1<<0; //men
@@ -145,10 +148,10 @@ implementation
         call dmac.disableTransfersCompleteIRQ[id]();
     }
 
-    default async event void TWIM.readDone [uint8_t id] (error_t stat, uint8_t* buf) {}
-    default async event void TWIM.writeDone [uint8_t id] (error_t stat, uint8_t* buf) {}
+    default async event void TWIM.readDone [uint8_t id] (int stat, uint8_t* buf) {}
+    default async event void TWIM.writeDone [uint8_t id] (int stat, uint8_t* buf) {}
 
-    async command error_t TWIM.write [uint8_t id] (uint8_t flags, uint8_t addr, uint8_t *src, uint8_t len)
+    async command int TWIM.write [uint8_t id] (uint8_t flags, uint8_t addr, uint8_t *src, uint8_t len)
     {
         twim_cmdr_t v;
         int i;
