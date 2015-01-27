@@ -59,14 +59,14 @@ implementation
                 GPIO_PORT_A->pmr0c = (0b11 << 21); //Peripheral E
                 GPIO_PORT_A->pmr1c = (0b11 << 21);
                 GPIO_PORT_A->pmr2s = (0b11 << 21);
-                GPIO_PORT_A->sterc = (0b11 << 21);
+                //GPIO_PORT_A->sterc = (0b11 << 21);
                 break;
             case 3:
                 GPIO_PORT_B->gperc = (0b11 << 14); //PA21 dat, PA22 clk
                 GPIO_PORT_B->pmr0c = (0b11 << 14); //Peripheral C
                 GPIO_PORT_B->pmr1s = (0b11 << 14);
                 GPIO_PORT_B->pmr2c = (0b11 << 14);
-                GPIO_PORT_B->sterc = (0b11 << 14);
+                //GPIO_PORT_B->sterc = (0b11 << 14);
                 break;
         }
     }

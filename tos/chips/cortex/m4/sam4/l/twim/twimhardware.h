@@ -5,7 +5,7 @@
         FLAG_DOSTART = 0x01,
         FLAG_DORSTART = 0x01,
         FLAG_ACKLAST = 0x02,
-        FLAG_DOSTOP = 0x03
+        FLAG_DOSTOP = 0x04
     };
 
 typedef union

@@ -13,8 +13,8 @@ implementation
     components new TimerMilliC() as Timer;
 
     components new SoftwareI2CPacketC(10);
-    SoftwareI2CPacketC.SDA -> HplSam4lIOC.PB01;
-    SoftwareI2CPacketC.SCL -> HplSam4lIOC.PB00;
+    SoftwareI2CPacketC.SDA -> HplSam4lIOC.PA21; //NOTE, for firestorm 1.3
+    SoftwareI2CPacketC.SCL -> HplSam4lIOC.PA22;
 
     components BusyWaitMicroC;
     SoftwareI2CPacketC.BusyWait -> BusyWaitMicroC;
