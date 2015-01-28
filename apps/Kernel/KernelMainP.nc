@@ -381,9 +381,9 @@ implementation
                 cb = call I2C_Driver.peek_callback();
                 if (cb != NULL)
                 {
-                    simple_callback_t *c = (simple_callback_t*) cb;
+                    i2c_callback_t *c = (i2c_callback_t*) cb;
                     printf ("injecting i2c callback\n");
-                    __inject_function1((void*)c->addr, c->r);
+                    __inject_function2((void*)c->addr, c->r, c->status);
                     procstate = procstate_runnable;
                     __syscall(KABI_RESUME_PROCESS);
                     call I2C_Driver.pop_callback();

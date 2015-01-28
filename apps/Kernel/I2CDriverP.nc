@@ -15,7 +15,7 @@ implementation
         FLAG_DOSTOP = 0x04
     };
 
-    simple_callback_t callback[2];
+    i2c_callback_t callback[2];
     uint8_t done[2];
 
     command error_t Init.init()
@@ -32,6 +32,7 @@ implementation
         uint32_t arg1, uint32_t arg2,
         uint32_t *argx)
     {
+        printf("i2c syscall: %d\n",number);
         switch(number & 0xFF)
         {
                        //      ar0   arg1    arg2     arx[0], argx[1]   argx[2]
@@ -92,12 +93,14 @@ implementation
         callback[seekidx].addr = 0;
     }
 
-    async event void HplSam4lTWIM.writeDone[uint8_t id](error_t stats, uint8_t *buf)
+    async event void HplSam4lTWIM.writeDone[uint8_t id](int status, uint8_t *buf)
     {
+        callback[id-1].status = status;
         done[id-1] = 1;
     }
-    async event void HplSam4lTWIM.readDone[uint8_t id](error_t stat, uint8_t *buf)
+    async event void HplSam4lTWIM.readDone[uint8_t id](int status, uint8_t *buf)
     {
+        callback[id-1].status = status;
         done[id-1] = 1;
     }
 }
