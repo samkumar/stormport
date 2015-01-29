@@ -10,6 +10,7 @@ ifdef KERNEL_QUIET_MODE
 endif
 ifdef KERNEL_WITH_ETH_SHIELD
     PFLAGS += -DWITH_WIZ
+    LINKERFILE = stormkernel_ethshield.ld
 endif
 
 # radio options

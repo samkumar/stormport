@@ -149,10 +149,11 @@ implementation
 
         call Dmesg.bind(514);
 
-        post launch_payload();
+#ifndef WITH_WIZ
+        post launch_payload(); // ignore this if we are the ethernet shield
+#endif
         call TcpSTDIO.bind(23);
 
-        //call Timer.startPeriodic(100000);
         //TEST OF CORE CLOCK
 
         #if 0
