@@ -47,7 +47,6 @@ implementation
         switch(id)
         {
             case 0:
-                printf("enabling pins for 0\n");
                 GPIO_PORT_A->gperc = (0b11 << 23); //PA23 dat, PA24 clk
                 GPIO_PORT_A->pmr0c = (0b11 << 23); //Peripheral A
                 GPIO_PORT_A->pmr1c = (0b11 << 23);
@@ -55,7 +54,6 @@ implementation
                 //GPIO_PORT_A->sterc = (0b11 << 23);
                 break;
             case 1:
-                printf("enabling pins for 1\n");
                 GPIO_PORT_B->pmr0c = (0b11 << 0); //Peripheral A
                 GPIO_PORT_B->pmr1c = (0b11 << 0);
                 GPIO_PORT_B->pmr2c = (0b11 << 0);
@@ -63,7 +61,6 @@ implementation
                 //GPIO_PORT_B->sterc = (0b11 << 0);
                 break;
             case 2:
-                printf("enabling pins for 2\n");
                 GPIO_PORT_A->gperc = (0b11 << 21); //PA21 dat, PA22 clk
                 GPIO_PORT_A->pmr0c = (0b11 << 21); //Peripheral E
                 GPIO_PORT_A->pmr1c = (0b11 << 21);
@@ -71,7 +68,6 @@ implementation
                 //GPIO_PORT_A->sterc = (0b11 << 21);
                 break;
             case 3:
-                printf("enabling pins for 3\n");
                 GPIO_PORT_B->gperc = (0b11 << 14); //PA21 dat, PA22 clk
                 GPIO_PORT_B->pmr0c = (0b11 << 14); //Peripheral C
                 GPIO_PORT_B->pmr1s = (0b11 << 14);
@@ -83,18 +79,12 @@ implementation
 
     async command void TWIM.init [uint8_t id] ()
     {
-        printf("twim init called\n");
         call TWIM.enablePins[id]();
         call ClockCtl.enable[id]();
         TWIMx[id]->cr.flat = 1<<0; //men
         TWIMx[id]->cr.flat = 1<<7; //swrst
         TWIMx[id]->cr.flat = 1<<1; //mdis
 
-        /*TWIMx[id]->cr.bits.swrst = 1;
-        TWIMx[id]->cr.bits.men = 1;
-        TWIMx[id]->cr.bits.swrst = 1;
-        TWIMx[id]->cr.bits.smdis = 1;
-        TWIMx[id]->cr.bits.men = 1;*/
         TWIMx[id]->cwgr.bits.exp = 7;
         TWIMx[id]->cwgr.bits.low = 100;
         TWIMx[id]->cwgr.bits.high = 100;
@@ -139,7 +129,6 @@ implementation
             printf ("dmac says no go\n");
             return EBUSY;
         }
-        printf("doing TWIMread\n");
        // TWIMx[id]->cr.flat = 1<<0; //men
       //  TWIMx[id]->cr.flat = 1<<7; //swrst
       //  TWIMx[id]->cr.flat = 1<<1; //mdis
@@ -184,16 +173,13 @@ implementation
         TWIMx[id]->scr.flat = 0xFFFFFFFF;
         if (state[id] == STATE_BUSYTX)
         {
-            //printf("Firing writedone %d\n", status);
             signal TWIM.writeDone[id](status, buffers[id]);
         }
         else if (state[id] == STATE_BUSYRX)
         {
-            //printf("Firing readdone %d\n", status);
             signal TWIM.readDone[id](status, buffers[id]);
         }
     }
-    uint8_t req_stop;
     async event void dmac.transfersCompleteFired[uint8_t id]()
     {
         dispatch_status(id, STATUS_OK);
@@ -223,7 +209,6 @@ implementation
        // TWIMx[id]->cr.flat = 1<<0; //men
        // TWIMx[id]->cr.flat = 1<<7; //swrst
        // TWIMx[id]->cr.flat = 1<<1; //mdis
-        req_stop = (flags & FLAG_DOSTOP) != 0;
         v.flat = 0;
         v.bits.read = 0;
         v.bits.sadr = addr>>1;

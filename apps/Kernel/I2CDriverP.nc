@@ -32,7 +32,6 @@ implementation
         uint32_t arg1, uint32_t arg2,
         uint32_t *argx)
     {
-        printf("i2c syscall: %d\n",number);
         switch(number & 0xFF)
         {
                        //      ar0   arg1    arg2     arx[0], argx[1]   argx[2]
@@ -40,7 +39,6 @@ implementation
             {
                 error_t rv;
                 uint8_t chan = arg0>>8;
-                printf("doing i2c read\n");
                 if (chan < 1 || chan > 2)
                     return -1;
                 if (callback[chan-1].addr != 0)
@@ -60,7 +58,6 @@ implementation
             {
                 error_t rv;
                 uint8_t chan = arg0>>8;
-                printf("doing i2c write\n");
                 if (chan < 1 || chan > 2)
                     return -1;
                 if (callback[chan-1].addr != 0)
