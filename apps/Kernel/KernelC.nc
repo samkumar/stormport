@@ -102,4 +102,6 @@ implementation
     KernelMainP.UDP_Driver -> UDPDriverC;
     components StormSysInfoC;
     KernelMainP.SysInfo_Driver -> StormSysInfoC;
+    components I2CDriverC;
+    KernelMainP.I2C_Driver -> I2CDriverC;
 }

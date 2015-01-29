@@ -27,7 +27,7 @@ SEARCH_DIR(.)
 MEMORY
 {
   rom (rx)  : ORIGIN = 0x00010000, LENGTH = 0x00040000
-  ram (rwx) : ORIGIN = 0x20000000, LENGTH = 0x00008000
+  ram (rwx) : ORIGIN = 0x20000000, LENGTH = 0x00005000
 }
 
 __stack_size__ = DEFINED(__stack_size__) ? __stack_size__ : 0x1000;
