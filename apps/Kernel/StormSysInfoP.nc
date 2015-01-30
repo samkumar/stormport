@@ -21,6 +21,8 @@ implementation
         uint32_t *argx)
     {
         ieee_eui64_t address = call LocalIeeeEui64.getId();
+        struct in6_addr addr;
+        int i;
         switch(number & 0xFF)
         {
         case 0x01: // get node_id
@@ -34,7 +36,15 @@ implementation
             ((uint8_t*)arg0)[5] = address.data[7];
             return 0;
         case 0x03: // get IP address
-            memcpy((uint8_t*)arg0, address.data, 8);
+            inet_pton6(IN6_PREFIX, &addr);
+            for (i=0;i<8;i++)
+            {
+                ((uint8_t*)arg0)[i] = addr.in6_u.u6_addr8[i];
+            }
+            for (i=8;i<16;i++)
+            {
+                ((uint8_t*)arg0)[i] = address.data[i-8];
+            }
             return 0;
         default:
             return (uint32_t) -1;
