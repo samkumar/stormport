@@ -30,7 +30,7 @@
 #define IP_MALLOC_LEN     0x0fff
 #define IP_MALLOC_FLAGS   0x7000
 #define IP_MALLOC_INUSE   0x8000
-#define IP_MALLOC_HEAP_SIZE 3000
+#define IP_MALLOC_HEAP_SIZE 1500
 
 extern uint8_t heap[IP_MALLOC_HEAP_SIZE];
 typedef uint16_t bndrt_t;
