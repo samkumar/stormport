@@ -267,6 +267,7 @@ implementation
     event void Timer.fired()
     {
        // call I2C_Driver.syscall_ex(0, 0, 0, 0, NULL);
+#ifdef INIT_TUNNEL
        if (pingcounter > 0)
        {
            call Dmesg.sendto(&route_dest, "ping", 10);
@@ -276,6 +277,7 @@ implementation
        {
            call Timer.stop();
        }
+#endif
     }
     task void flush_process_stdout()
     {
