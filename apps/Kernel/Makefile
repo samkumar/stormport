@@ -10,6 +10,10 @@ ifdef KERNEL_QUIET_MODE
 endif
 ifdef KERNEL_WITH_ETH_SHIELD
     PFLAGS += -DWITH_WIZ
+	# INIT_TUNNEL will send 5 UDP packets to port 7000 on IN6_PREFIX to try and
+	# get 2 directions of traffic going This shouldn't be necessary, but it's
+	# here if you want it
+    # PFLAGS += -DINIT_TUNNEL
     LINKERFILE = stormkernel_ethshield.ld
 endif
 

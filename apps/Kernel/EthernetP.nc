@@ -51,7 +51,7 @@ implementation
         destip = makeIPV4(10, 4, 10, 142);
         {
             uint32_t srcip   = makeIPV4(10,4,10,141);
-            uint32_t netmask = makeIPV4(255,255,255,255);
+            uint32_t netmask = makeIPV4(255,255,255,0);
             uint32_t gateway = makeIPV4(10,4,10,1);
             call EthernetShieldConfig.initialize(srcip, netmask, gateway, mac);
         }

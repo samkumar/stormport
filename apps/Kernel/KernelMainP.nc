@@ -133,7 +133,10 @@ implementation
             return rv;
         }
     }
+#ifdef INIT_TUNNEL
     struct sockaddr_in6 route_dest;
+    uint8_t pingcounter = 10;
+#endif
     task void launch_payload();
     event void Boot.booted() {
         char vbuf[80];
@@ -143,16 +146,19 @@ implementation
         ln = snprintf(vbuf, 80, "Booting kernel %d.%d.%d.%d (%s)\n",VER_MAJOR, VER_MINOR, VER_SUBMINOR, VER_BUILD, GITCOMMIT);
         storm_write_payload(vbuf, ln);
 
+#ifdef INIT_TUNNEL
         route_dest.sin6_port = htons(7000);
-
         inet_pton6("2001:470:4956:1::1", &route_dest.sin6_addr);
-
         call Dmesg.bind(514);
+#endif
 
 #ifndef WITH_WIZ
         post launch_payload(); // ignore this if we are the ethernet shield
 #endif
         call TcpSTDIO.bind(23);
+#ifdef INIT_TUNNEL
+        call Timer.startPeriodic(10000);
+#endif
 
         //TEST OF CORE CLOCK
 
@@ -261,6 +267,15 @@ implementation
     event void Timer.fired()
     {
        // call I2C_Driver.syscall_ex(0, 0, 0, 0, NULL);
+       if (pingcounter > 0)
+       {
+           call Dmesg.sendto(&route_dest, "ping", 10);
+           pingcounter--;
+       }
+       else // stop timer
+       {
+           call Timer.stop();
+       }
     }
     task void flush_process_stdout()
     {
