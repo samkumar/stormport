@@ -92,6 +92,7 @@ implementation
   EthernetP.EthernetShieldConfig -> EthernetShieldConfigC;
   #endif
 
+    components new RWUdpSocketC();
 
     //Drivers
     components StormSimpleGPIOC;

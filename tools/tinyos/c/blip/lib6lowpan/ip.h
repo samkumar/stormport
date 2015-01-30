@@ -186,6 +186,23 @@ struct udp_hdr {
 };
 
 /*
+ * RWUDP protocol header
+ */
+struct rwudp_hdr {
+    uint8_t flags;
+    uint8_t connid;
+    uint16_t echo;
+};
+
+/*
+ * RWUDP protocol flags
+ */
+enum {
+    RWUDP_SND = 0x80,
+    RWUDP_ACK = 0x40,
+};
+
+/*
  * TCP transport headers and flags
  */
 enum {

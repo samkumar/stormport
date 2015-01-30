@@ -4,6 +4,9 @@
 #include <lib6lowpan/ip.h>
 #include "version.h"
 
+
+#define makeIPV4(a,b,c,d) a << 24 | b << 16 | c << 8 | d
+
 module EthernetP
 {
     uses
@@ -46,14 +49,15 @@ implementation
             mac[5] = address.data[7];
         }
         busy = FALSE;
-        destip = 192 << 24 | 168 << 16 | 1 << 8 | 1;
+        destip = makeIPV4(10, 4, 10, 142);
+        //destip = 192 << 24 | 168 << 16 | 1 << 8 | 1;
         //destip = 0x0a040a8e; //10.4.10.150
         //destip = 0x0a040a87; // 10.4.10.135
         //destip = 0x364365f1; //54.67.101.241
         {
-            uint32_t srcip   = 192  << 24 | 168   << 16 | 1  << 8 | 4;
-            uint32_t netmask = 255 << 24 | 255 << 16 | 255 << 8 | 0  ;
-            uint32_t gateway = 192  << 24 | 168   << 16 | 1  << 8 | 1  ;
+            uint32_t srcip   = makeIPV4(10,4,10,141);//192  << 24 | 168   << 16 | 1  << 8 | 4;
+            uint32_t netmask = makeIPV4(255,255,255,255); //255 << 24 | 255 << 16 | 255 << 8 | 0  ;
+            uint32_t gateway = makeIPV4(10,4,10,1);//192  << 24 | 168   << 16 | 1  << 8 | 1  ;
             //uint8_t *mac = "\xde\xad\xbe\xef\xfe\xec";
 
             call EthernetShieldConfig.initialize(srcip, netmask, gateway, mac);
