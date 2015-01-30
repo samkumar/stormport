@@ -98,6 +98,7 @@
  */
 
 #include "blip_printf.h"
+#include "rwudp.h"
 
 #define maxecho(x, y) x > y ? x : y
 
@@ -111,7 +112,9 @@ module RWUdpP
     uses
     {
         interface UDP[uint8_t clnt];
-        interface Timer<T32khz> as ResendTimer;
+        interface Timer<T32khz> as SendTimer;
+        interface Queue<struct rwudp_packet *> as SendQueue;
+        interface Pool<struct rwudp_packet> as PacketPool;
     }
 }
 implementation
@@ -129,7 +132,32 @@ implementation
     command error_t RWUDP.bind[uint8_t clnt](uint16_t port)
     {
         printf("Binding RWUDP to UDP port %d\n", port);
+        call SendTimer.startPeriodic(32000); // TODO: change this?
         return call UDP.bind[clnt](port);
+    }
+
+    // sends the packet at the head of SendQueue
+    task void dosend()
+    {
+        struct rwudp_packet *packet = call SendQueue.head();
+        struct ip_iovec v[1];
+        error_t rc;
+        if (call SendQueue.size() == 0)
+        {   
+            printf("size was 0\n");
+            return;
+        }
+
+        printf("Sending client %i\n", packet->clnt);
+        printf_in6addr(&packet->dest.sin6_addr);
+        printf("\n");
+        printf("address of payload %d\n", (uint32_t)packet->packet);
+
+        v[0].iov_base = (uint8_t *)&packet->hdr;
+        v[0].iov_len = sizeof(struct rwudp_hdr);
+        v[0].iov_next = packet->packet;
+        rc = call UDP.sendtov[packet->clnt](&packet->dest, &v[0]);
+        printf("error_t %d\n", rc);
     }
 
     // send data @payload with length @len to @dest
@@ -144,40 +172,53 @@ implementation
     }
 
     // send data in @iov to @dest
+    // returns FAIL if the packet is already queued
+    // returns SUCCESS if the packet was successfully queued to be sent
     command error_t RWUDP.sendtov[uint8_t clnt](struct sockaddr_in6 *dest,
                                                 struct ip_iovec *iov)
     {
-        error_t rc = FAIL;
-        struct rwudp_hdr  rwudph;
         struct ip_iovec   v[1];
+        struct rwudp_packet *pkt = call PacketPool.get();
+        int i;
 
-        // clear all the bits in our struct
-        memclr((uint8_t *)&rwudph, sizeof(rwudph));
+        printf("Doign RWUDP sendtov\n");
 
-        // if lastacked == echo, then we can send the next packet
-        if (lastacked == echo) 
+        // check if this packet is already queued
+        for (i=0; i<call SendQueue.size(); i++)
         {
-            echo++;
-            // copy current payload so we can resend
-            memcpy(unacked_iov, iov, iov_len(iov));
+            pkt = call SendQueue.element(i);
+            // echo tag is already in queue
+            if (pkt->hdr.echo == echo)
+            {
+                printf("Echo %d is already queued\n", echo);
+                return FAIL; 
+            }
         }
 
+        // clear all the bits in our struct
+        memclr((uint8_t *)&pkt->hdr, sizeof(struct rwudp_hdr));
         // set the SEND flag (for now)
         // TODO: decide whether to SEND or ACK
-        rwudph.flags = RWUDP_SND;
-        rwudph.connid = connectionid;
-        rwudph.echo = echo;
+        pkt->hdr.flags = RWUDP_SND;
+        pkt->hdr.connid = connectionid;
+        pkt->hdr.echo = echo;
 
-        v[0].iov_base = (uint8_t *)&rwudph;
-        v[0].iov_len = sizeof(struct rwudp_hdr);
-        v[0].iov_next = unacked_iov;
-        rc = call UDP.sendtov[clnt](dest, v);
+        //TODO: copy these fields?
+        printf("tov address of payload %d\n", (uint32_t)iov);
+        pkt->packet = iov;
+        memcpy(&pkt->dest, dest, sizeof(struct sockaddr_in6)); // copy destination
+        pkt->clnt = clnt;
 
-        return rc;
+        printf("Enqueuing echo %d for client %i\n", pkt->hdr.echo, clnt);
+
+        return call SendQueue.enqueue(pkt);
     }
 
-    event void ResendTimer.fired()
+    // when the timer fires, send whatever's at the top of the queue
+    event void SendTimer.fired()
     {
+        printf("attempting send from timer\n");
+        post dosend();
     }
 
     // signaled when we receive a datagram on the underlying UDP socket

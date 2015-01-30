@@ -341,8 +341,8 @@ module IPForwardingEngineP {
         }
         next_hop = &next_hop_entry->next_hop;
         next_hop_ifindex = next_hop_entry->ifindex;
-      }
 #endif
+      }
 
       memcpy(&pkt.ip6_hdr, iph, sizeof(struct ip6_hdr));
       pkt.ip6_data = &v;
