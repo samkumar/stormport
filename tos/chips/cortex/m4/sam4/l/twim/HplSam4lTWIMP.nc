@@ -170,6 +170,10 @@ implementation
         call dmac.disableTransfersCompleteIRQ[id]();
         call dmac.disableTransferErrorIRQ[id]();
         TWIMx[id]->idr.flat = 0x700; //ARBLST, DNAK, ANAK
+        if (status != 0)
+        {
+            TWIMx[id]->cr.bits.swrst = 1;
+        }
         TWIMx[id]->scr.flat = 0xFFFFFFFF;
         if (state[id] == STATE_BUSYTX)
         {
@@ -205,7 +209,6 @@ implementation
             printf ("dmac says no go\n");
             return EBUSY;
         }
-
        // TWIMx[id]->cr.flat = 1<<0; //men
        // TWIMx[id]->cr.flat = 1<<7; //swrst
        // TWIMx[id]->cr.flat = 1<<1; //mdis
