@@ -62,6 +62,7 @@ module KernelMainP
         interface Driver as SysInfo_Driver;
         interface Driver as I2C_Driver;
         interface Tcp as TcpSTDIO;
+        interface GeneralIO as ENSEN;
     }
 }
 implementation
@@ -148,6 +149,9 @@ implementation
         inet_pton6("2001:470:4956:1::1", &route_dest.sin6_addr);
 
         call Dmesg.bind(514);
+
+        call ENSEN.makeOutput();
+        call ENSEN.clr();
 
 #ifndef WITH_WIZ
         post launch_payload(); // ignore this if we are the ethernet shield

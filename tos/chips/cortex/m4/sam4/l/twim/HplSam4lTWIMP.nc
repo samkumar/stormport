@@ -30,17 +30,17 @@ implementation
     enum { STATUS_OK=0, STATUS_DNAK=1, STATUS_ANAK=2, STATUS_ERR=3, STATUS_ARBLST=4 };
     norace uint32_t state[4];
     uint8_t *buffers [4];
-
-    default async command void dmac.setPeripheral [uint8_t id] (uint8_t x) {printf("default ivk\n");}
-    default async command void ClockCtl.enable [uint8_t id] () {printf("default ivk\n");}
-    default async command void dmac.setWordSize [uint8_t id] (uint8_t ws) {printf("default ivk\n");}
-    default async command void dmac.enableTransfer [uint8_t id] () {printf("default ivk\n");}
-    default async command void dmac.disableTransfersCompleteIRQ [uint8_t id] () {printf("default ivk\n");}
-    default async command void dmac.disableTransferErrorIRQ [uint8_t id] () {printf("default ivk\n");}
-    default async command void dmac.disableTransfer [uint8_t id] () {printf("default ivk\n");}
-    default async command void dmac.enableTransfersCompleteIRQ [uint8_t id] () {printf("default ivk\n");}
-    default async command void dmac.enableTransferErrorIRQ [uint8_t id] () {printf("default ivk\n");}
-    default async command error_t dmac.setAddressCountReload [uint8_t id] (uint32_t mar, uint16_t tc){printf("default ivk\n");return EBUSY;}
+    uint8_t nstop [4];
+    default async command void dmac.setPeripheral [uint8_t id] (uint8_t x) {printf("default ivk0\n");}
+    default async command void ClockCtl.enable [uint8_t id] () {printf("default ivk1\n");}
+    default async command void dmac.setWordSize [uint8_t id] (uint8_t ws) {printf("default ivk2\n");}
+    default async command void dmac.enableTransfer [uint8_t id] () {printf("default ivk3\n");}
+    default async command void dmac.disableTransfersCompleteIRQ [uint8_t id] () {printf("default ivk4\n");}
+    default async command void dmac.disableTransferErrorIRQ [uint8_t id] () {printf("default ivk5\n");}
+    default async command void dmac.disableTransfer [uint8_t id] () {printf("default ivk6\n");}
+    default async command void dmac.enableTransfersCompleteIRQ [uint8_t id] () {printf("default ivk7\n");}
+    default async command void dmac.enableTransferErrorIRQ [uint8_t id] () {printf("default ivk8\n");}
+    default async command error_t dmac.setAddressCountReload [uint8_t id] (uint32_t mar, uint16_t tc){printf("default ivk9\n");return EBUSY;}
     default async command bool dmac.transferBusy [uint8_t id] () {printf("default impl\n");return 1;}
     async command void TWIM.enablePins [uint8_t id] ()
     {
@@ -54,6 +54,8 @@ implementation
                 //GPIO_PORT_A->sterc = (0b11 << 23);
                 break;
             case 1:
+                printf("enabling 1\n");
+
                 GPIO_PORT_B->pmr0c = (0b11 << 0); //Peripheral A
                 GPIO_PORT_B->pmr1c = (0b11 << 0);
                 GPIO_PORT_B->pmr2c = (0b11 << 0);
@@ -61,6 +63,7 @@ implementation
                 //GPIO_PORT_B->sterc = (0b11 << 0);
                 break;
             case 2:
+                printf("enabling 2\n");
                 GPIO_PORT_A->gperc = (0b11 << 21); //PA21 dat, PA22 clk
                 GPIO_PORT_A->pmr0c = (0b11 << 21); //Peripheral E
                 GPIO_PORT_A->pmr1c = (0b11 << 21);
@@ -79,17 +82,18 @@ implementation
 
     async command void TWIM.init [uint8_t id] ()
     {
+        printf("init %d\n",id);
         call TWIM.enablePins[id]();
         call ClockCtl.enable[id]();
         TWIMx[id]->cr.flat = 1<<0; //men
         TWIMx[id]->cr.flat = 1<<7; //swrst
         TWIMx[id]->cr.flat = 1<<1; //mdis
 
-        TWIMx[id]->cwgr.bits.exp = 7;
-        TWIMx[id]->cwgr.bits.low = 100;
-        TWIMx[id]->cwgr.bits.high = 100;
-        TWIMx[id]->cwgr.bits.stasto = 200;
-        TWIMx[id]->cwgr.bits.data = 10;
+        TWIMx[id]->cwgr.bits.exp = 3;
+        TWIMx[id]->cwgr.bits.low = 10;
+        TWIMx[id]->cwgr.bits.high = 10;
+        TWIMx[id]->cwgr.bits.stasto = 10;
+        TWIMx[id]->cwgr.bits.data = 4;
         TWIMx[id]->srr.bits.filter = 2;
         TWIMx[id]->srr.bits.dadrivel = 7;
         TWIMx[id]->srr.bits.cldrivel = 7;
@@ -138,6 +142,7 @@ implementation
         v.bits.tenbit = 0;
         v.bits.start = (flags & FLAG_DOSTART) != 0;
         v.bits.stop = (flags & FLAG_DOSTOP) != 0;
+        nstop[id] = (flags & FLAG_DOSTOP) == 0;
         v.bits.pecen = 0;
         v.bits.nbytes = len;
         v.bits.acklast = (flags & FLAG_ACKLAST) != 0;
@@ -151,7 +156,7 @@ implementation
         TWIMx[id]->scr.flat = 0xFFFFFFFF;
         atomic
         {
-            TWIMx[id]->ier.flat = 0x700; //ARBLST, DNAK, ANAK, CRDY
+            TWIMx[id]->ier.flat = 0x710; //ARBLST, DNAK, ANAK, CRDY
             call dmac.setAddressCountReload[id]((uint32_t)(&dst[0]), len);
             call dmac.enableTransfersCompleteIRQ[id]();
             call dmac.enableTransferErrorIRQ[id]();
@@ -169,9 +174,11 @@ implementation
         call dmac.disableTransfer[id]();
         call dmac.disableTransfersCompleteIRQ[id]();
         call dmac.disableTransferErrorIRQ[id]();
-        TWIMx[id]->idr.flat = 0x700; //ARBLST, DNAK, ANAK
+        TWIMx[id]->idr.flat = 0x710; //ARBLST, DNAK, ANAK
+        //printf("ds %d %d\n",status, id);
         if (status != 0)
         {
+            //printf("sreset\n");
             TWIMx[id]->cr.bits.swrst = 1;
         }
         TWIMx[id]->scr.flat = 0xFFFFFFFF;
@@ -186,7 +193,9 @@ implementation
     }
     async event void dmac.transfersCompleteFired[uint8_t id]()
     {
-        dispatch_status(id, STATUS_OK);
+     //   printf("tcf\n");
+        if (nstop[id])
+            dispatch_status(id, STATUS_OK);
     }
     async event void dmac.reloadableFired[uint8_t id]()
     {
@@ -209,6 +218,9 @@ implementation
             printf ("dmac says no go\n");
             return EBUSY;
         }
+
+        //printf( "attempting addr %02x on port %d\n", addr, id);
+
        // TWIMx[id]->cr.flat = 1<<0; //men
        // TWIMx[id]->cr.flat = 1<<7; //swrst
        // TWIMx[id]->cr.flat = 1<<1; //mdis
@@ -218,6 +230,7 @@ implementation
         v.bits.tenbit = 0;
         v.bits.start = (flags & FLAG_DOSTART) != 0;
         v.bits.stop = (flags & FLAG_DOSTOP) != 0;
+        nstop[id] = (flags & FLAG_DOSTOP) == 0;
         v.bits.pecen = 0;
         v.bits.nbytes = len;
         v.bits.acklast = (flags & FLAG_ACKLAST) != 0;
@@ -231,7 +244,7 @@ implementation
         TWIMx[id]->scr.flat = 0xFFFFFFFF;
         atomic
         {
-            TWIMx[id]->ier.flat = 0x700; //ARBLST, DNAK, ANAK, CRDY
+            TWIMx[id]->ier.flat = 0x710; //ARBLST, DNAK, ANAK, IDLE
             call dmac.setAddressCountReload[id]((uint32_t)(&src[0]), len);
             call dmac.enableTransfersCompleteIRQ[id]();
             call dmac.enableTransferErrorIRQ[id]();
@@ -246,7 +259,7 @@ implementation
         if (TWIMx[0]->sr.bits.dnak) dispatch_status(0, STATUS_DNAK);
         else if (TWIMx[0]->sr.bits.anak) dispatch_status(0, STATUS_ANAK);
         else if (TWIMx[0]->sr.bits.arblst) dispatch_status(0, STATUS_ARBLST);
-        //else if (TWIMx[0]->sr.bits.ccomp) dispatch_status(0, STATUS_OK);
+        else if (TWIMx[0]->sr.bits.idle) dispatch_status(0, STATUS_OK);
         else
         {
             printf("STRANGE TWIM0 HANDLER\n");
@@ -259,7 +272,7 @@ implementation
         if (TWIMx[1]->sr.bits.dnak) dispatch_status(1, STATUS_DNAK);
         else if (TWIMx[1]->sr.bits.anak) dispatch_status(1, STATUS_ANAK);
         else if (TWIMx[1]->sr.bits.arblst) dispatch_status(1, STATUS_ARBLST);
-        //else if (TWIMx[1]->sr.bits.ccomp) dispatch_status(1, STATUS_OK);
+        else if (TWIMx[1]->sr.bits.idle) dispatch_status(1, STATUS_OK);
         else
         {
             printf("STRANGE TWIM1 HANDLER\n");
@@ -272,10 +285,10 @@ implementation
         if (TWIMx[2]->sr.bits.dnak) dispatch_status(2, STATUS_DNAK);
         else if (TWIMx[2]->sr.bits.anak) dispatch_status(2, STATUS_ANAK);
         else if (TWIMx[2]->sr.bits.arblst) dispatch_status(2, STATUS_ARBLST);
-        //else if (TWIMx[2]->sr.bits.ccomp) dispatch_status(2, STATUS_OK);
+        else if (TWIMx[2]->sr.bits.idle) dispatch_status(2, STATUS_OK);
         else
         {
-            printf("STRANGE TWIM2 HANDLER\n");
+            printf("STRANGE TWIM2 HANDLER %d\n", TWIMx[2]->sr.flat);
         }
         call IRQWrapper.postamble();
     }
@@ -285,7 +298,7 @@ implementation
         if (TWIMx[3]->sr.bits.dnak) dispatch_status(3, STATUS_DNAK);
         else if (TWIMx[3]->sr.bits.anak) dispatch_status(3, STATUS_ANAK);
         else if (TWIMx[3]->sr.bits.arblst) dispatch_status(3, STATUS_ARBLST);
-        //else if (TWIMx[3]->sr.bits.ccomp) dispatch_status(3, STATUS_OK);
+        else if (TWIMx[3]->sr.bits.idle) dispatch_status(3, STATUS_OK);
         else
         {
             printf("STRANGE TWIM3 HANDLER\n");

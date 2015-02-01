@@ -92,6 +92,9 @@ implementation
   EthernetP.EthernetShieldConfig -> EthernetShieldConfigC;
   #endif
 
+    //I2C sensor rail
+    components HplSam4lIOC;
+    KernelMainP.ENSEN -> HplSam4lIOC.PC19;
 
     //Drivers
     components StormSimpleGPIOC;
