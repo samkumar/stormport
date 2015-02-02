@@ -54,8 +54,6 @@ implementation
                 //GPIO_PORT_A->sterc = (0b11 << 23);
                 break;
             case 1:
-                printf("enabling 1\n");
-
                 GPIO_PORT_B->pmr0c = (0b11 << 0); //Peripheral A
                 GPIO_PORT_B->pmr1c = (0b11 << 0);
                 GPIO_PORT_B->pmr2c = (0b11 << 0);
@@ -63,7 +61,6 @@ implementation
                 //GPIO_PORT_B->sterc = (0b11 << 0);
                 break;
             case 2:
-                printf("enabling 2\n");
                 GPIO_PORT_A->gperc = (0b11 << 21); //PA21 dat, PA22 clk
                 GPIO_PORT_A->pmr0c = (0b11 << 21); //Peripheral E
                 GPIO_PORT_A->pmr1c = (0b11 << 21);
@@ -82,7 +79,6 @@ implementation
 
     async command void TWIM.init [uint8_t id] ()
     {
-        printf("init %d\n",id);
         call TWIM.enablePins[id]();
         call ClockCtl.enable[id]();
         TWIMx[id]->cr.flat = 1<<0; //men
@@ -105,7 +101,6 @@ implementation
         //call dmac.enableTransfersCompleteIRQ[id]();
         state[id] = STATE_IDLE;
         TWIMx[id]->idr.flat = 0xFFFFFFFF; //ARBLST, DNAK, ANAK
-        printf("imr[start] is %d\n", TWIMx[id]->imr.flat);
         switch(id)
         {
             case 0:
