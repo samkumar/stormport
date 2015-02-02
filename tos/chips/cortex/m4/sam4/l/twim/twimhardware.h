@@ -5,7 +5,7 @@
         FLAG_DOSTART = 0x01,
         FLAG_DORSTART = 0x01,
         FLAG_ACKLAST = 0x02,
-        FLAG_DOSTOP = 0x03
+        FLAG_DOSTOP = 0x04
     };
 
 typedef union
@@ -121,7 +121,7 @@ typedef union
     {
         uint32_t rxrdy      : 1;
         uint32_t txrdy      : 1;
-        uint32_t crdy       : 2;
+        uint32_t crdy       : 1;
         uint32_t ccomp      : 1;
         uint32_t idle       : 1;
         uint32_t busfree    : 1;
@@ -186,18 +186,22 @@ typedef struct
     twim_xcwgr_t    cwgr;
     twim_smbtr_t    smbtr;
     twim_cmdr_t     cmdr;
+    //0x10
     twim_cmdr_t     ncmdr;
     uint32_t        rhr;
     uint32_t        thr;
     twim_sr_t       sr;
+    //0x20
     twim_ixr_t      ier;
     twim_ixr_t      idr;
     twim_ixr_t      imr;
     twim_scr_t      scr;
+    //0x30
     uint32_t        pr;
     uint32_t        vr;
     twim_xcwgr_t    hscwgr;
     twim_srr_t      srr;
+    //0x40
     twim_srr_t      hssrr;
 } __attribute__((__packed__)) twim_t;
 

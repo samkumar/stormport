@@ -54,6 +54,10 @@ implementation
     async command void DMAChannel.disableTransfer[uint8_t id]()
     {
         PDCA->ch[id].cr.bits.tdis = 1;
+        PDCA->ch[id].marr = 0;
+        PDCA->ch[id].tcrr = 0;
+        PDCA->ch[id].mar = 0;
+        PDCA->ch[id].tcr = 0;
     }
     async command void DMAChannel.enableTransferErrorIRQ[uint8_t id]()
     {
