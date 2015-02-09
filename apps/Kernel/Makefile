@@ -73,9 +73,9 @@ PFLAGS += -DRPL_OF_MRHOF=0
 
 # If this is defined, then RPL will only send/receive from the following address. It will be added
 # as the default 802.15.4 route. If you are using a border router/root node, do not use this flag.
-#PFLAGS += -DRPL_SINGLE_HOP=\"fe80::212:6d02:0:feeb\"
+PFLAGS += -DRPL_SINGLE_HOP=\"fe80::212:6d02:0:feeb\"
 # if you are the root node of a single-hop network, use this flag and NOT RPL_SINGLE_HOP
-PFLAGS += -DRPL_SINGLE_HOP_ROOT
+#PFLAGS += -DRPL_SINGLE_HOP_ROOT
 
 ################################################################################
 ### Configure LPL
