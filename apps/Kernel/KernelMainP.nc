@@ -494,12 +494,16 @@ implementation
                 procstate = procstate_runnable;
                 return RET_KERNEL;
             case ABI_ID_SYSCALL_EX:
-                if (( syscall_args[0] >> 8) == 1 ) *process_syscall_rv = call GPIO_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
-                if (( syscall_args[0] >> 8) == 2 ) *process_syscall_rv = call Timer_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
-                if (( syscall_args[0] >> 8) == 3 ) *process_syscall_rv = call UDP_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
-                if (( syscall_args[0] >> 8) == 4 ) *process_syscall_rv = call SysInfo_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
-                if (( syscall_args[0] >> 8) == 5 ) *process_syscall_rv = call I2C_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
+            {
+                uint32_t rv;
+                if (( syscall_args[0] >> 8) == 1 ) rv = call GPIO_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
+                if (( syscall_args[0] >> 8) == 2 ) rv = call Timer_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
+                if (( syscall_args[0] >> 8) == 3 ) rv = call UDP_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
+                if (( syscall_args[0] >> 8) == 4 ) rv = call SysInfo_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
+                if (( syscall_args[0] >> 8) == 5 ) rv = call I2C_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
+                *process_syscall_rv = rv;
                 return RET_KERNEL;
+            }
             default:
                 printf("bad svc number\n");
                 //switch
