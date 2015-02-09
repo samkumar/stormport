@@ -318,8 +318,8 @@ implementation
 		channel = RF230_DEF_CHANNEL & RF230_CHANNEL_MASK;
 		writeRegister(RF230_PHY_CC_CCA, RF230_CCA_MODE_VALUE | channel);
 
-        //Enable four CSMA retries and three packet retries
-	    writeRegister(RF230_XAH_CTRL_0, 0b00111000);
+        //Enable four CSMA retries and 1 packet retries
+	    writeRegister(RF230_XAH_CTRL_0, 0b00011000);
 
 		//For sensys demo, try fix ETX by not doing hardware retries:
 		//writeRegister(RF230_XAH_CTRL_0, 0b00001000);
