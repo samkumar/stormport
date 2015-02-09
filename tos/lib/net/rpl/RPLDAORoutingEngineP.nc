@@ -96,7 +96,9 @@ generic module RPLDAORoutingEngineP() {
   }
 
   command error_t StdControl.start() {
+#ifndef (RPL_SINGLE_HOP_ROOT && RPL_SINGLE_HOP)
     call RPLDAORouteInfo.startDAO();
+#endif
     m_running = TRUE;
     return SUCCESS;
   }
