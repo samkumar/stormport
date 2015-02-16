@@ -60,6 +60,7 @@ module KernelMainP
         interface Driver as Timer_Driver;
         interface Driver as UDP_Driver;
         interface Driver as SysInfo_Driver;
+        interface Driver as BLE_Driver;
         interface Tcp as TcpSTDIO;
     }
 }
@@ -148,7 +149,7 @@ implementation
 
         call Dmesg.bind(514);
 
-        post launch_payload();
+        //post launch_payload();
         call TcpSTDIO.bind(23);
         //call Timer.startPeriodic(100000);
     }

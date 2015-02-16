@@ -102,4 +102,6 @@ implementation
     KernelMainP.UDP_Driver -> UDPDriverC;
     components StormSysInfoC;
     KernelMainP.SysInfo_Driver -> StormSysInfoC;
+    components BLEDriverC;
+    KernelMainP.BLE_Driver -> BLEDriverC;
 }
