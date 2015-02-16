@@ -15,6 +15,8 @@ enum SPI_OPCODES {
   SPI_ADD_SERVICE = 9,
   SPI_ADD_CHARACTERISTIC = 10,
   SPI_NOTIFY = 11,
+  SPI_WRITE = 12,
+  SPI_GETVALUE = 13,
   // addition opcodes go here
   SPI_DEBUG = 0xcc
 };

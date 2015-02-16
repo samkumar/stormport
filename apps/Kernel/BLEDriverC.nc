@@ -21,9 +21,12 @@ implementation
     NrfBleP.CS -> HplSam4lIOC.PC07;
     NrfBleP.IntPort -> HplSam4lIOC.PA17;
     NrfBleP.Int -> HplSam4lIOC.PA17IRQ;
+    components new Timer32khzC() as bletmr;
+    NrfBleP.tmr -> bletmr;
 
     BLEDriverP.BlePeripheral -> NrfBleP;
     BLEDriverP.HelenaBleService -> HelenaServiceC;
+    BLEDriverP.HelenaService -> HelenaServiceC;
 
     Driver = BLEDriverP.Driver;
     components new Timer32khzC();

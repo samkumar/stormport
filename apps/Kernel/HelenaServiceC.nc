@@ -30,7 +30,12 @@ implementation
   }
 
   event void UUIDListedDevice.onWrite(uint16_t len, uint8_t const *value) {
-    printf("Got a write %d\n",len);
+    int i;
+    printf ("GOT UUID WRITE len %d\n", len);
+    for (i=0;i<len;i++)
+    {
+        printf("Byte %d: 0x%02x\n",i,value[i]);
+    }
   }
 
   event void UUIDListedDevice.indicateConfirmed() {

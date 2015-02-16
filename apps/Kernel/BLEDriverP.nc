@@ -13,6 +13,7 @@ implementation
     command error_t Init.init()
     {
         printf("BLED init called\n");
+
         call tmr.startOneShot(32000);
     }
     // BLE PERIPHERAL
@@ -57,7 +58,7 @@ implementation
 
     event void tmr.fired()
     {
-        printf("timer fired, init BLE\n");
         call BlePeripheral.initialize();
+       // call HelenaService.notify(0x55,0x6677);
     }
 }

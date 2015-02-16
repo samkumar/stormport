@@ -19,6 +19,7 @@ module NrfBleP
   uses interface GeneralIO as CS;
   uses interface GeneralIO as IntPort;
   uses interface GpioInterrupt as Int;
+  uses interface Timer<T32khz> as tmr;
 }
 implementation
 {
@@ -185,12 +186,17 @@ implementation
     enqueue_tx(txbuf, sizeof(txbuf));
   }
 
+  event void tmr.fired()
+  {
+    signal BlePeripheral.ready();
+    signal BleCentral.ready();
+  }
   command void BlePeripheral.initialize() {
     post initialize();
   }
 
   command void BleCentral.initialize() {
-    post initialize();
+    //post initialize();
   }
 
   task void initSpi() {
@@ -203,17 +209,14 @@ implementation
       txbuf_hd = (txbuf_hd + 1) % 10;
     }
     call CS.clr();
-    if (call SpiPacket.send(buf, rxbuf, SPI_PKT_LEN) == SUCCESS) {
-      printf("SpiPacket send SUCCESS\n");  
-    } else {
-      printf("SpiPacket send SUCCESS\n");  
-    }
+    printf("doing send\n");
+    call SpiPacket.send(buf, rxbuf, SPI_PKT_LEN);
   }
 
 
   task void ready() {
-    signal BlePeripheral.ready();
-    signal BleCentral.ready();
+    //After the RESET, the chip requires like a second to regain its senses
+    call tmr.startOneShot(32000);
   }
 
   task void connected() {
@@ -224,18 +227,33 @@ implementation
     signal BlePeripheral.disconnected();
   }
 
+  uint8_t writebuf [26];
+
+  // Doesn't guarantee that all writes make it through
+  // TODO better handoff
+  task void write() {
+    uint8_t copy [26];
+    atomic {
+        memcpy(copy, writebuf, 26);
+    }
+    signal BleLocalChar.onWrite[copy[0]]((uint16_t)copy[1], &copy[2]);
+  }
+
   default event void BlePeripheral.ready() {}
   default event void BlePeripheral.connected() {}
   default event void BlePeripheral.disconnected() {}
 
-
+  default event void BleLocalChar.onWrite[uint8_t id](uint16_t len, uint8_t const *value) {}
   default event void BleCentral.ready() {}
   default async event void BleCentral.advReceived(uint8_t* addr,
     uint8_t *data, uint8_t dlen, uint8_t rssi) {}
 
+  int cnt = 0;
   async event void SpiPacket.sendDone(uint8_t* txBuf, uint8_t* rxBuf,
                                       uint16_t len, error_t error) {
-    printf("SpiPacket done 0x%x 0x%x\n", txBuf[0], rxBuf[0]);
+    cnt += 1;
+    printf("SpiPacket done 0x%d 0x%d\n", txBuf[0], rxBuf[0]);
+    printf("c %d\n", cnt);
     call CS.set();
     if (error == SUCCESS) {
       if (rxBuf[0] == 0xee) {
@@ -247,6 +265,7 @@ implementation
 
       switch (rxBuf[0]) {
         case SPI_RESET:
+          printf("got RESET response\n");
           post ready();
           break;
         case SPI_CONNECT:
@@ -257,6 +276,9 @@ implementation
           break;
         case SPI_ADVERTISE:
           signal BleCentral.advReceived(rxBuf + 1, rxBuf + 9, rxBuf[8], rxBuf[7]);
+          break;
+        case SPI_WRITE:
+          signal BleLocalChar.onWrite[rxBuf[1]](rxBuf[2], &rxBuf[3]);
           break;
         case SPI_DEBUG:
           printf("[NRF] %s\n", rxBuf + 1);
