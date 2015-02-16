@@ -3,13 +3,23 @@ module BLEDriverP
     provides interface Driver;
     provides interface Init;
     uses interface BlePeripheral;
-    uses interface BleLocalService as HelenaBleService;
-    uses interface HelenaService;
+    uses interface BleLocalChar[uint8_t id];
+    uses interface NrfBleService[uint8_t id];
     uses interface Timer<T32khz> as tmr;
 }
 implementation
 {
 
+    //The payload may configure characteristics and services before
+    //the coprocessor is ready. This will configure those when the chip is
+    //ok
+    void configure_backlog()
+    {
+
+    }
+    event void BleLocalChar.onWrite[uint8_t id](uint16_t len, uint8_t const *value) {}
+    event void BleLocalChar.indicateConfirmed[uint8_t id](){}
+    event void BleLocalChar.timeout[uint8_t id](){}
     command error_t Init.init()
     {
         printf("BLED init called\n");
@@ -19,9 +29,12 @@ implementation
     // BLE PERIPHERAL
     event void BlePeripheral.ready()
     {
-        call HelenaBleService.configure();
-        printf("Configured!\n");
         call BlePeripheral.startAdvertising();
+        //call HelenaBleService.configure();
+        call NrfBleService.createService[0](0x2005);
+        call NrfBleService.addCharacteristic[0](0x2003, 0);
+        printf("Configured!\n");
+
     }
 
     event void BlePeripheral.connected()

@@ -1,6 +1,8 @@
 #ifndef TINYOS_BLE_H
 #define TINYOS_BLE_H 1
 typedef uint16_t uuid_t;
+#define MAX_CHARS 50
+#define MAX_SERVICES 8
 
 enum SPI_OPCODES {
   SPI_NOOP = 0,

@@ -60,18 +60,12 @@ implementation
 
   uint8_t rxbuf[SPI_PKT_LEN];
 
-  enum
-  {
-    NUM_CHARS = uniqueCount("SPI_BLE_LOCAL_CHAR_HANDLE"),
-    NUM_SERVICES = uniqueCount("SPI_BLE_LOCAL_SERVICE_HANDLE")
-  };
-
   typedef struct
   {
     uuid_t UUID;
   } Char_t;
 
-  Char_t chars[NUM_CHARS];
+  Char_t chars[MAX_CHARS];
 
   void setCharUUID(uint8_t handle, uuid_t UUID) {
     chars[handle].UUID = UUID;
