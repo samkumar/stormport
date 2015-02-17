@@ -63,6 +63,7 @@ implementation
     // BLE PERIPHERAL
     event void BlePeripheral.ready()
     {
+        device_online = 1;
         if (ready_callback != 0) //otherwise it will be called later
         {
             call BlePeripheral.startAdvertising();
