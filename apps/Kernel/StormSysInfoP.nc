@@ -20,15 +20,32 @@ implementation
         uint32_t arg1, uint32_t arg2, 
         uint32_t *argx)
     {
-        ieee_eui64_t address;
+        ieee_eui64_t address = call LocalIeeeEui64.getId();
+        struct in6_addr addr;
+        int i;
         switch(number & 0xFF)
         {
         case 0x01: // get node_id
-            address = call LocalIeeeEui64.getId();
             return address.data[7] | address.data[6] << 8;
-        //case 0x02: // get MAC
-        //    address = call LocalIeeeEui64.getId();
-        //    return address.data[0] << 40 | address.data[1] << 32 | address[2] << 24 | address[3] << 16 | address[1] << 8 | address[0];
+        case 0x02: // get MAC
+            ((uint8_t*)arg0)[0] = address.data[0];
+            ((uint8_t*)arg0)[1] = address.data[1];
+            ((uint8_t*)arg0)[2] = address.data[2];
+            ((uint8_t*)arg0)[3] = address.data[3];
+            ((uint8_t*)arg0)[4] = address.data[6];
+            ((uint8_t*)arg0)[5] = address.data[7];
+            return 0;
+        case 0x03: // get IP address
+            inet_pton6(IN6_PREFIX, &addr);
+            for (i=0;i<8;i++)
+            {
+                ((uint8_t*)arg0)[i] = addr.in6_u.u6_addr8[i];
+            }
+            for (i=8;i<16;i++)
+            {
+                ((uint8_t*)arg0)[i] = address.data[i-8];
+            }
+            return 0;
         default:
             return (uint32_t) -1;
         }

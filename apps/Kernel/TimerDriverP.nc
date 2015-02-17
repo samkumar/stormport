@@ -31,12 +31,12 @@ implementation
     #define BUFSIZE 64
     #define NONE 0xFFFF
     #define CBQUEUESIZE 32
-    tentry_t timer_buffer [BUFSIZE];
+    tentry_t norace timer_buffer [BUFSIZE];
     callback_t callback_queue [CBQUEUESIZE];
     uint16_t allocidx;
     uint16_t cb_widx;
     uint16_t cb_ridx;
-    uint64_t upper64;
+    uint64_t norace volatile upper64;
     task void update_queues();
     inline uint32_t getNow()
     {
@@ -188,7 +188,7 @@ implementation
             }
             case 0x03: //get_now_s16() ->uint32_t now(>>16)
             {
-                return (uint32_t) upper64;
+                return (uint32_t) (upper64);
             }
             case 0x04: //get_now_s48() ->uint32_t now(>>16)
             {

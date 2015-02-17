@@ -61,7 +61,9 @@ module KernelMainP
         interface Driver as UDP_Driver;
         interface Driver as SysInfo_Driver;
         interface Driver as BLE_Driver;
+        interface Driver as I2C_Driver;
         interface Tcp as TcpSTDIO;
+        interface GeneralIO as ENSEN;
     }
 }
 implementation
@@ -145,13 +147,20 @@ implementation
 
         route_dest.sin6_port = htons(7000);
 
-        inet_pton6("2001:470:4885:ff::1", &route_dest.sin6_addr);
+        inet_pton6("2001:470:4956:1::1", &route_dest.sin6_addr);
 
         call Dmesg.bind(514);
 
         //post launch_payload();
+
+        call ENSEN.makeOutput();
+        call ENSEN.clr();
+
+#ifndef WITH_WIZ
+        post launch_payload(); // ignore this if we are the ethernet shield
+#endif
         call TcpSTDIO.bind(23);
-        //call Timer.startPeriodic(100000);
+
     }
 
     /*
@@ -221,12 +230,9 @@ implementation
         printf("Got traffic on dmesg port\n");
     }
 
-    char *msg = "F***YEAHBUD[REMOTE]\n  ";
     event void Timer.fired()
     {
-        //printf("sending\n");
-
-        call Dmesg.sendto(&route_dest, &msg[0], 19);
+       // call I2C_Driver.syscall_ex(0, 0, 0, 0, NULL);
     }
     task void flush_process_stdout()
     {
@@ -284,10 +290,6 @@ implementation
             dst[i] = (uint8_t) c;
         }
     }
-    int32_t kabi_request_timeslice(uint32_t ticks, uint8_t oneshot, void (*callback)())
-    {
-
-    }
 
     // return TRUE if the process has more to do
     // FALSE if it is ok to go to sleep
@@ -319,7 +321,6 @@ implementation
                 //Check for special static callbacks - like read_async
                 if (cb_read_buf != NULL && (stdin_rptr != stdin_wptr))
                 {
-                    printf("vptr = %08x\n",cb_read_r_ptr);
                     tmp = kabi_read(0, cb_read_buf, cb_read_len);
                     cb_read_buf = NULL;
                     __inject_function3(cb_read_f_ptr, cb_read_r_ptr, tmp, 0);
@@ -338,7 +339,28 @@ implementation
                     call Timer_Driver.pop_callback();
                     return TRUE;
                 }
-
+                //check for io pin callbacks:
+                cb = call GPIO_Driver.peek_callback();
+                if (cb != NULL)
+                {
+                    simple_callback_t *c = (simple_callback_t*) cb;
+                    __inject_function1((void*)c->addr, c->r);
+                    procstate = procstate_runnable;
+                    __syscall(KABI_RESUME_PROCESS);
+                    call GPIO_Driver.pop_callback();
+                    return TRUE;
+                }
+                //check for i2c callbacks
+                cb = call I2C_Driver.peek_callback();
+                if (cb != NULL)
+                {
+                    i2c_callback_t *c = (i2c_callback_t*) cb;
+                    __inject_function2((void*)c->addr, c->r, c->status);
+                    procstate = procstate_runnable;
+                    __syscall(KABI_RESUME_PROCESS);
+                    call I2C_Driver.pop_callback();
+                    return TRUE;
+                }
                 //check for UDP callbacks:
                 cb = call UDP_Driver.peek_callback();
                 if (cb != NULL)
@@ -440,12 +462,16 @@ implementation
                 procstate = procstate_runnable;
                 return RET_KERNEL;
             case ABI_ID_SYSCALL_EX:
-                //printf("doing EX syscall %d\n", syscall_args[0]);
-                if (( syscall_args[0] >> 8) == 1 ) *process_syscall_rv = call GPIO_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
-                if (( syscall_args[0] >> 8) == 2 ) *process_syscall_rv = call Timer_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
-                if (( syscall_args[0] >> 8) == 3 ) *process_syscall_rv = call UDP_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
-                if (( syscall_args[0] >> 8) == 4 ) *process_syscall_rv = call SysInfo_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
+            {
+                uint32_t rv;
+                if (( syscall_args[0] >> 8) == 1 ) rv = call GPIO_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
+                if (( syscall_args[0] >> 8) == 2 ) rv = call Timer_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
+                if (( syscall_args[0] >> 8) == 3 ) rv = call UDP_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
+                if (( syscall_args[0] >> 8) == 4 ) rv = call SysInfo_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
+                if (( syscall_args[0] >> 8) == 5 ) rv = call I2C_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
+                *process_syscall_rv = rv;
                 return RET_KERNEL;
+            }
             default:
                 printf("bad svc number\n");
                 //switch

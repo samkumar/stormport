@@ -3,6 +3,8 @@
 #include <lib6lowpan/ip.h>
 #include <lib6lowpan/ip.h>
 #include "version.h"
+#
+#define makeIPV4(a,b,c,d) a << 24 | b << 16 | c << 8 | d
 
 module EthernetP
 {
@@ -28,6 +30,7 @@ implementation
 
     struct sockaddr_in6 route_dest_154;
     ieee_eui64_t address;
+    uint8_t mac [6];
 
     event void IPControl.startDone (error_t error) {
         printf("Ethernet set as default route\n");
@@ -35,9 +38,8 @@ implementation
         call ForwardingTable.addRoute(NULL, 0, NULL, ROUTE_IFACE_ETH0);
         call ForwardingTable.addRoute((uint8_t*) &route_dest_154.sin6_addr, 64, NULL, ROUTE_IFACE_154);
         {
-            address = call LocalIeeeEui64.getId(); // This is how we autogenerate the MAC address from the serial number -- GTF
-            uint8_t mac [6];
             int i;
+            address = call LocalIeeeEui64.getId(); // This is how we autogenerate the MAC address from the serial number -- GTF
             mac[0] = address.data[0];
             mac[1] = address.data[1];
             mac[2] = address.data[2];
@@ -46,28 +48,21 @@ implementation
             mac[5] = address.data[7];
         }
         busy = FALSE;
-        destip = 0x0a040a32; //10.4.10.50
-        //destip = 0x0a040a8e; //10.4.10.150
-        //destip = 0x0a040a87; // 10.4.10.135
-        //destip = 0x364365f1; //54.67.101.241
+        destip = makeIPV4(10, 4, 10, 142);
         {
-            uint32_t srcip   = 10  << 24 | 4   << 16 | 10  << 8 | 146;
-            uint32_t netmask = 255 << 24 | 255 << 16 | 255 << 8 | 0  ;
-            uint32_t gateway = 10  << 24 | 4   << 16 | 10  << 8 | 1  ;
-            uint8_t *mac = "\xde\xad\xbe\xef\xfe\xec";
-
+            uint32_t srcip   = makeIPV4(10,4,10,141);
+            uint32_t netmask = makeIPV4(255,255,255,255);
+            uint32_t gateway = makeIPV4(10,4,10,1);
             call EthernetShieldConfig.initialize(srcip, netmask, gateway, mac);
         }
         call RootControl.setRoot();
         call RawSocket.initialize(41);
         call RootControl.setRoot();
     }
-    event void RawSocket.initializeDone(error_t error) {
 
-    }
+    event void RawSocket.initializeDone(error_t error) {}
+
     event void IPControl.stopDone (error_t error) {}
-
-
 
     command error_t IPForward.send(struct in6_addr *next_hop,
                                  struct ip6_packet *msg,

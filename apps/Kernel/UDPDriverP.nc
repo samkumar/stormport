@@ -22,7 +22,7 @@ implementation
 
     uint8_t scanidx;
 
-    socket_t  sockets [NUM_SOCKETS];
+    socket_t  norace sockets [NUM_SOCKETS];
     command error_t Init.init()
     {
         int i;
@@ -165,7 +165,7 @@ implementation
         }
         memcpy(sockets[sockid].recv_callback.buffer, payload, len);
         memcpy(sockets[sockid].recv_callback.src_address, &src->sin6_addr, 16);
-        sockets[sockid].recv_callback.port = src->sin6_port;
+        sockets[sockid].recv_callback.port = htons(src->sin6_port);
         sockets[sockid].recv_callback.buflen = len;
     }
 }

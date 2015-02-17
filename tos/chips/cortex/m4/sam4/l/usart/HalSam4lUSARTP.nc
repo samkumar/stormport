@@ -29,8 +29,8 @@ implementation
     uint16_t norace rx_len;
     uint16_t norace rx_ptr;
 
-    bool forwardRXIRQ = FALSE;
-    bool norace irqmode_spi = FALSE;
+    volatile bool norace forwardRXIRQ = FALSE;
+    volatile bool norace irqmode_spi = FALSE;
 
     async event void sysclock.mainClockChanged()
     {
