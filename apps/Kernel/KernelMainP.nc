@@ -151,13 +151,11 @@ implementation
 
         call Dmesg.bind(514);
 
-        //post launch_payload();
-
         call ENSEN.makeOutput();
         call ENSEN.clr();
 
 #ifndef WITH_WIZ
-        post launch_payload(); // ignore this if we are the ethernet shield
+        //post launch_payload(); // ignore this if we are the ethernet shield
 #endif
         call TcpSTDIO.bind(23);
 
