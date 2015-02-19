@@ -316,7 +316,8 @@ module IPForwardingEngineP {
         struct sockaddr_in6 local_prefix;
         inet_pton6(IN6_PREFIX, &local_prefix.sin6_addr);
 #endif
-        
+
+
         if (next_hop_entry == NULL) {
           /* oops, no route. */
           /* RPL will reencapsulate the packet in some cases here */
