@@ -35,6 +35,9 @@ implementation
     uint8_t cb_bufs[CBSIZE][24];
     int widx, ridx;
 
+    uint8_t advdata[20];
+    uint8_t advlen;
+
 
     command error_t Init.init()
     {
@@ -44,7 +47,7 @@ implementation
         ridx = 0;
         printf("BLED init called\n");
 
-        call tmr.startOneShot(32000);
+        call tmr.startOneShot(16000);
     }
     //Invoke the ready callback
     void push_ready_callback()
@@ -66,7 +69,7 @@ implementation
         device_online = 1;
         if (ready_callback != 0) //otherwise it will be called later
         {
-            call BlePeripheral.startAdvertising();
+            call BlePeripheral.startAdvertising(advdata, advlen);
             push_ready_callback();
         }
 
@@ -114,7 +117,7 @@ implementation
     event void BlePeripheral.disconnected()
     {
         printf("[[ BLE PERIPHERAL DISCONNECTED ]]\n");
-        call BlePeripheral.startAdvertising();
+        call BlePeripheral.startAdvertising(advdata, advlen);
         if (connection_callback != 0)
         {
             int nextw = (widx+1)&(CBSIZE-1);
@@ -131,7 +134,7 @@ implementation
 
     event void BlePeripheral.advertisingTimeout()
     {
-        call BlePeripheral.startAdvertising();
+        call BlePeripheral.startAdvertising(advdata, advlen);
     }
     command driver_callback_t Driver.peek_callback()
     {
@@ -186,15 +189,19 @@ implementation
     {
         switch(number & 0xFF)
         {
-            case 0x01: //Enable bluetooth(ready_callback, ready_r, connection_callback, connection_r) cb(uint8_t) 1=connected, 0=disconnected
+            case 0x01: //Enable bluetooth(ready_callback, ready_r, connection_callback, connection_r, advdata, advlen) cb(uint8_t) 1=connected, 0=disconnected
             {
                 ready_callback = arg0;
                 ready_r = (void*) arg1;
                 connection_callback = arg2;
                 connection_r = (void*)argx[0];
+                advlen = argx[2];
+                if (advlen > 20) advlen = 20;
+                memcpy(advdata, (uint8_t*) argx[1], advlen);
+                printf("advlen was %d\n", advlen);
                 if (device_online)
                 {
-                    call BlePeripheral.startAdvertising();
+                    call BlePeripheral.startAdvertising(advdata, advlen);
                     push_ready_callback();
                 }
                 return 0;
@@ -224,6 +231,7 @@ implementation
 
     event void tmr.fired()
     {
+        printf("Doing init\n");
         call BlePeripheral.initialize();
        // call HelenaService.notify(0x55,0x6677);
     }

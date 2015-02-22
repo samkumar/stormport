@@ -267,7 +267,9 @@ implementation
 		call BusyWait.wait(6);
 		call RSTN.set();
 
-		writeRegister(RF230_TRX_CTRL_0, RF230_TRX_CTRL_0_VALUE);
+		//writeRegister(RF230_TRX_CTRL_0, RF230_TRX_CTRL_0_VALUE);
+		//Export the 62.5khz symbol rate clock
+        writeRegister(RF230_TRX_CTRL_0, 7);
 		writeRegister(RF230_TRX_STATE, RF230_TRX_OFF);
 
 		call BusyWait.wait(1000);
@@ -276,10 +278,10 @@ implementation
         //writeRegister(0x0D, 0b0101);
 
         //I think this is the trace
-        //writeRegister(0x0D, 0b0110);
+        writeRegister(0x0D, 0b0110);
 
         //This is full autonomous diversity
-        writeRegister(0x0D, 0b1100);
+        //writeRegister(0x0D, 0b1100);
 
         //Set long address
         for (temp = 0; temp < 8; temp++)
@@ -291,6 +293,7 @@ implementation
         //This is primarily because the storm uses the trim
         //caps as the xtals load caps
         writeRegister(0x12, 0xFF);
+
 
         //writeRegister(0x2b, 0x01);
         //writeRegister(0x2a, 0x00);

@@ -5,7 +5,7 @@ interface BlePeripheral
 {
   command void initialize();
 
-  command error_t startAdvertising();
+  command error_t startAdvertising(uint8_t *data, uint8_t len);
 
   command error_t stopAdvertising(void);
 

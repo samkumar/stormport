@@ -31,29 +31,31 @@ implementation
   uint8_t txbufs[10][SPI_PKT_LEN];
   int txbuf_hd = 0;
   int txbuf_tl = 0;
-
+  uint8_t spibusy = 0;
   error_t enqueue_tx(uint8_t *req, uint8_t len) {
     bool doSpi = 0;
     atomic {
       if (len > SPI_PKT_LEN) {
+        printf ("fail\n");
         return FAIL;  
       }
 
       if (txbuf_hd - txbuf_tl == 1 || txbuf_hd == 0 && txbuf_tl == 9) {
+      printf ("fail\n");
         return FAIL;
       }
 
       memcpy(txbufs[txbuf_tl], req, len);
       txbuf_tl = (txbuf_tl + 1) % 10;
-      doSpi = txbuf_tl - txbuf_hd == 1 || txbuf_tl == 0 && txbuf_hd == 9;
+      //doSpi = txbuf_tl - txbuf_hd == 1 || txbuf_tl == 0 && txbuf_hd == 9;
     }
-    //printf("Queue...\n");
 
 
-    if (doSpi) {
-      //printf("Posting...\n");
+    //if (doSpi) {
       post initSpi();
-    }
+   // } else {
+   //   printf("no dospi\n");
+   // }
 
     return SUCCESS;
   }
@@ -140,10 +142,14 @@ implementation
     return enqueue_tx(txbuf, sizeof(txbuf));
   }
 
-  command error_t BlePeripheral.startAdvertising() {
-    uint8_t txbuf[1];
+  command error_t BlePeripheral.startAdvertising(uint8_t *data, uint8_t len) {
+    uint8_t txbuf[22];
     txbuf[0] = SPI_START_ADVERTISING;
-    return enqueue_tx(txbuf, sizeof(txbuf));
+    if (len > 20) len = 20;
+    memcpy(&txbuf[2], data, len);
+    txbuf[1] = len;
+    printf ("enqueue startadv %d '%s'\n", len, data);
+    return enqueue_tx(txbuf, len+2);
   }
 
   command error_t BlePeripheral.stopAdvertising() {
@@ -160,7 +166,7 @@ implementation
     call SpiHPL.enableUSARTPin(USART2_CLK_PA18);
     call SpiHPL.initSPIMaster();
     call SpiHPL.setSPIMode(0,0);
-    call SpiHPL.setSPIBaudRate(4000000);
+    call SpiHPL.setSPIBaudRate(1000000);
     call SpiHPL.enableTX();
     call SpiHPL.enableRX();
 
@@ -175,7 +181,6 @@ implementation
   async event void Int.fired()
   {
     uint8_t txbuf[1];
-    printf("Interrupt fired\n");
     txbuf[0] = SPI_NOOP;
     enqueue_tx(txbuf, sizeof(txbuf));
   }
@@ -195,6 +200,7 @@ implementation
 
   task void initSpi() {
     uint8_t *buf;
+    if (spibusy) return;
     atomic {
       buf = txbufs[txbuf_hd];
       if (txbuf_hd == txbuf_tl) {
@@ -203,14 +209,14 @@ implementation
       txbuf_hd = (txbuf_hd + 1) % 10;
     }
     call CS.clr();
-    printf("doing send\n");
+    spibusy = 1;
     call SpiPacket.send(buf, rxbuf, SPI_PKT_LEN);
   }
 
 
   task void ready() {
     //After the RESET, the chip requires like a second to regain its senses
-    call tmr.startOneShot(32000);
+    call tmr.startOneShot(16000);
   }
 
   task void connected() {
@@ -242,24 +248,19 @@ implementation
   default async event void BleCentral.advReceived(uint8_t* addr,
     uint8_t *data, uint8_t dlen, uint8_t rssi) {}
 
-  int cnt = 0;
   async event void SpiPacket.sendDone(uint8_t* txBuf, uint8_t* rxBuf,
                                       uint16_t len, error_t error) {
-    cnt += 1;
-    printf("SpiPacket done 0x%d 0x%d\n", txBuf[0], rxBuf[0]);
-    printf("c %d\n", cnt);
     call CS.set();
     if (error == SUCCESS) {
       if (rxBuf[0] == 0xee) {
-        printf("Retrying spi...\n");
+        printf("Retrying ble tx...\n");
         call CS.clr();
         call SpiPacket.send(txBuf, rxbuf, SPI_PKT_LEN);
         return;
       }
-
+      spibusy=0;
       switch (rxBuf[0]) {
         case SPI_RESET:
-          printf("got RESET response\n");
           post ready();
           break;
         case SPI_CONNECT:
