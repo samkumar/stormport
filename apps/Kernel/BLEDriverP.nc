@@ -45,8 +45,6 @@ implementation
         for (i=0;i<MAX_CHARS;i++) write_callbacks[i] = 0;
         widx = 0;
         ridx = 0;
-        printf("BLED init called\n");
-
         call tmr.startOneShot(16000);
     }
     //Invoke the ready callback
@@ -72,12 +70,6 @@ implementation
             call BlePeripheral.startAdvertising(advdata, advlen);
             push_ready_callback();
         }
-
-        //call HelenaBleService.configure();
-        //call NrfBleService.createService[0](0x2005);
-        //call NrfBleService.addCharacteristic[0](0x2003, 0);
-        printf("BLE Ready!\n");
-
     }
 
     event void BlePeripheral.connected()
@@ -198,7 +190,6 @@ implementation
                 advlen = argx[2];
                 if (advlen > 20) advlen = 20;
                 memcpy(advdata, (uint8_t*) argx[1], advlen);
-                printf("advlen was %d\n", advlen);
                 if (device_online)
                 {
                     call BlePeripheral.startAdvertising(advdata, advlen);
@@ -231,8 +222,6 @@ implementation
 
     event void tmr.fired()
     {
-        printf("Doing init\n");
         call BlePeripheral.initialize();
-       // call HelenaService.notify(0x55,0x6677);
     }
 }

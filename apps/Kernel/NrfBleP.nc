@@ -148,7 +148,6 @@ implementation
     if (len > 20) len = 20;
     memcpy(&txbuf[2], data, len);
     txbuf[1] = len;
-    printf ("enqueue startadv %d '%s'\n", len, data);
     return enqueue_tx(txbuf, len+2);
   }
 

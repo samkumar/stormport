@@ -10,11 +10,6 @@ implementation
     components BLEDriverP;
     components NrfBleP;
     components new Sam4lUSART2C() as NrfSPI;
-    //components new SpiBleLocalCharC() as UUIDListedDevice;
-    //components new SpiBleLocalServiceC() as HelenaBleService;
-
-    //HelenaServiceC.UUIDListedDevice -> UUIDListedDevice;
-    //HelenaServiceC.BLE -> HelenaBleService;
 
     NrfBleP.SpiPacket -> NrfSPI.SpiPacket;
     NrfBleP.SpiHPL -> NrfSPI;
@@ -25,8 +20,6 @@ implementation
     NrfBleP.tmr -> bletmr;
 
     BLEDriverP.BlePeripheral -> NrfBleP;
-    //BLEDriverP.HelenaBleService -> HelenaServiceC;
-    //BLEDriverP.HelenaService -> HelenaServiceC;
 
     Driver = BLEDriverP.Driver;
     components new Timer32khzC();
