@@ -3,7 +3,6 @@ COMPONENT=KernelC
 # BOOTLOADER=tosboot
 
 PFLAGS += -DLONG_ADDR_SUFFIX=0x40
-    PFLAGS += -DBLIP_STFU
 ifdef KERNEL_QUIET_MODE
     PFLAGS += -DKERNEL_STFU
     PFLAGS += -DBLIP_STFU
@@ -76,6 +75,10 @@ PFLAGS += -DRPL_OF_MRHOF=0
 PFLAGS += -DRPL_SINGLE_HOP=\"fe80::212:6d02:0:feeb\"
 # if you are the root node of a single-hop network, use this flag and NOT RPL_SINGLE_HOP
 #PFLAGS += -DRPL_SINGLE_HOP_ROOT
+
+# This should only be defined if you are the border router/root node. Defining this will forward
+# all UDP multicast packets ff02::1 to the address defined here
+#PFLAGS += -DFORWARD_SERVICE_DISCOVERY=\"2001:470:4956:1::1\"
 
 ################################################################################
 ### Configure LPL

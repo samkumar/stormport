@@ -14,7 +14,7 @@ implementation
     components new Timer32khzC() as SocketSpiTimer;
     SocketSpiP.SpiPacket -> Sam4lUSART0C.SpiPacket;
     SocketSpiP.SpiHPL -> Sam4lUSART0C;
-    SocketSpiP.EthernetSS -> HplSam4lIOC.PB11;
+    SocketSpiP.EthernetSS -> HplSam4lIOC.PB12;
     SocketSpiP.Timer -> SocketSpiTimer;
 
     // is this the correct way to do this?
@@ -51,8 +51,8 @@ implementation
     s0.SendResource -> arbiter.Resource[unique(ETHERNETRESOURCE_ID)];
     s0.RecvResource -> arbiter.Resource[unique(ETHERNETRESOURCE_ID)];
     s0.ArbiterInfo -> arbiter.ArbiterInfo;
-    s0.GpioInterrupt -> HplSam4lIOC.PB12IRQ;
-    s0.IRQPin -> HplSam4lIOC.PB12;
+    s0.GpioInterrupt -> HplSam4lIOC.PB11IRQ;
+    s0.IRQPin -> HplSam4lIOC.PB11;
 
     UDPSocket[1] = s1.UDPSocket;
     RawSocket[1] = s1.RawSocket;
@@ -63,8 +63,8 @@ implementation
     s1.SendResource -> arbiter.Resource[unique(ETHERNETRESOURCE_ID)];
     s1.RecvResource -> arbiter.Resource[unique(ETHERNETRESOURCE_ID)];
     s1.ArbiterInfo -> arbiter.ArbiterInfo;
-    s1.GpioInterrupt -> HplSam4lIOC.PB12IRQ;
-    s1.IRQPin -> HplSam4lIOC.PB12;
+    s1.GpioInterrupt -> HplSam4lIOC.PB11IRQ;
+    s1.IRQPin -> HplSam4lIOC.PB11;
 
     UDPSocket[2] = s2.UDPSocket;
     RawSocket[2] = s2.RawSocket;
@@ -75,8 +75,8 @@ implementation
     s2.SendResource -> arbiter.Resource[unique(ETHERNETRESOURCE_ID)];
     s2.RecvResource -> arbiter.Resource[unique(ETHERNETRESOURCE_ID)];
     s2.ArbiterInfo -> arbiter.ArbiterInfo;
-    s2.GpioInterrupt -> HplSam4lIOC.PB12IRQ;
-    s2.IRQPin -> HplSam4lIOC.PB12;
+    s2.GpioInterrupt -> HplSam4lIOC.PB11IRQ;
+    s2.IRQPin -> HplSam4lIOC.PB11;
 
     UDPSocket[3] = s3.UDPSocket;
     RawSocket[3] = s3.RawSocket;
@@ -87,8 +87,8 @@ implementation
     s3.SendResource -> arbiter.Resource[unique(ETHERNETRESOURCE_ID)];
     s3.RecvResource -> arbiter.Resource[unique(ETHERNETRESOURCE_ID)];
     s3.ArbiterInfo -> arbiter.ArbiterInfo;
-    s3.GpioInterrupt -> HplSam4lIOC.PB12IRQ;
-    s3.IRQPin -> HplSam4lIOC.PB12;
+    s3.GpioInterrupt -> HplSam4lIOC.PB11IRQ;
+    s3.IRQPin -> HplSam4lIOC.PB11;
 
     UDPSocket[4] = s4.UDPSocket;
     RawSocket[4] = s4.RawSocket;
@@ -99,8 +99,8 @@ implementation
     s4.SendResource -> arbiter.Resource[unique(ETHERNETRESOURCE_ID)];
     s4.RecvResource -> arbiter.Resource[unique(ETHERNETRESOURCE_ID)];
     s4.ArbiterInfo -> arbiter.ArbiterInfo;
-    s4.GpioInterrupt -> HplSam4lIOC.PB12IRQ;
-    s4.IRQPin -> HplSam4lIOC.PB12;
+    s4.GpioInterrupt -> HplSam4lIOC.PB11IRQ;
+    s4.IRQPin -> HplSam4lIOC.PB11;
 
     UDPSocket[5] = s5.UDPSocket;
     RawSocket[5] = s5.RawSocket;
@@ -111,8 +111,8 @@ implementation
     s5.SendResource -> arbiter.Resource[unique(ETHERNETRESOURCE_ID)];
     s5.RecvResource -> arbiter.Resource[unique(ETHERNETRESOURCE_ID)];
     s5.ArbiterInfo -> arbiter.ArbiterInfo;
-    s5.GpioInterrupt -> HplSam4lIOC.PB12IRQ;
-    s5.IRQPin -> HplSam4lIOC.PB12;
+    s5.GpioInterrupt -> HplSam4lIOC.PB11IRQ;
+    s5.IRQPin -> HplSam4lIOC.PB11;
 
     UDPSocket[6] = s6.UDPSocket;
     RawSocket[6] = s6.RawSocket;
@@ -123,8 +123,8 @@ implementation
     s6.SendResource -> arbiter.Resource[unique(ETHERNETRESOURCE_ID)];
     s6.RecvResource -> arbiter.Resource[unique(ETHERNETRESOURCE_ID)];
     s6.ArbiterInfo -> arbiter.ArbiterInfo;
-    s6.GpioInterrupt -> HplSam4lIOC.PB12IRQ;
-    s6.IRQPin -> HplSam4lIOC.PB12;
+    s6.GpioInterrupt -> HplSam4lIOC.PB11IRQ;
+    s6.IRQPin -> HplSam4lIOC.PB11;
 
     UDPSocket[7] = s7.UDPSocket;
     RawSocket[7] = s7.RawSocket;
@@ -135,6 +135,6 @@ implementation
     s7.SendResource -> arbiter.Resource[unique(ETHERNETRESOURCE_ID)];
     s7.RecvResource -> arbiter.Resource[unique(ETHERNETRESOURCE_ID)];
     s7.ArbiterInfo -> arbiter.ArbiterInfo;
-    s7.GpioInterrupt -> HplSam4lIOC.PB12IRQ;
-    s7.IRQPin -> HplSam4lIOC.PB12;
+    s7.GpioInterrupt -> HplSam4lIOC.PB11IRQ;
+    s7.IRQPin -> HplSam4lIOC.PB11;
 }
