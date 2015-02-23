@@ -274,11 +274,13 @@ implementation
 
 		call BusyWait.wait(1000);
 
+#ifdef WITH_WIZ
         //I think this the U.FL connector (with 98% certainty)
-        //writeRegister(0x0D, 0b0101);
-
+        writeRegister(0x0D, 0b0101);
+#else
         //I think this is the trace
         writeRegister(0x0D, 0b0110);
+#endif
 
         //This is full autonomous diversity
         //writeRegister(0x0D, 0b1100);
