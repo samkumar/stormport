@@ -146,7 +146,9 @@ generic module RPLDAORoutingEngineP() {
       if (call SendQueue.size()) {
         // Once fired, shoot all the DAOs in the current sendqueue;
         // Assume that there is no aggregation on DAO messages.
+#ifndef NO_RPL
         post sendDAO();
+#endif
       }
     }
   }
@@ -260,7 +262,9 @@ generic module RPLDAORoutingEngineP() {
   }
 
   event void DelayDAOTimer.fired() {
+#ifndef NO_RPL
     post sendDAO();
+#endif
   }
 
   event void RemoveTimer.fired() {

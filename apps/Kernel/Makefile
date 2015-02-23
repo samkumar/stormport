@@ -75,6 +75,8 @@ PFLAGS += -DRPL_OF_MRHOF=0
 PFLAGS += -DRPL_SINGLE_HOP=\"fe80::212:6d02:0:feeb\"
 # if you are the root node of a single-hop network, use this flag and NOT RPL_SINGLE_HOP
 #PFLAGS += -DRPL_SINGLE_HOP_ROOT
+# if NO_RPL is defined, then *hopefully* no rpl messages should be sent, freeing up the airwaves
+PFLAGS += -DNO_RPL
 
 # This should only be defined if you are the border router/root node. Defining this will forward
 # all UDP multicast packets ff02::1 to the address defined here

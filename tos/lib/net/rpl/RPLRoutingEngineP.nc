@@ -459,7 +459,9 @@ implementation{
   }
 
   event void InitDISTimer.fired() {
+#ifndef NO_RPL
     post sendDISTask();
+#endif
   }
 
   event void IncreaseVersionTimer.fired() {
@@ -476,7 +478,9 @@ implementation{
       // send DIO, randomly selected time has passed
       // compute the remaining time
       // Change back to DIO
+#ifndef NO_RPL
       post sendDIOTask();
+#endif
       post computeRemaining();
     }
   }
@@ -519,7 +523,9 @@ implementation{
         #endif
         UNICAST_DIO = TRUE;
         memcpy(&UNICAST_DIO_ADDR, &(iph->ip6_src), sizeof(struct in6_addr));
+#ifndef NO_RPL
         post sendDIOTask();
+#endif
       }
     }
   }
@@ -542,7 +548,9 @@ implementation{
     if (dio->rank == INFINITE_RANK) {
       if ((call RPLRankInfo.getRank(NULL) != INFINITE_RANK) &&
           ((call InitDISTimer.getNow()%2) == 1)) { // send DIO if I can help!
+#ifndef NO_RPL
         post sendDIOTask();
+#endif
       }
       return;
     }
