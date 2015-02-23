@@ -60,6 +60,7 @@ module KernelMainP
         interface Driver as Timer_Driver;
         interface Driver as UDP_Driver;
         interface Driver as SysInfo_Driver;
+        interface Driver as BLE_Driver;
         interface Driver as I2C_Driver;
         interface Tcp as TcpSTDIO;
         interface GeneralIO as ENSEN;
@@ -157,41 +158,6 @@ implementation
         post launch_payload(); // ignore this if we are the ethernet shield
 #endif
         call TcpSTDIO.bind(23);
-
-        //TEST OF CORE CLOCK
-
-        #if 0
-        atomic
-        {
-            volatile uint32_t* dst = (volatile uint32_t*)(0x400E1000 + 0x05C);
-            uint32_t pinmask = 1<<16;
-            *((volatile uint32_t*)(0x400E1000 + 0x004)) = (1<<16); //enable GPIO
-            *((volatile uint32_t*)(0x400E1000 + 0x044)) = (1<<16); //enable DRIVER
-            *((volatile uint32_t*)(0x400E1000 + 0x168)) = (1<<16); //disable ST
-            while(1)
-            {
-                *dst = pinmask;
-                asm("nop");
-            }
-        }
-
-        atomic
-        {
-            //pa19 as gclk0 (peripheral E)
-            //DFLL/48
-            //*((volatile uint32_t*)(0x400E0800 + 0x074)) = 0x00170203; //GCLK0=dfll/48
-            //RCSYS NO DIV
-            *((volatile uint32_t*)(0x400E0800 + 0x074)) = 0x00170001;
-            //RC32
-            //*((volatile uint32_t*)(0x400E0800 + 0x074)) = 0x00170d01;
-            *((volatile uint32_t*)(0x400E1000 + 0x008)) = (1<<19); //disable GPIO
-            *((volatile uint32_t*)(0x400E1000 + 0x168)) = (1<<19); //disable ST
-            *((volatile uint32_t*)(0x400E1000 + 0x018)) = (1<<19); //pmr0c
-            *((volatile uint32_t*)(0x400E1000 + 0x028)) = (1<<19); //pmr1c
-            *((volatile uint32_t*)(0x400E1000 + 0x034)) = (1<<19); //pmr2s
-            while(1);
-        }
-        #endif
 
     }
 
@@ -406,6 +372,17 @@ implementation
                     call UDP_Driver.pop_callback();
                     return TRUE;
                 }
+                //check for BLE callbacks:
+                cb = call BLE_Driver.peek_callback();
+                if (cb != NULL)
+                {
+                    ble_callback_t *c = (ble_callback_t*) cb;
+                    __inject_function3((void*)c->addr, c->r, c->arg0, c->arg1);
+                    procstate = procstate_runnable;
+                    __syscall(KABI_RESUME_PROCESS);
+                    call BLE_Driver.pop_callback();
+                    return TRUE;
+                }
 
                 //if there was an event, we would process it and return, bypassing this if statement.
                 if (procstate == procstate_flush_event) { //If/when event queue is empty, flush_event becomes runnable, wait_event doesn't exit on empty queue, only on an event.
@@ -501,6 +478,7 @@ implementation
                 if (( syscall_args[0] >> 8) == 3 ) rv = call UDP_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
                 if (( syscall_args[0] >> 8) == 4 ) rv = call SysInfo_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
                 if (( syscall_args[0] >> 8) == 5 ) rv = call I2C_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
+                if (( syscall_args[0] >> 8) == 6 ) rv = call BLE_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
                 *process_syscall_rv = rv;
                 return RET_KERNEL;
             }

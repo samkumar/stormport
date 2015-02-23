@@ -29,6 +29,14 @@ typedef struct
     uint32_t status;
 } i2c_callback_t;
 
+typedef struct
+{
+    uint32_t addr;
+    void *r;
+    uint32_t arg0;
+    uint32_t arg1;
+} ble_callback_t;
+
 typedef uint32_t syscall_rv_t;
 /*
 typedef callback_t* pcallback_t @combine("cbcombine");
