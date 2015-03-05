@@ -64,6 +64,8 @@ module KernelMainP
         interface Driver as I2C_Driver;
         interface Tcp as TcpSTDIO;
         interface GeneralIO as ENSEN;
+        interface HplSam4PeripheralClockCntl as ADCIFEClockCtl;
+
     }
 }
 implementation
@@ -153,6 +155,7 @@ implementation
 
         call ENSEN.makeOutput();
         call ENSEN.clr();
+        call ADCIFEClockCtl.enable();
 
 #ifndef WITH_WIZ
         post launch_payload(); // ignore this if we are the ethernet shield

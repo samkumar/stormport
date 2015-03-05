@@ -121,13 +121,19 @@ implementation
                     *((volatile uint32_t*)(base_addr + (0x200*port) + 0x078)) = pinmask; //PUERC
                     *((volatile uint32_t*)(base_addr + (0x200*port) + 0x088)) = pinmask; //PDERC
                     return 0;
-                } else if (arg0 == 2) //set peripheral
+                } else if (arg0 == 2) //set analog
                 {
+
                     *((volatile uint32_t*)(base_addr + (0x200*port) + 0x008)) = pinmask; //disable GPIO
                     *((volatile uint32_t*)(base_addr + (0x200*port) + 0x048)) = pinmask; //disable driver
                     *((volatile uint32_t*)(base_addr + (0x200*port) + 0x168)) = pinmask; //disable ST
+                    *((volatile uint32_t*)(base_addr + (0x200*port) + 0x0C8)) = pinmask; //disable glitchfilter
                     *((volatile uint32_t*)(base_addr + (0x200*port) + 0x078)) = pinmask; //PUERC
                     *((volatile uint32_t*)(base_addr + (0x200*port) + 0x088)) = pinmask; //PDERC
+                    *((volatile uint32_t*)(base_addr + (0x200*port) + 0x018)) = pinmask; //PMR0C
+                    *((volatile uint32_t*)(base_addr + (0x200*port) + 0x028)) = pinmask; //PMR1C
+                    *((volatile uint32_t*)(base_addr + (0x200*port) + 0x038)) = pinmask; //PMR2C
+                    printf("PINMASK WAS %04x\n",pinmask);
                     return 0;
                 }
                 return (uint32_t) -1;

@@ -101,6 +101,9 @@ implementation
     components HplSam4lIOC;
     KernelMainP.ENSEN -> HplSam4lIOC.PC19;
 
+    components HplSam4lClockC;
+
+    KernelMainP.ADCIFEClockCtl -> HplSam4lClockC.ADCIFECtl;
     //Drivers
     components StormSimpleGPIOC;
     KernelMainP.GPIO_Driver -> StormSimpleGPIOC.Driver;

@@ -143,12 +143,38 @@ implementation
   }
 
   command error_t BlePeripheral.startAdvertising(uint8_t *data, uint8_t len) {
-    uint8_t txbuf[22];
+    uint8_t txbuf[33];
+    if (len > 12) len = 12;
     txbuf[0] = SPI_START_ADVERTISING;
+    txbuf[1] = len+16;
+    //02 01 06 //flags
+    txbuf[2] = 0x02; //flags
+    txbuf[3] = 0x01;
+    txbuf[4] = 0x06; //BLE only
+    txbuf[5] = 0x0A;
+    txbuf[6] = 0x09; //Device name
+    txbuf[7] = 'F';
+    txbuf[8] = 'i';
+    txbuf[9] = 'r';
+    txbuf[10] = 'e';
+    txbuf[11] = 's';
+    txbuf[12] = 't';
+    txbuf[13] = 'o';
+    txbuf[14] = 'r';
+    txbuf[15] = 'm';
+    txbuf[16] = len + 1;
+    txbuf[17] = 0xFE; //Standards noncompliant extra data
+    memcpy(txbuf+18, data, len);
+    return enqueue_tx(txbuf, len+18);
+
+
+    /*
     if (len > 20) len = 20;
     memcpy(&txbuf[2], data, len);
     txbuf[1] = len;
+
     return enqueue_tx(txbuf, len+2);
+    */
   }
 
   command error_t BlePeripheral.stopAdvertising() {
@@ -184,10 +210,19 @@ implementation
     enqueue_tx(txbuf, sizeof(txbuf));
   }
 
+  uint8_t initialized = 0;
   event void tmr.fired()
   {
-    signal BlePeripheral.ready();
-    signal BleCentral.ready();
+    if (!initialized) {
+        signal BlePeripheral.ready();
+        signal BleCentral.ready();
+        call tmr.startPeriodic(16000);
+        initialized = 1;
+    } else {
+        uint8_t txbuf[1];
+        txbuf[0] = SPI_NOOP;
+        enqueue_tx(txbuf, sizeof(txbuf));
+    }
   }
   command void BlePeripheral.initialize() {
     post initialize();
