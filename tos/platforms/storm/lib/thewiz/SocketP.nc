@@ -438,10 +438,12 @@ implementation
                     else if (*rxbuf & SocketInterrupt_RECV) // recv flag got set
                     {
                         //TODO if we get here, figure out what to do
+                        sendUDPstate = state_writeudp_error;
 #ifndef BLIP_STFU
-                        printf("Recv got set");
+                        printf("\033[33;1mRecv got set\n\033[0m");
 #endif
-                        break;
+                        txbuf[0] = SocketInterrupt_RECV;
+                        call SocketSpi.writeRegister(0x4002 + socket * 0x100, _txbuf, 1);
                     }
                     else // read again
                     {
@@ -538,7 +540,9 @@ implementation
 
             case state_recv_snrx_rd:
                 rx_ptr = ((uint16_t)rxbuf[0] << 8) | rxbuf[1];
-                
+#ifndef BLIP_STFU
+		printf("\033[32;1mRX MSG\n\033[0m");
+#endif
                 src_mask = rx_ptr & RXMASK; // mask to put it in the correct range
                 src_ptr = RXBASE + src_mask; // add the offset to the base
                 amountleft = RXBUF_SIZE - src_mask; // number of bytes left in buffer
