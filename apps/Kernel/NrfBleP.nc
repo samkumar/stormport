@@ -216,7 +216,7 @@ implementation
     if (!initialized) {
         signal BlePeripheral.ready();
         signal BleCentral.ready();
-        call tmr.startPeriodic(16000);
+        //call tmr.startPeriodic(16000);
         initialized = 1;
     } else {
         uint8_t txbuf[1];
