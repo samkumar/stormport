@@ -97,6 +97,8 @@ implementation
 
   #endif
 
+    components HplCortexM4MPUP;
+    KernelMainP.MPU -> HplCortexM4MPUP;
     //I2C sensor rail
     components HplSam4lIOC;
     KernelMainP.ENSEN -> HplSam4lIOC.PC19;

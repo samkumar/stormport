@@ -56,6 +56,7 @@ module KernelMainP
         interface FlashAttr;
         interface Timer<T32khz> as Timer;
         interface UartStream;
+        interface HplCortexM4MPU as MPU;
         interface Driver as GPIO_Driver;
         interface Driver as Timer_Driver;
         interface Driver as UDP_Driver;
@@ -190,6 +191,26 @@ implementation
     event void TcpSTDIO.acked() {}
 
 
+    void lockdown_memory()
+    {
+        /**
+         * Payload map
+         * Region 0: everything RO
+         * Region 1: make code and sram cached
+         * Region 2: 0x20004000 : 0x00004000 dis 0b11
+         * Region 3: 0x20008000 : 0x00008000 dis 0
+         * Region 4: 0x40038000 :  #adc
+         */
+        printf("Enabling MPU\n");
+        // num,  address,  logsize,  subreg,  peripheral,  protected
+        call MPU.configRegion(0, 0, 32, 0, 1, 1);
+        call MPU.configRegion(1, 0, 30, 0, 0, 1);
+        call MPU.configRegion(2, 0x20004000, 14, 0b11, 0, 0); //u SRAM
+        call MPU.configRegion(3, 0x20008000, 15, 0, 0, 0); //u SRAM
+        call MPU.configRegion(4, 0x40038000, 15, 0, 1, 0); //ADC
+        call MPU.enableMPU();
+        printf("MPU Enabled\n");
+    }
     task void launch_payload()
     {
         uint8_t key [10];

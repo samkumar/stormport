@@ -60,7 +60,7 @@ __inject_function3:
 __context_switch:
     cbnz r0, to_master
 to_slave:
-    mov r1, #0x2
+    mov r1, #0x3
     msr CONTROL, r1
     movw LR, #0xFFFD
     movt LR, #0xFFFF
