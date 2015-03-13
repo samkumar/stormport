@@ -12,6 +12,9 @@ ifdef KERNEL_WITH_ETH_SHIELD
     LINKERFILE = stormkernel_ethshield.ld
 endif
 
+PFLAGS += -DBLIP_STATS
+PFLAGS += -DBLIP_STATS_IP_MEM
+
 # radio options
 # CFLAGS += -DCC2420_DEF_CHANNEL=26
 CFLAGS += -DRF230_DEF_CHANNEL=26
