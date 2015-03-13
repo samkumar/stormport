@@ -17,6 +17,42 @@ implementation
 
     command void Driver.pop_callback() {}
 
+    /* Used for packing a route_entry struct into a uint8_t* for
+     * returning in a syscall. Uses @arg as the start address of a
+     * uint8_t*. Starts packing in the 35 bytes necessary to store a
+     * route_entry struct at the indicated index @start
+     */
+    void pack_routing_table(uint32_t arg, uint32_t start, struct route_entry *entry)
+    {
+        int i;
+        // add key
+        ((uint8_t *)arg)[start+0] = (uint8_t) entry->key;
+        // add prefix
+        for (i=0;i<16;i++)
+        {
+            ((uint8_t *)arg)[start+1+i] = entry->prefix.s6_addr[i];
+        }
+        // add prefix len
+        ((uint8_t *)arg)[start+17] = entry->prefixlen;
+        // add next_hop
+        for (i=0;i<16;i++)
+        {
+            ((uint8_t *)arg)[start+18+i] = entry->next_hop.s6_addr[i];
+        }
+        // add ifindex
+        ((uint8_t *)arg)[start+34] = entry->ifindex;
+    }
+
+    void print_entry(struct route_entry *entry)
+    {
+        printf("valid? %d\n", entry->valid);
+        printf("route key %d\nprefix ", entry->key);
+        printf_in6addr(&entry->prefix);
+        printf("\nprefix len %d\nnext_hop ", entry->prefixlen);
+        printf_in6addr(&entry->next_hop);
+        printf("\nifindex %d\n", entry->ifindex);
+    }
+
     async command syscall_rv_t Driver.syscall_ex(
         uint32_t number, uint32_t arg0, 
         uint32_t arg1, uint32_t arg2, 
@@ -86,23 +122,7 @@ implementation
         {
             route_key_t index = (route_key_t) arg0;
             struct route_entry *entry = call ForwardingTable.lookupRouteKey(index);
-            int i;
-            // add key
-            ((uint8_t *)arg1)[0] = (uint8_t) entry->key;
-            // add prefix
-            for (i=0;i<16;i++)
-            {
-                ((uint8_t *)arg1)[1+i] = entry->prefix.s6_addr[i];
-            }
-            // add prefix len
-            ((uint8_t *)arg1)[17] = entry->prefixlen;
-            // add next_hop
-            for (i=0;i<16;i++)
-            {
-                ((uint8_t *)arg1)[18+i] = entry->next_hop.s6_addr[i];
-            }
-            // add ifindex
-            ((uint8_t *)arg1)[17] = entry->ifindex;
+            pack_routing_table(arg1, 0, entry);
             return 0;
         }
 
@@ -131,22 +151,7 @@ implementation
             {
                 entry = call ForwardingTable.lookupRoute(prefix->s6_addr, prefix_len_bits);
             }
-            // add key
-            ((uint8_t *)arg2)[0] = (uint8_t) entry->key;
-            // add prefix
-            for (i=0;i<16;i++)
-            {
-                ((uint8_t *)arg2)[1+i] = entry->prefix.s6_addr[i];
-            }
-            // add prefix len
-            ((uint8_t *)arg2)[17] = entry->prefixlen;
-            // add next_hop
-            for (i=0;i<16;i++)
-            {
-                ((uint8_t *)arg2)[18+i] = entry->next_hop.s6_addr[i];
-            }
-            // add ifindex
-            ((uint8_t *)arg2)[34] = entry->ifindex;
+            pack_routing_table(arg2, 0, entry);
             return 0;
         }
         }
