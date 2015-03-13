@@ -234,6 +234,8 @@ implementation
             printf("Did not find expected payload entry point");
             return;
         }
+
+	lockdown_memory();
         __bootstrap_payload(addr);
         procstate = procstate_runnable;
     }
