@@ -154,6 +154,26 @@ implementation
             pack_routing_table(arg2, 0, entry);
             return 0;
         }
+
+        case 0x05: //get_table(return size, return buffer)
+        {
+            struct route_entry *table;
+            int size;
+            int i;
+            table = call ForwardingTable.getTable(&size);
+            // save the results of the table in a buffer
+            for (i=0;i<size;i++)
+            {
+                // only store entries who have valid != 0 this should remove
+                //"empty" entries, as the routing table doesn't know how big it is
+                if ((table+i)->valid != 0)
+                {
+                    (*((int *)arg0))++;
+                    pack_routing_table(arg1, i*35, table+i);
+                }
+            }
+        }
+
         }
     }
 }
