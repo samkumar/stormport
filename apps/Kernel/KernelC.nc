@@ -115,6 +115,8 @@ implementation
     KernelMainP.UDP_Driver -> UDPDriverC;
     components StormSysInfoC;
     KernelMainP.SysInfo_Driver -> StormSysInfoC;
+    components StormRoutingTableC;
+    KernelMainP.RoutingTable_Driver -> StormRoutingTableC;
     components BLEDriverC;
     KernelMainP.BLE_Driver -> BLEDriverC;
     components I2CDriverC;
