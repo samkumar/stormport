@@ -96,11 +96,7 @@ generic module RPLDAORoutingEngineP() {
   }
 
   command error_t StdControl.start() {
-#ifndef RPL_SINGLE_HOP_ROOT
-#ifndef RPL_SINGLE_HOP
     call RPLDAORouteInfo.startDAO();
-#endif
-#endif
     m_running = TRUE;
     return SUCCESS;
   }
@@ -146,9 +142,7 @@ generic module RPLDAORoutingEngineP() {
       if (call SendQueue.size()) {
         // Once fired, shoot all the DAOs in the current sendqueue;
         // Assume that there is no aggregation on DAO messages.
-#ifndef NO_RPL
         post sendDAO();
-#endif
       }
     }
   }
@@ -262,9 +256,7 @@ generic module RPLDAORoutingEngineP() {
   }
 
   event void DelayDAOTimer.fired() {
-#ifndef NO_RPL
     post sendDAO();
-#endif
   }
 
   event void RemoveTimer.fired() {
@@ -368,14 +360,12 @@ generic module RPLDAORoutingEngineP() {
         // new next hop for an existing downswards node
         call RPLRouteInfo.setDTSN((call RPLRouteInfo.getDTSN()) + 1);
         if (dao_target->prefix_length > 0) {
-#ifndef RPL_SINGLE_HOP_ROOT
           // only add to routing table if we are not single hop root
           new_key = call ForwardingTable.addRoute(
             target_prefix.s6_addr,
             dao_target->prefix_length,
             &iph->ip6_src,
             RPL_IFACE);
-#endif
         }
       }
     } else {
@@ -389,14 +379,12 @@ generic module RPLDAORoutingEngineP() {
         return;
       }
       if (dao_target->prefix_length > 0) {
-#ifndef RPL_SINGLE_HOP_ROOT
         // if we are the single hop root, then we do not want to add stuff to the routing table -- Gabe
         new_key = call ForwardingTable.addRoute(
           target_prefix.s6_addr,
           dao_target->prefix_length,
           &iph->ip6_src,
           RPL_IFACE);
-#endif
       }
 
       if (new_key != ROUTE_INVAL_KEY) {

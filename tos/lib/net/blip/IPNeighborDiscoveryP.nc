@@ -57,11 +57,6 @@ module IPNeighborDiscoveryP {
 
   struct in6_addr ALL_ROUTERS_ADDR;
 
-#ifdef RPL_SINGLE_HOP
-  // ipv6 address for root of single hop route
-  struct sockaddr_in6 single_hop_route;
-#endif
-
   // Global prefix for this network
   struct in6_addr prefix;
   uint8_t prefix_length = 0;
@@ -76,15 +71,6 @@ module IPNeighborDiscoveryP {
     inet_pton6(IPV6_ADDR_ALL_ROUTERS, &ALL_ROUTERS_ADDR);
 
     memset(&prefix, 0, sizeof(struct in6_addr));
-#ifdef RPL_SINGLE_HOP
-    /**
-     * In single-hop mode, we only want our mote to send/receive from a single
-     * other node (probably the root/border router, but this does not have to
-     * be the case). We add in the default route from the Makefile here -- Gabe
-     */
-    inet_pton6(RPL_SINGLE_HOP, &single_hop_route.sin6_addr);
-    call ForwardingTable.addRoute(NULL, 0, &single_hop_route.sin6_addr, ROUTE_IFACE_154);
-#endif
 
 #if BLIP_SEND_ROUTER_SOLICITATIONS
     // Set timer to send RS messages
@@ -241,9 +227,7 @@ module IPNeighborDiscoveryP {
 #endif
     memcpy(&pkt.ip6_hdr.ip6_dst, &ALL_ROUTERS_ADDR, 16);
     call IPAddress.getLLAddr(&pkt.ip6_hdr.ip6_src);
-#ifndef NO_RPL
     call IP_RS.send(&pkt);
-#endif
   }
 
   void send_ra (ieee154_laddr_t* ll_addr) {
@@ -321,9 +305,7 @@ module IPNeighborDiscoveryP {
     }
 
     call IPAddress.getLLAddr(&pkt.ip6_hdr.ip6_src);
-#ifndef NO_RPL
     call IP_RA.send(&pkt);
-#endif // NO_RPL
 #endif
   }
 
@@ -338,9 +320,7 @@ module IPNeighborDiscoveryP {
       call RSTimer.startOneShot(RTR_SOLICITATION_INTERVAL);
     }
 
-#ifndef NO_RPL
     post send_rs_task();
-#endif
   }
 
   event void IP_RS.recv(struct ip6_hdr *hdr,
@@ -395,9 +375,7 @@ module IPNeighborDiscoveryP {
     }
 
     // Send a unicast RA in response to the RS
-#ifndef NO_RPL
     send_ra(&sllao->ll_addr);
-#endif
   }
 
   event void IP_RA.recv(struct ip6_hdr *hdr,

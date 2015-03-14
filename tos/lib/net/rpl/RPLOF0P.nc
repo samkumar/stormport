@@ -231,7 +231,6 @@ implementation{
     // call ForwardingTable.addRoute((const uint8_t*)&DODAGID, 128,
     // l                              &parentNode->parentIP, RPL_IFACE);
     
-#ifndef RPL_SINGLE_HOP_ROOT
             printf("ADDING DEFAULT ROUTE OF0 ");
             printf_in6addr(&parentNode->parentIP);
             printf("\n");
@@ -239,7 +238,6 @@ implementation{
                                               0,
                                               &parentNode->parentIP,
                                               RPL_IFACE);
-#endif
 
     if (prevParent != parentNode->parentIP.s6_addr16[7]) {
       // printf("RPLOF: >> New Parent %d %x %lu \n", TOS_NODE_ID,
