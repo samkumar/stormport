@@ -46,6 +46,16 @@ implementation
                 ((uint8_t*)arg0)[i] = address.data[i-8];
             }
             return 0;
+        case 0x04: // reset
+        {
+            //This is a little ugly, but its prettier than including the whole CMSIS
+            //trust me on that.
+            uint32_t prigrp = *((volatile uint32_t*)(0xE000ED0C)) & (3<<7);
+            asm("dsb");
+            *((volatile uint32_t*)(0xE000ED0C)) = 0x05FA0000 | prigrp | 4;
+            asm("dsb");
+            return 0;
+        }
         default:
             return (uint32_t) -1;
         }
