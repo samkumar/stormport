@@ -84,4 +84,12 @@ typedef nx_struct {
   nx_uint16_t cksum; // UDP datagrams dropped due to checksum error
 } udp_statistics_t;
 
+typedef nx_struct {
+  // time window is determined by user
+  // distinct packets sent in time window [i]
+  nx_uint8_t pkt_cnt[512];
+  // number of transmissions for all packets in time window [i]
+  nx_uint8_t tx_cnt[512];
+} retry_statistics_t;
+
 #endif
