@@ -190,14 +190,25 @@ implementation
 
                 return &stats;
             }
+            case 0x07: //udp_clear_blipstats()
+            {
+                call ip_stats.clear();
+                call udp_stats.clear();
+                return 0;
+            }
 
-            case 0x07: //udp_get_retrystats()
+            case 0x08: //udp_get_retrystats()
             {
                 retry_statistics_t r;
                 call retry_stats.get(&r);
                 memcpy(&rstats.pkt_cnt, &r.pkt_cnt, sizeof(uint8_t) * 512);
                 memcpy(&rstats.tx_cnt, &r.tx_cnt, sizeof(uint8_t) * 512);
                 return &rstats;
+            }
+            case 0x09: // udp_clear_retrystats()
+            {
+                call retry_stats.clear();
+                return 0;
             }
         }
     }

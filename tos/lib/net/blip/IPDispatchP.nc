@@ -728,6 +728,7 @@ void SENDINFO_DECR(struct send_info *si) {
   }
 
   command void RetryStatistics.clear() {
+    cur_bucket = 0;
     memclr((uint8_t *)&retry_stats, sizeof(retry_statistics_t));
   }
 
