@@ -87,9 +87,9 @@ typedef nx_struct {
 typedef nx_struct {
   // time window is determined by user
   // distinct packets sent in time window [i]
-  nx_uint8_t pkt_cnt[512];
+  nx_uint8_t pkt_cnt[256];
   // number of transmissions for all packets in time window [i]
-  nx_uint8_t tx_cnt[512];
+  nx_uint8_t tx_cnt[256];
 } retry_statistics_t;
 
 #endif
