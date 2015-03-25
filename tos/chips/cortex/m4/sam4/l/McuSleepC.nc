@@ -45,6 +45,7 @@ module McuSleepC
     interface McuPowerState;
     interface Sam4LowPower;
     interface FunctionWrapper as InterruptWrapper;
+    interface LockLevel;
   }
   uses {
     interface HplSam4Clock;
@@ -86,12 +87,31 @@ implementation{
   void commonSleep() {
   }
 
+  uint8_t locklevel = 1;
+  command void LockLevel.setLockLevel(uint8_t i)
+  {
+    locklevel = i;
+  }
   void commonResume() {
   }
 
   void setupSleepMode() {
   }
   void resumeFromSleepMode() {
+  }
+
+  void hackdeepsleep()
+  {
+
+    volatile uint32_t * pmcr = (volatile uint32_t *) (0x001c + 0x400F0000);
+    volatile uint32_t * bpm_unlock = (volatile uint32_t *) (0x0018 +  0x400F0000);
+    volatile uint32_t * scr = (volatile uint32_t *) 0xE000ED10;
+    if (locklevel == 0)
+    {
+        *bpm_unlock = 0xAA00001C;
+        *pmcr = 0x01011000;
+        *scr = 0b100; //deepsleep
+    }
   }
 
   void setupWaitMode() {
@@ -126,6 +146,8 @@ implementation{
     // Make sure we DON'T go into deep sleep (i.e. backup mode)
     SCB->scr.bits.sleepdeep = 0;
     */
+
+
   }
 
   void resumeFromWaitMode() {
@@ -219,7 +241,7 @@ implementation{
         // Default setup
         setupSleepMode();
     }
-
+    hackdeepsleep();
     __nesc_enable_interrupt();
 
     /**
@@ -228,7 +250,7 @@ implementation{
      */
     // Enter appropriate idle mode
     if(ps != S_AWAKE)
-      __asm volatile ("wfe");
+      __asm volatile ("wfi");
 
     // Normally, at this point we can only be woken up by an interrupt, so execution continues
     // in the body of the InterruptWrapper.preamble() command before returning to here

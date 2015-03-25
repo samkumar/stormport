@@ -5,6 +5,7 @@ module StormSysInfoP
 {
     provides interface Driver;
     uses interface LocalIeeeEui64;
+    uses interface LockLevel;
 }
 implementation
 {
@@ -54,6 +55,11 @@ implementation
             asm("dsb");
             *((volatile uint32_t*)(0xE000ED0C)) = 0x05FA0000 | prigrp | 4;
             asm("dsb");
+            return 0;
+        }
+        case 0x05: //setpowerlock(i)
+        {
+            call LockLevel.setLockLevel(arg0);
             return 0;
         }
         default:

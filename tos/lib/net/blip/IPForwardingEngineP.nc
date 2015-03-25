@@ -209,8 +209,10 @@ module IPForwardingEngineP {
       call ForwardingTable.lookupRoute(pkt->ip6_hdr.ip6_dst.s6_addr, 128);
 
 #ifdef PRINTFUART_ENABLED
+#ifndef BLIP_STFU
     if (!call PrintTimer.isRunning())
       call PrintTimer.startPeriodic(10000);
+#endif
 #endif
 
     if (call IPAddress.isLocalAddress(&pkt->ip6_hdr.ip6_dst) &&

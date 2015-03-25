@@ -58,7 +58,7 @@ implementation
     KernelMainP.Timer -> Timer32khzC;
 
     components UdpC, IPDispatchC;
-    components RPLRoutingC;
+    //components RPLRoutingC;
 
     components PlatformSerialC;
     KernelMainP.UartStream -> PlatformSerialC;
@@ -67,8 +67,8 @@ implementation
     components SerialPrintfC;
 
     //STDIO socket
-    components new TcpSocketC();
-    KernelMainP.TcpSTDIO -> TcpSocketC;
+    //components new TcpSocketC();
+    //KernelMainP.TcpSTDIO -> TcpSocketC;
 
   #ifdef WITH_WIZ
   components IPPacketC;
@@ -109,7 +109,8 @@ implementation
     //Drivers
     components StormSimpleGPIOC;
     KernelMainP.GPIO_Driver -> StormSimpleGPIOC.Driver;
-    components TimerDriverC;
+    //components TimerDriverC as TimerDriverC;
+    components LowPowerTimerDriverC as TimerDriverC;
     KernelMainP.Timer_Driver -> TimerDriverC.Driver;
     components UDPDriverC;
     KernelMainP.UDP_Driver -> UDPDriverC;
@@ -119,6 +120,6 @@ implementation
     KernelMainP.RoutingTable_Driver -> StormRoutingTableC;
     components BLEDriverC;
     KernelMainP.BLE_Driver -> BLEDriverC;
-    components I2CDriverC;
-    KernelMainP.I2C_Driver -> I2CDriverC;
+   // components I2CDriverC;
+    //KernelMainP.I2C_Driver -> I2CDriverC;
 }

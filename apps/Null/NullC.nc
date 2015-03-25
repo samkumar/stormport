@@ -58,5 +58,14 @@ implementation
   event void Boot.booted() {
     // Do nothing.
   }
+  bool run_process() @C() @spontaneous()
+{
+    return FALSE;
+}
+void SVC_Handler() @C() @spontaneous()
+{
+    return;
+}
+
 }
 

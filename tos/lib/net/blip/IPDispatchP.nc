@@ -184,7 +184,7 @@ void SENDINFO_DECR(struct send_info *si) {
 
     if (error == SUCCESS) {
       call Leds.led2Toggle();
-      call ExpireTimer.startPeriodic(FRAG_EXPIRE_TIME);
+      //call ExpireTimer.startPeriodic(FRAG_EXPIRE_TIME);
       state = S_RUNNING;
       radioBusy = FALSE;
     }

@@ -72,4 +72,22 @@ void sleep()
         call Resource.release();
         return SUCCESS;
     }
+
+    command void FlashAttr.enterDeepSleep()
+    {
+        if (call Resource.immediateRequest() != SUCCESS)
+            return EBUSY;
+        call HplSam4lSPIChannel.setMode(0,0);
+        call CS.makeOutput();
+
+        call CS.set();
+        sleep();
+        call CS.clr();
+        sleep();
+        call FastSpiByte.write(0x79);
+        sleep();
+        call CS.set();
+        call Resource.release();
+        return SUCCESS;
+    }
 }

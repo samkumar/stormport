@@ -64,7 +64,7 @@ module KernelMainP
         interface Driver as RoutingTable_Driver;
         interface Driver as BLE_Driver;
         interface Driver as I2C_Driver;
-        interface Tcp as TcpSTDIO;
+
         interface GeneralIO as ENSEN;
         interface HplSam4PeripheralClockCntl as ADCIFEClockCtl;
 
@@ -144,7 +144,9 @@ implementation
     event void Boot.booted() {
         char vbuf[80];
         int ln;
-        call RadioControl.start();
+        //call RadioControl.start();
+        //call RadioControl.stop();
+        //while(1);
         call UartStream.enableReceiveInterrupt();
         ln = snprintf(vbuf, 80, "Booting kernel %d.%d.%d.%d (%s)\n",VER_MAJOR, VER_MINOR, VER_SUBMINOR, VER_BUILD, GITCOMMIT);
         storm_write_payload(vbuf, ln);
@@ -156,13 +158,14 @@ implementation
         call Dmesg.bind(514);
 
         call ENSEN.makeOutput();
-        call ENSEN.clr();
-        call ADCIFEClockCtl.enable();
+        call ENSEN.set();
+        //call ENSEN.clr();
+        //call ADCIFEClockCtl.enable();
 
 #ifndef WITH_WIZ
         post launch_payload(); // ignore this if we are the ethernet shield
 #endif
-        call TcpSTDIO.bind(23);
+
 
     }
 
@@ -173,23 +176,7 @@ implementation
     bool sock_connected = FALSE;
     char tcp_buf[150];
 
-    event bool TcpSTDIO.accept(struct sockaddr_in6 *from,
-                            void **tx_buf, int *tx_buf_len) {
-        *tx_buf = tcp_buf;
-        *tx_buf_len = 150;
-        return TRUE;
-    }
-    event void TcpSTDIO.connectDone(error_t e) {
 
-    }
-    event void TcpSTDIO.recv(void *payload, uint16_t len) {
-        call TcpSTDIO.send(payload,len);
-    }
-    event void TcpSTDIO.closed(error_t e) {
-        printf ("CLOSED: ERR: %d\n", e);
-        call TcpSTDIO.bind(23);
-    }
-    event void TcpSTDIO.acked() {}
 
 
     void lockdown_memory()
@@ -235,8 +222,10 @@ implementation
             printf("Did not find expected payload entry point");
             return;
         }
+        //We don't need flash anymore
+        call FlashAttr.enterDeepSleep();
 
-	lockdown_memory();
+	    lockdown_memory();
         __bootstrap_payload(addr);
         procstate = procstate_runnable;
     }
@@ -375,7 +364,7 @@ implementation
                     call GPIO_Driver.pop_callback();
                     return TRUE;
                 }
-                //check for i2c callbacks
+              /*  //check for i2c callbacks
                 cb = call I2C_Driver.peek_callback();
                 if (cb != NULL)
                 {
@@ -385,7 +374,7 @@ implementation
                     __syscall(KABI_RESUME_PROCESS);
                     call I2C_Driver.pop_callback();
                     return TRUE;
-                }
+                }*/
                 //check for UDP callbacks:
                 cb = call UDP_Driver.peek_callback();
                 if (cb != NULL)
@@ -504,7 +493,7 @@ implementation
                 if (( syscall_args[0] >> 8) == 2 ) rv = call Timer_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
                 if (( syscall_args[0] >> 8) == 3 ) rv = call UDP_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
                 if (( syscall_args[0] >> 8) == 4 ) rv = call SysInfo_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
-                if (( syscall_args[0] >> 8) == 5 ) rv = call I2C_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
+             //   if (( syscall_args[0] >> 8) == 5 ) rv = call I2C_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
                 if (( syscall_args[0] >> 8) == 6 ) rv = call BLE_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
                 if (( syscall_args[0] >> 8) == 7 ) rv = call RoutingTable_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
                 *process_syscall_rv = rv;
