@@ -665,7 +665,7 @@ void SENDINFO_DECR(struct send_info *si) {
 
     // populate retry statistics
     pkt_cnt += 1; // add 1 for trying to send packet
-    tx_cnt += call PacketLink.getRetries(msg);
+    tx_cnt += 1 + call PacketLink.getRetries(msg); // retries can return 0 for "successful"
 
  //acknowledgements are not required for multicast packets, useful for fragmentation
    if (!call PacketLink.wasDelivered(msg) && ack_required) {
