@@ -101,8 +101,18 @@ module IPForwardingEngineP {
                                                struct in6_addr *next_hop,
                                                uint8_t ifindex) {
     struct route_entry *entry;
+    int i;
+#ifndef BLIP_STFU
+    printf("adding route with length %d on if %d\n", prefix_len_bits, ifindex);
+#endif
     /* no reason to support non-byte length prefixes for now... */
-    if (prefix_len_bits % 8 != 0 || prefix_len_bits > 128) return ROUTE_INVAL_KEY;
+    if (prefix_len_bits % 8 != 0 || prefix_len_bits > 128) 
+    {
+#ifndef BLIP_STFU
+        printf("\033[31;1minvalid prefix length\n\033[0m");
+#endif
+        return ROUTE_INVAL_KEY;
+    }
     entry = call ForwardingTable.lookupRoute(prefix, prefix_len_bits);
     if (entry == NULL || entry->prefixlen != prefix_len_bits) {
       /* if there's no entry, or there's another entry but it has a
@@ -116,7 +126,12 @@ module IPForwardingEngineP {
       }
     }
     if (entry == NULL)
+    {
+#ifndef BLIP_STFU
+      printf("\033[31;1mENTRY NULL\n\033[0m");
+#endif
       return ROUTE_INVAL_KEY;
+    }
 
     entry->prefixlen = prefix_len_bits;
     entry->ifindex = ifindex;

@@ -35,6 +35,7 @@ configuration IPDispatchC {
     interface SplitControl;
     interface IPLower;
     interface BlipStatistics<ip_statistics_t>;
+    interface BlipStatistics<retry_statistics_t> as RetryStatistics;
   }
 } implementation {
 
@@ -56,10 +57,12 @@ configuration IPDispatchC {
   components RadioPacketMetadataC as PacketMetaC;
   components ReadLqiC;
   components new TimerMilliC() as ExpireTimer;
+  components new TimerMilliC() as RetryStatTimer;
 
   SplitControl = IPDispatchP.SplitControl;
   IPLower = IPDispatchP.IPLower;
   BlipStatistics = IPDispatchP.BlipStatistics;
+  RetryStatistics = IPDispatchP.RetryStatistics;
 
   /* Wire to the bare interfaces from the radio. Bare Ieee154 interfaces provide
    * full access to raw 802.15.4 packet and require that all fields of the
@@ -86,6 +89,7 @@ configuration IPDispatchC {
   IPDispatchP.ReadLqi -> ReadLqiC.ReadLqi;
   IPDispatchP.Leds -> LedsC.Leds;
   IPDispatchP.ExpireTimer -> ExpireTimer.Timer;
+  IPDispatchP.RetryStatTimer -> RetryStatTimer.Timer;
 
   components new PoolC(message_t, N_FRAGMENTS) as FragPool;
   components new PoolC(struct send_entry, N_FRAGMENTS) as SendEntryPool;

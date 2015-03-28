@@ -102,5 +102,4 @@ inline void __nesc_disable_interrupt() __attribute__((always_inline))
 	);
 }
 
-
 #endif // CORTEXM4_HARDWARE_H

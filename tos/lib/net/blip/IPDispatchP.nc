@@ -47,6 +47,7 @@ module IPDispatchP {
     interface IPLower;
 
     interface BlipStatistics<ip_statistics_t>;
+    interface BlipStatistics<retry_statistics_t> as RetryStatistics;
   }
   uses {
     /* link-layer wiring */
@@ -83,6 +84,9 @@ module IPDispatchP {
     /* expire reconstruction */
     interface Timer<TMilli> as ExpireTimer;
 
+    /* retransmission statistics */
+    interface Timer<TMilli> as RetryStatTimer;
+
     interface Leds;
   }
 } implementation {
@@ -114,6 +118,12 @@ int lowpan_extern_match_context(struct in6_addr *addr, uint8_t *ctx_id) {
   bool ack_required=TRUE;
   uint8_t current_local_label = 0;
   ip_statistics_t stats;
+
+  /** Retransmission statistics **/
+  retry_statistics_t retry_stats;
+  uint8_t pkt_cnt = 0;
+  uint8_t tx_cnt = 0;
+  uint16_t cur_bucket = 0;
 
   // this in theory could be arbitrarily large; however, it needs to
   // be large enough to hold all active reconstructions, and any tags
@@ -188,7 +198,7 @@ void SENDINFO_DECR(struct send_info *si) {
       state = S_RUNNING;
       radioBusy = FALSE;
     }
-
+    call RetryStatTimer.startPeriodic(RETRY_STAT_BUCKET_SIZE*1000); // RETRY_STAT_BUCKET_SIZE in seconds
     signal SplitControl.startDone(error);
   }
 
@@ -653,6 +663,10 @@ void SENDINFO_DECR(struct send_info *si) {
     s_entry->info->link_transmissions += (call PacketLink.getRetries(msg));
     s_entry->info->link_fragment_attempts++;
 
+    // populate retry statistics
+    pkt_cnt += 1; // add 1 for trying to send packet
+    tx_cnt += 1 + call PacketLink.getRetries(msg); // retries can return 0 for "successful"
+
  //acknowledgements are not required for multicast packets, useful for fragmentation
    if (!call PacketLink.wasDelivered(msg) && ack_required) {
       printf("sendDone: was not delivered! (%i tries)\n",
@@ -704,6 +718,30 @@ void SENDINFO_DECR(struct send_info *si) {
 
   command void BlipStatistics.clear() {
     memclr((uint8_t *)&stats, sizeof(ip_statistics_t));
+  }
+
+  /*
+   * RetryStatistics interface
+   */
+  command void RetryStatistics.get(retry_statistics_t *statistics) {
+    memcpy(statistics, &retry_stats, sizeof(retry_statistics_t));
+  }
+
+  command void RetryStatistics.clear() {
+    cur_bucket = 0;
+    memclr((uint8_t *)&retry_stats, sizeof(retry_statistics_t));
+  }
+
+  event void RetryStatTimer.fired() {
+    int i;
+    retry_stats.pkt_cnt[cur_bucket] = pkt_cnt; // add 1 for trying to send packet
+    retry_stats.tx_cnt[cur_bucket] += tx_cnt;
+#ifndef BLIP_STFU
+    printf("\033[33;1mpacket count %d     tx count %d in last %d seconds\n\033[0m", pkt_cnt, tx_cnt, RETRY_STAT_BUCKET_SIZE);
+#endif
+    pkt_cnt = 0;
+    tx_cnt = 0;
+    cur_bucket = (cur_bucket + 1) & 0x1ff; // when we get to end, just loop back
   }
 
 }

@@ -323,6 +323,11 @@ implementation
 		channel = RF230_DEF_CHANNEL & RF230_CHANNEL_MASK;
 		writeRegister(RF230_PHY_CC_CCA, RF230_CCA_MODE_VALUE | channel);
 
+        //Retries: Register 0x2c (XAH_CTRL_0): 
+        // MAX_FRAME_RETRIES: bytes 7-4
+        // MAX_CSMA RETRIES: bytes 3-1
+        // SLOTTED_OPERATION: byte 0
+
         //Enable four CSMA retries and 1 packet retries
 	    writeRegister(RF230_XAH_CTRL_0, 0b00011000);
 

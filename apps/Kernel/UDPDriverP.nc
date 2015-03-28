@@ -6,6 +6,7 @@ module UDPDriverP
     uses interface UDP[uint8_t clnt];
     uses interface BlipStatistics<ip_statistics_t> as ip_stats;
     uses interface BlipStatistics<udp_statistics_t> as udp_stats;
+    uses interface BlipStatistics<retry_statistics_t> as retry_stats;
 }
 implementation
 {
@@ -40,6 +41,13 @@ implementation
         uint16_t udpsent;  // UDP datagrams sent from app
         uint16_t udprcvd;  // UDP datagrams delivered to apps
     } __attribute__((packed)) stats;
+
+    struct
+    {
+        uint8_t pkt_cnt[256];
+        uint8_t tx_cnt[256];
+    } __attribute__((packed)) rstats;
+
     uint8_t scanidx;
 
     socket_t  norace sockets [NUM_SOCKETS];
@@ -181,6 +189,26 @@ implementation
                 stats.udprcvd = udps.rcvd;
 
                 return &stats;
+            }
+            case 0x07: //udp_clear_blipstats()
+            {
+                call ip_stats.clear();
+                call udp_stats.clear();
+                return 0;
+            }
+
+            case 0x08: //udp_get_retrystats()
+            {
+                retry_statistics_t r;
+                call retry_stats.get(&r);
+                memcpy(&rstats.pkt_cnt, &r.pkt_cnt, sizeof(uint8_t) * 256);
+                memcpy(&rstats.tx_cnt, &r.tx_cnt, sizeof(uint8_t) * 256);
+                return &rstats;
+            }
+            case 0x09: // udp_clear_retrystats()
+            {
+                call retry_stats.clear();
+                return 0;
             }
         }
     }

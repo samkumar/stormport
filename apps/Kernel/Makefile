@@ -54,6 +54,9 @@ PFLAGS += -DLIB6LOWPAN_FULL=1
 # Configure the header compression for 6LoWPAN
 PFLAGS += -DLIB6LOWPAN_HC_VERSION=6
 
+# How many seconds to do aggregation statistics about retransmissions
+PFLAGS += -DRETRY_STAT_BUCKET_SIZE=5
+
 # Keep statistics about various BLIP/IPv6 parameters. See BlipStatistics.h
 #PFLAGS += -DBLIP_STATS
 #PFLAGS += -DBLIP_STATS_IP_MEM
