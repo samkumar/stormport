@@ -41,8 +41,8 @@ PFLAGS += -DIN6_PREFIX=\"2001:470:4956:2::\"
 ################################################################################
 
 # Configure the Neighbor Discovery mechanism
-PFLAGS += -DBLIP_SEND_ROUTER_SOLICITATIONS=0
-PFLAGS += -DBLIP_SEND_ROUTER_ADVERTISEMENTS=0
+PFLAGS += -DBLIP_SEND_ROUTER_SOLICITATIONS=1
+PFLAGS += -DBLIP_SEND_ROUTER_ADVERTISEMENTS=1
 
 # Configure the number of times BLIP tries to send a packet and how long it
 # waits between attempts
@@ -80,11 +80,11 @@ PFLAGS += -DRPL_OF_MRHOF=0
 
 # If this is defined, then RPL will only send/receive from the following address. It will be added
 # as the default 802.15.4 route. If you are using a border router/root node, do not use this flag.
-PFLAGS += -DRPL_SINGLE_HOP=\"fe80::212:6d02:0:feeb\"
+#PFLAGS += -DRPL_SINGLE_HOP=\"fe80::212:6d02:0:feeb\"
 # if you are the root node of a single-hop network, use this flag and NOT RPL_SINGLE_HOP
 #PFLAGS += -DRPL_SINGLE_HOP_ROOT
 # if NO_RPL is defined, then *hopefully* no rpl messages should be sent, freeing up the airwaves
-PFLAGS += -DNO_RPL
+#PFLAGS += -DNO_RPL
 
 # This should only be defined if you are the border router/root node. Defining this will forward
 # all UDP multicast packets ff02::1 to the address defined here

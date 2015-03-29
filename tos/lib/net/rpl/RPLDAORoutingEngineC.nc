@@ -54,6 +54,7 @@ configuration RPLDAORoutingEngineC{
   components new TimerMilliC() as DelayDAOTimer;
   components new TimerMilliC() as GenerateDAOTimer;
   components new TimerMilliC() as RemoveTimer;
+  components new TimerMilliC() as RplStatTimer;
   components IPAddressC;
   components RPLRankC;
   components RPLRoutingEngineC;
@@ -67,6 +68,7 @@ configuration RPLDAORoutingEngineC{
   DAORouting.DelayDAOTimer -> DelayDAOTimer;
   DAORouting.GenerateDAOTimer -> GenerateDAOTimer;
   DAORouting.RemoveTimer -> RemoveTimer;
+  DAORouting.RplStatTimer -> RplStatTimer;
   DAORouting.Random -> RandomC;
   DAORouting.IPAddress -> IPAddressC;
   DAORouting.RPLRouteInfo -> RPLRoutingEngineC;

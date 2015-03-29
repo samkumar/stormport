@@ -736,9 +736,6 @@ void SENDINFO_DECR(struct send_info *si) {
     int i;
     retry_stats.pkt_cnt[cur_bucket] = pkt_cnt; // add 1 for trying to send packet
     retry_stats.tx_cnt[cur_bucket] += tx_cnt;
-#ifndef BLIP_STFU
-    printf("\033[33;1mpacket count %d     tx count %d in last %d seconds\n\033[0m", pkt_cnt, tx_cnt, RETRY_STAT_BUCKET_SIZE);
-#endif
     pkt_cnt = 0;
     tx_cnt = 0;
     cur_bucket = (cur_bucket + 1) & 0x1ff; // when we get to end, just loop back

@@ -106,6 +106,7 @@ generic module RPLDAORoutingEngineP() {
 
   command error_t StdControl.start() {
     call RPLDAORouteInfo.startDAO();
+    call RplStatTimer.startPeriodic(RPL_STAT_BUCKET_SIZE * 1000);
     m_running = TRUE;
     return SUCCESS;
   }
@@ -472,6 +473,9 @@ generic module RPLDAORoutingEngineP() {
   event void RplStatTimer.fired() {
     int i;
     rpl_stats.dao_cnt[cur_bucket] = dao_cnt;
+#ifndef BLIP_STFU
+    printf("\033[33;1md%d\n\033[0m", dao_cnt);
+#endif
     dao_cnt = 0;
     cur_bucket = (cur_bucket + 1) & 0x1ff; // when we get to end, just loop back
   }
