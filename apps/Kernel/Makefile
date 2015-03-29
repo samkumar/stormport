@@ -3,6 +3,7 @@ COMPONENT=KernelC
 # BOOTLOADER=tosboot
 
 PFLAGS += -DLONG_ADDR_SUFFIX=0x40
+
 ifdef KERNEL_QUIET_MODE
     PFLAGS += -DKERNEL_STFU
     PFLAGS += -DBLIP_STFU
@@ -55,7 +56,8 @@ PFLAGS += -DLIB6LOWPAN_FULL=1
 PFLAGS += -DLIB6LOWPAN_HC_VERSION=6
 
 # How many seconds to do aggregation statistics about retransmissions
-PFLAGS += -DRETRY_STAT_BUCKET_SIZE=5
+PFLAGS += -DRETRY_STAT_BUCKET_SIZE=1
+PFLAGS += -DRPL_STAT_BUCKET_SIZE=1
 
 # Keep statistics about various BLIP/IPv6 parameters. See BlipStatistics.h
 #PFLAGS += -DBLIP_STATS

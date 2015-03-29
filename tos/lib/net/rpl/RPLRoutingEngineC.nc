@@ -43,6 +43,7 @@ configuration RPLRoutingEngineC {
     interface RootControl;
     interface StdControl;
     interface RPLRoutingEngine;
+    interface BlipStatistics<rpl_statistics_t> as RplStatisticsDIODIS;
   }
 }
 
@@ -52,6 +53,7 @@ implementation{
   components new TimerMilliC() as TrickleTimer;
   components new TimerMilliC() as InitDISTimer;
   components new TimerMilliC() as VersionTimer;
+  components new TimerMilliC() as RplStatTimer;
   components IPAddressC;
   components RPLRankC as RankC;
   components RPLDAORoutingEngineC;
@@ -62,6 +64,8 @@ implementation{
   RootControl = Routing;
   StdControl = Routing;
   RPLRoutingEngine = Routing;
+  Routing.RplStatTimer -> RplStatTimer;
+  RplStatisticsDIODIS = Routing.RplStatisticsDIODIS;
 
   Routing.IP_DIO -> RankC.IP_DIO_Filter; // This should be connected to RankC;
   Routing.IP_DIS -> ICMP_RS.IP[ICMPV6_CODE_DIS];

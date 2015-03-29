@@ -42,11 +42,15 @@ configuration RPLRoutingC {
   provides {
     interface StdControl;
     interface RootControl;
+    interface BlipStatistics<rpl_statistics_t> as RplStatisticsDIODIS;
+    interface BlipStatistics<rpl_dao_statistics_t> as RplStatisticsDAO;
   }
 } implementation {
   components RPLRankC;
   components RPLRoutingEngineC;
   components RPLDAORoutingEngineC;
+  RplStatisticsDIODIS = RPLRoutingEngineC.RplStatisticsDIODIS;
+  RplStatisticsDAO = RPLDAORoutingEngineC.RplStatisticsDAO;
 
   components IPStackC;
   components new ICMPCodeDispatchC(ICMP_TYPE_RPL_CONTROL) as ICMP_RA;

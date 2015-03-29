@@ -43,6 +43,7 @@ generic module RPLDAORoutingEngineP() {
   provides {
     interface RPLDAORoutingEngine as RPLDAORouteInfo;
     interface StdControl;
+    interface BlipStatistics<rpl_dao_statistics_t> as RplStatisticsDAO;
   }
   uses {
     interface Timer<TMilli> as DelayDAOTimer;
@@ -57,6 +58,9 @@ generic module RPLDAORoutingEngineP() {
     interface RootControl;
     interface IPPacket;
     interface ForwardingTable;
+
+    /* rpl statistics */
+    interface Timer<TMilli> as RplStatTimer;
   }
 } implementation {
 
@@ -85,6 +89,11 @@ generic module RPLDAORoutingEngineP() {
   uint32_t count = 0;
 
   task void initDAO();
+
+  /** RPL statistics **/
+  rpl_dao_statistics_t rpl_stats;
+  uint8_t dao_cnt = 0;
+  uint16_t cur_bucket = 0;
 
 
   bool memcmp_rpl(uint8_t* a, uint8_t* b, uint8_t len) {
@@ -135,7 +144,7 @@ generic module RPLDAORoutingEngineP() {
       /* and unicast to the DODAG root */
       call RPLRouteInfo.getDodagId(&dao_msg->s_pkt.ip6_hdr.ip6_dst);
 #endif
-
+      dao_cnt++;
       call IP_DAO.send(&dao_msg->s_pkt);
       call SendPool.put(dao_msg);
 
@@ -447,4 +456,24 @@ generic module RPLDAORoutingEngineP() {
   }
 
   event void IPAddress.changed(bool global_valid) {}
+
+  /*
+   * RplStatistics interface
+   */
+  command void RplStatisticsDAO.get(rpl_dao_statistics_t *statistics) {
+    memcpy(statistics, &rpl_stats, sizeof(rpl_dao_statistics_t));
+  }
+
+  command void RplStatisticsDAO.clear() {
+    cur_bucket = 0;
+    memclr((uint8_t *)&rpl_stats, sizeof(rpl_dao_statistics_t));
+  }
+
+  event void RplStatTimer.fired() {
+    int i;
+    rpl_stats.dao_cnt[cur_bucket] = dao_cnt;
+    dao_cnt = 0;
+    cur_bucket = (cur_bucket + 1) & 0x1ff; // when we get to end, just loop back
+  }
+
 }

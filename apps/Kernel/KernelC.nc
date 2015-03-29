@@ -69,6 +69,7 @@ implementation
     //STDIO socket
     components new TcpSocketC();
     KernelMainP.TcpSTDIO -> TcpSocketC;
+    KernelMainP.RootControl -> RPLRoutingC;
 
   #ifdef WITH_WIZ
   components IPPacketC;

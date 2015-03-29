@@ -7,6 +7,8 @@ module UDPDriverP
     uses interface BlipStatistics<ip_statistics_t> as ip_stats;
     uses interface BlipStatistics<udp_statistics_t> as udp_stats;
     uses interface BlipStatistics<retry_statistics_t> as retry_stats;
+    uses interface BlipStatistics<rpl_statistics_t> as rpl_dio_dis_stats;
+    uses interface BlipStatistics<rpl_dao_statistics_t> as rpl_dao_stats;
 }
 implementation
 {
@@ -47,6 +49,13 @@ implementation
         uint8_t pkt_cnt[256];
         uint8_t tx_cnt[256];
     } __attribute__((packed)) rstats;
+
+    struct
+    {
+        uint8_t dio_cnt[200];
+        uint8_t dis_cnt[200];
+        uint8_t dao_cnt[200];
+    } __attribute__((packed)) rplstats;
 
     uint8_t scanidx;
 
@@ -208,6 +217,23 @@ implementation
             case 0x09: // udp_clear_retrystats()
             {
                 call retry_stats.clear();
+                return 0;
+            }
+            case 0x0a: // udp_get_rplstats()
+            {
+                rpl_statistics_t r;
+                rpl_dao_statistics_t rdao;
+                call rpl_dio_dis_stats.get(&r);
+                call rpl_dao_stats.get(&rdao);
+                memcpy(&rplstats.dio_cnt, &r.dio_cnt, sizeof(uint8_t) * 200);
+                memcpy(&rplstats.dis_cnt, &r.dis_cnt, sizeof(uint8_t) * 200);
+                memcpy(&rplstats.dao_cnt, &rdao.dao_cnt, sizeof(uint8_t) * 200);
+                return &rplstats;
+            }
+            case 0x0b: // udp_clear_rplstats()
+            {
+                call rpl_dio_dis_stats.clear();
+                call rpl_dao_stats.clear();
                 return 0;
             }
         }

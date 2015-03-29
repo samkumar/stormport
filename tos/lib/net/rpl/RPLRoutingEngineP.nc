@@ -47,6 +47,7 @@ generic module RPLRoutingEngineP() {
     interface RootControl;
     interface StdControl;
     interface RPLRoutingEngine as RPLRouteInfo;
+    interface BlipStatistics<rpl_statistics_t> as RplStatisticsDIODIS;
   }
   uses {
     interface IP as IP_DIO;     /* filtered DIO messages from the rank engine */
@@ -62,6 +63,9 @@ generic module RPLRoutingEngineP() {
     interface RPLDAORoutingEngine;
     interface RPLOF;
     interface NeighborDiscovery;
+
+    /* rpl statistics */
+    interface Timer<TMilli> as RplStatTimer;
   }
 }
 
@@ -113,6 +117,12 @@ implementation{
   struct in6_addr MULTICAST_ADDR;
   struct in6_addr UNICAST_DIO_ADDR;
 
+  /** RPL statistics **/
+  rpl_statistics_t rpl_stats;
+  uint8_t dio_cnt = 0;
+  uint8_t dis_cnt = 0;
+  uint16_t cur_bucket = 0;
+
   /* Define Functions and Tasks */
   void resetTrickleTime();
   void chooseAdvertiseTime();
@@ -127,6 +137,7 @@ implementation{
 
   /* Start the routing with DIS message probing */
   task void init() {
+    call RplStatTimer.startPeriodic(RPL_STAT_BUCKET_SIZE*1000); // RETRY_STAT_BUCKET_SIZE in seconds
 #ifdef RPL_STORING_MODE
     MOP = RPL_MOP_Storing_No_Multicast;
 #else
@@ -269,6 +280,7 @@ implementation{
 
     call IPAddress.getLLAddr(&pkt.ip6_hdr.ip6_src);
 
+    dio_cnt++;
     call IP_DIO.send(&pkt);
   }
 
@@ -298,6 +310,7 @@ implementation{
     memcpy(&pkt.ip6_hdr.ip6_dst, &MULTICAST_ADDR, 16);
     call IPAddress.getLLAddr(&pkt.ip6_hdr.ip6_src);
 
+    dis_cnt++;
     call IP_DIS.send(&pkt);
   }
 
@@ -628,5 +641,30 @@ implementation{
   }
 
   event void IPAddress.changed(bool global_valid) {}
+
+  /*
+   * RplStatistics interface
+   */
+  command void RplStatisticsDIODIS.get(rpl_statistics_t *statistics) {
+    memcpy(statistics, &rpl_stats, sizeof(rpl_statistics_t));
+  }
+
+  command void RplStatisticsDIODIS.clear() {
+    cur_bucket = 0;
+    memclr((uint8_t *)&rpl_stats, sizeof(rpl_statistics_t));
+  }
+
+  event void RplStatTimer.fired() {
+    int i;
+    rpl_stats.dio_cnt[cur_bucket] = dio_cnt;
+    rpl_stats.dis_cnt[cur_bucket] = dis_cnt;
+#ifndef BLIP_STFU
+    printf("\033[33;1mdio cnt %d     dis cnt %d in last %d seconds\n\033[0m", dio_cnt, dis_cnt, RPL_STAT_BUCKET_SIZE);
+#endif
+    dio_cnt = 0;
+    dis_cnt = 0;
+    cur_bucket = (cur_bucket + 1) & 0x1ff; // when we get to end, just loop back
+  }
+
 
 }
