@@ -19,8 +19,8 @@ PFLAGS += -DBLIP_STATS_IP_MEM
 
 # radio options
 # CFLAGS += -DCC2420_DEF_CHANNEL=26
-CFLAGS += -DRF230_DEF_CHANNEL=26
-CFLAGS += -DRF230_DEF_RFPOWER=14
+CFLAGS += -DRF230_DEF_CHANNEL=25
+# CFLAGS += -DRF230_DEF_RFPOWER=14
 # CFLAGS += -DCC2420_DEF_RFPOWER=4 -DENABLE_SPI0_DMA
 
 # enable dma on the radio
@@ -92,10 +92,10 @@ PFLAGS += -DNO_RPL
 ### Configure LPL
 ################################################################################
 
-#PFLAGS += -DLOW_POWER_LISTENING
-#PFLAGS += -DLPL_SLEEP_INTERVAL=512
-#PFLAGS += -DLPL_DEF_LOCAL_WAKEUP=512
-#PFLAGS += -DLPL_DEF_REMOTE_WAKEUP=512
+PFLAGS += -DLOW_POWER_LISTENING
+PFLAGS += -DLPL_SLEEP_INTERVAL=100
+PFLAGS += -DLPL_DEF_LOCAL_WAKEUP=100
+PFLAGS += -DLPL_DEF_REMOTE_WAKEUP=100
 
 ################################################################################
 ### Configure printf() output

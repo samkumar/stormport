@@ -183,6 +183,8 @@ implementation
 
 /*----------------- ALARM -----------------*/
 
+    //ORIG:
+    #if 0
 	enum
 	{
 		SLEEP_WAKEUP_TIME = (uint16_t)(880 * RADIO_ALARM_MICROSEC),
@@ -195,6 +197,23 @@ implementation
 		// 32 for frame length, 16 for delay
 		RX_SFD_DELAY = (uint16_t)((32 + 16) * RADIO_ALARM_MICROSEC),
 	};
+	#endif
+
+
+	//HACKED:
+	enum
+	{
+		SLEEP_WAKEUP_TIME = (uint16_t)(29),
+		PLL_CALIBRATION_TIME = (uint16_t)(6),
+		CCA_REQUEST_TIME = (uint16_t)(5),
+
+		// 8 undocumented delay, 128 for CSMA, 16 for delay, 5*32 for preamble and SFD
+		TX_SFD_DELAY = (uint16_t)(11),
+
+		// 32 for frame length, 16 for delay
+		RX_SFD_DELAY = (uint16_t)(2),
+	};
+
 
 	tasklet_async event void RadioAlarm.fired()
 	{
@@ -308,6 +327,10 @@ implementation
         writeRegister(0x21,saddr >> 8);
         writeRegister(0x22,pan & 0xFF);
         writeRegister(0x23,pan >> 8);
+
+        //enable RPC
+        //writeRegister(0x16, 0xFF);
+        //writeRegister(0x15, 0x0F);
 
         //disable scrambler
         //writeRegister(0x0c, 0);
@@ -832,6 +855,10 @@ tasklet_async command uint8_t RadioState.getChannel()
 		call Tasklet.schedule();
 	}
 
+    task void toff()
+    {
+        call RadioState.turnOff();
+    }
 	void serviceRadio()
 	{
 		if( state != STATE_SLEEP && isSpiAcquired() )

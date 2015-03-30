@@ -183,6 +183,7 @@ implementation
 		}
 		else if( state == SEND_SUBSEND)
 		{
+
 			txError = call SubSend.send(txMsg);
 
 			if( txError == SUCCESS )
@@ -196,8 +197,13 @@ implementation
 		else if( state == SEND_DONE )
 		{
 			state = LISTEN_WAIT;
-			if( sleepInterval > 0 )
-				call Timer.startOneShot(call SystemLowPowerListening.getDelayAfterReceive());
+			//if( sleepInterval > 0 )
+			//	call Timer.startOneShot(call SystemLowPowerListening.getDelayAfterReceive());
+			{
+			    state = SLEEP_SUBSTOP;
+			    post transition();
+			}
+
 
 			signal Send.sendDone(txMsg, txError);
 		}
@@ -205,7 +211,6 @@ implementation
 
 	command error_t SplitControl.start()
 	{
-	    printf("SplitControl in LPL called");
 		if( state == OFF_START_END )
 			return EBUSY;
 		else if( state != OFF )
@@ -291,7 +296,11 @@ implementation
 			state = LISTEN_WAIT;
 
 		if( state == LISTEN_WAIT && sleepInterval > 0 )
-			call Timer.startOneShot(call SystemLowPowerListening.getDelayAfterReceive());
+		{
+		    state = SLEEP_SUBSTOP;
+		    post transition();
+			//call Timer.startOneShot(call SystemLowPowerListening.getDelayAfterReceive());
+        }
 
 		return signal Receive.receive(msg);
 	}
@@ -357,6 +366,7 @@ implementation
 		if( error != SUCCESS
 			|| call LowPowerListening.getRemoteWakeupInterval(msg) == 0
 			|| state == SEND_SUBSEND_DONE_LAST
+			|| TRUE
 			|| (call Config.ackRequested(msg) && call PacketAcknowledgements.wasAcked(msg)) )
 		{
 			call Timer.stop();

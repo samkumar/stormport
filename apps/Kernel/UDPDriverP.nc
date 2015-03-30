@@ -143,6 +143,7 @@ implementation
                     dest.sin6_port = htons((uint16_t)argx[1]);
                     rv = call UDP.sendto[arg0 + SOCK_BASE](&dest, (char*)arg1, arg2);
                     if (rv != SUCCESS) return -1;
+                    return 0;
                 }
                 return -1;
             }

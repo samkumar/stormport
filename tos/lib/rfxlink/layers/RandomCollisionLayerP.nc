@@ -85,6 +85,8 @@ implementation
 	{
 		uint16_t a;
 
+        return 1;
+        /*
 		atomic
 		{
 			a = nextRandom;
@@ -93,6 +95,7 @@ implementation
 		post calcNextRandom();
 
 		return (a % maxBackoff) + call Config.getMinimumBackoff();
+		*/
 	}
 
 	tasklet_async command error_t RadioSend.send(message_t* msg)

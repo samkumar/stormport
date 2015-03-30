@@ -70,6 +70,7 @@ implementation
     //components new TcpSocketC();
     //KernelMainP.TcpSTDIO -> TcpSocketC;
 
+
   #ifdef WITH_WIZ
   components IPPacketC;
   components LocalIeeeEui64P;

@@ -36,7 +36,7 @@
  *
  * @author Henrik Makitaavola <henrik.makitaavola@gmail.com>
  */
-
+#include <nvichardware.h>
 module HplRF230P
 {
   provides
@@ -55,12 +55,15 @@ module HplRF230P
     interface GeneralIO as SCLK;
     */
     interface GeneralIO as PortIRQ;
-    interface GpioInterrupt as GIRQ;
+    //interface GpioInterrupt as GIRQ;
     interface Alarm<TRadio, uint32_t> as Alarm;
   }
 }
 implementation
 {
+
+    //IRQ is PA20 EXTINT5
+  uint32_t EIC_BASE = 0x400F1000;
   command error_t PlatformInit.init()
   {
     /* original:
@@ -76,22 +79,33 @@ implementation
     call PortVCC.set(); 
     */
     call PortIRQ.makeInput();
-    call GIRQ.disable();
-
+    //call GIRQ.disable();
+    *(volatile uint32_t*)(EIC_BASE + 0x04) = (1<<5);
+    *(volatile uint32_t*)(EIC_BASE + 0x18) = (1<<5); //rising edge
+    *(volatile uint32_t*)(EIC_BASE + 0x30) = (1<<5); //enabled2?
+    *(volatile uint32_t*)(EIC_BASE + 0x28) = (1<<5); //async
+    NVIC->iser.flat[1] = 1<<17;
+    {
+            uint32_t base_addr = 0x400E1000;
+            uint8_t port = 0;
+            uint32_t pinmask;
+            pinmask = 1 << 20;
+            *((volatile uint32_t*)(base_addr + (0x200*port) + 0x008)) = pinmask; //disable gpio
+            *((volatile uint32_t*)(base_addr + (0x200*port) + 0x018)) = pinmask; //pmr0c
+            *((volatile uint32_t*)(base_addr + (0x200*port) + 0x024)) = pinmask; //pmr1s
+            *((volatile uint32_t*)(base_addr + (0x200*port) + 0x038)) = pinmask; //pmr2c
+        }
     return SUCCESS;
   }
 
-  async event void GIRQ.fired()
-  {
-    signal IRQ.captured((uint16_t) call Alarm.getNow());
-  }
   async event void Alarm.fired() {}
 
   default async event void IRQ.captured(uint16_t time) {}
 
   async command error_t IRQ.captureRisingEdge()
   {
-    call GIRQ.enableRisingEdge();
+    *(volatile uint32_t*)(EIC_BASE + 0x00) = (1<<5); //enabled
+
     return SUCCESS;
   }
 
@@ -101,8 +115,16 @@ implementation
     return FAIL;
   }
 
+  void EIC_5_Handler() @C() @spontaneous()
+  {
+    *(volatile uint32_t*)(EIC_BASE + 0x04) = (1<<5); //disable
+    *(volatile uint32_t*)(EIC_BASE + 0x10) = (1<<5); //ifrc
+    signal IRQ.captured((uint16_t) call Alarm.getNow());
+
+  }
+
   async command void IRQ.disable()
   {
-    call GIRQ.disable();
+    *(volatile uint32_t*)(EIC_BASE + 0x04) = (1<<5);
   }
 }

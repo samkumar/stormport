@@ -71,7 +71,7 @@ implementation
   RSTN = IOs.PC15;
   SELN = IOs.PC01;
 
-  HplRF230P.GIRQ -> IOs.PA20IRQ;
+  //HplRF230P.GIRQ -> IOs.PA20IRQ;
 
   components new Alarm32khzC();
   HplRF230P.Alarm -> Alarm32khzC;

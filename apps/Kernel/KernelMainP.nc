@@ -144,7 +144,7 @@ implementation
     event void Boot.booted() {
         char vbuf[80];
         int ln;
-        //call RadioControl.start();
+        call RadioControl.start();
         //call RadioControl.stop();
         //while(1);
         call UartStream.enableReceiveInterrupt();
@@ -156,6 +156,7 @@ implementation
         inet_pton6("2001:470:4956:1::1", &route_dest.sin6_addr);
 
         call Dmesg.bind(514);
+        //call Timer.startPeriodic(32768);
 
         call ENSEN.makeOutput();
         call ENSEN.set();
@@ -224,7 +225,20 @@ implementation
         }
         //We don't need flash anymore
         call FlashAttr.enterDeepSleep();
-
+/*
+        {
+            uint32_t base_addr = 0x400E1000;
+            uint16_t d2pin = 0x0010; //D2 = PA16
+            uint8_t port;
+            uint32_t pinmask;
+            port = d2pin >> 8;
+            pinmask = 1 << (d2pin & 0xFF);
+            *((volatile uint32_t*)(base_addr + (0x200*port) + 0x004)) = pinmask;
+            *((volatile uint32_t*)(base_addr + (0x200*port) + 0x044)) = pinmask;
+            *((volatile uint32_t*)(base_addr + (0x200*port) + 0x168)) = pinmask;
+            *((volatile uint32_t*)(base_addr + (0x200*port) + 0x078)) = pinmask;
+            *((volatile uint32_t*)(base_addr + (0x200*port) + 0x088)) = pinmask;
+        }*/
 	    lockdown_memory();
         __bootstrap_payload(addr);
         procstate = procstate_runnable;
@@ -246,6 +260,15 @@ implementation
 
     event void Timer.fired()
     {
+        /*
+        char *payload = "yoloyoloyoloyoloyoloyoloyoloyoloyoloyoloyoloyoloyoloyoloyoloyoloyoloyoloyoloyoloyoloyolo";
+        uint8_t len = 88;
+        struct sockaddr_in6 dest;
+        error_t rv;
+        inet_pton6("ff02::1", &dest.sin6_addr);
+        call Dmesg.sendto(&dest, payload, len);
+        */
+
        // call I2C_Driver.syscall_ex(0, 0, 0, 0, NULL);
     }
     task void flush_process_stdout()
