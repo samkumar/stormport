@@ -14,7 +14,7 @@ endif
 
 # radio options
 # CFLAGS += -DCC2420_DEF_CHANNEL=26
-CFLAGS += -DRF230_DEF_CHANNEL=26
+CFLAGS += -DRF230_DEF_CHANNEL=24
 # CFLAGS += -DCC2420_DEF_RFPOWER=4 -DENABLE_SPI0_DMA
 
 # enable dma on the radio
@@ -43,7 +43,7 @@ PFLAGS += -DBLIP_SEND_ROUTER_ADVERTISEMENTS=0
 # Configure the number of times BLIP tries to send a packet and how long it
 # waits between attempts
 PFLAGS += -DBLIP_L2_RETRIES=6
-PFLAGS += -DBLIP_L2_DELAY=103
+PFLAGS += -DBLIP_L2_DELAY=40
 
 # Configure how many of the 6LoWPAN headers we support
 PFLAGS += -DLIB6LOWPAN_FULL=1
@@ -72,7 +72,7 @@ PFLAGS += -DRPL_OF_MRHOF=0
 
 # If this is defined, then RPL will only send/receive from the following address. It will be added
 # as the default 802.15.4 route. If you are using a border router/root node, do not use this flag.
-PFLAGS += -DRPL_SINGLE_HOP=\"fe80::212:6d02:0:feeb\"
+PFLAGS += -DRPL_SINGLE_HOP=\"fe80::212:6d02:0:3028\"
 # if you are the root node of a single-hop network, use this flag and NOT RPL_SINGLE_HOP
 #PFLAGS += -DRPL_SINGLE_HOP_ROOT
 # if NO_RPL is defined, then *hopefully* no rpl messages should be sent, freeing up the airwaves
