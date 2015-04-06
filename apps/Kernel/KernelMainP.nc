@@ -161,7 +161,7 @@ implementation
         //SCIF base = 0x400E0800, off= 0x0084
         //oscsel=7 (cpu)
         //div=10?
-        *((volatile uint32_t *) 0x400E089c) = 0x00c00701;
+        *((volatile uint32_t *) 0x400E089c) = 0x00c00703;
 
 #ifndef WITH_WIZ
         post launch_payload(); // ignore this if we are the ethernet shield
