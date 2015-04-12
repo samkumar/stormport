@@ -20,7 +20,9 @@ typedef struct
     uint32_t buflen;
     uint8_t src_address [16];
     uint32_t port;
-} udp_callback_t;
+    uint8_t lqi;
+    uint8_t rssi;
+} __attribute__((__packed__)) udp_callback_t;
 
 typedef struct
 {

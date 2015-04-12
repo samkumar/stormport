@@ -717,6 +717,10 @@ tasklet_async command uint8_t RadioState.getChannel()
 		uint8_t length;
 		bool crcValid = FALSE;
 
+		{
+			int8_t rssi = readRegister(RF230_PHY_ED_LEVEL);
+			call PacketRSSI.set(rxMsg, rssi);
+		}
 		call SELN.clr();
 		call FastSpiByte.write(RF230_CMD_FRAME_READ);
 
@@ -765,9 +769,7 @@ tasklet_async command uint8_t RadioState.getChannel()
 			else
 				call FastSpiByte.splitRead(); // finish the SPI transfer
 		}
-
 		call SELN.set();
-
 		if( crcValid && call PacketTimeStamp.isValid(rxMsg) )
 		{
 			uint32_t time32 = call PacketTimeStamp.timestamp(rxMsg);
@@ -888,8 +890,9 @@ tasklet_async command uint8_t RadioState.getChannel()
 
 					if( irq == RF230_IRQ_TRX_END )
 					{
-						call PacketRSSI.set(rxMsg, readRegister(RF230_PHY_ED_LEVEL));
-
+						int8_t rssi = readRegister(RF230_PHY_ED_LEVEL);
+						call PacketRSSI.set(rxMsg, rssi);
+						printf("RSSI: %d\n",rssi);
 						// TODO: compensate for packet transmission time when downloading
 						time32 = call LocalTime.get();
 						time32 += (int16_t)(time) - (int16_t)(time32);
@@ -897,7 +900,7 @@ tasklet_async command uint8_t RadioState.getChannel()
 					}
 					else
 					{
-						call PacketRSSI.clear(rxMsg);
+						//call PacketRSSI.clear(rxMsg);
 						call PacketTimeStamp.clear(rxMsg);
 					}
 

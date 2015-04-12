@@ -147,7 +147,6 @@ implementation
         int sockid;
         if (sock < SOCK_BASE) return;
         sockid = sock - SOCK_BASE;
-        printf("got udp on sockid %d\n",sockid);
         if (sockid >= NUM_SOCKETS) return;
         if (sockets[sockid].bound == FALSE) return;
         if (sockets[sockid].recv_callback.addr == 0) return; //no point, no callback
@@ -156,7 +155,6 @@ implementation
             printf("PACKET DROP\n");
             return;
         }
-        printf("buffermalloc\n");
         sockets[sockid].recv_callback.buffer = ip_malloc(len);
         if (!sockets[sockid].recv_callback.buffer)
         {
@@ -167,5 +165,7 @@ implementation
         memcpy(sockets[sockid].recv_callback.src_address, &src->sin6_addr, 16);
         sockets[sockid].recv_callback.port = htons(src->sin6_port);
         sockets[sockid].recv_callback.buflen = len;
+	sockets[sockid].recv_callback.rssi = meta->rssi;
+	sockets[sockid].recv_callback.lqi = meta->lqi;
     }
 }
