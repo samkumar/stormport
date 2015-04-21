@@ -197,12 +197,13 @@ implementation
 		else if( state == SEND_DONE )
 		{
 			state = LISTEN_WAIT;
-			//if( sleepInterval > 0 )
-			//	call Timer.startOneShot(call SystemLowPowerListening.getDelayAfterReceive());
-			{
+			if( sleepInterval > 0 )
+				call Timer.startOneShot(call SystemLowPowerListening.getDelayAfterReceive());
+			/*{
 			    state = SLEEP_SUBSTOP;
 			    post transition();
-			}
+			}*/
+			//This removes some low powerness
 
 
 			signal Send.sendDone(txMsg, txError);

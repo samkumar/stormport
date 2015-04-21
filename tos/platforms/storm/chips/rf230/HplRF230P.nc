@@ -117,7 +117,7 @@ implementation
 
   void EIC_5_Handler() @C() @spontaneous()
   {
-    *(volatile uint32_t*)(EIC_BASE + 0x04) = (1<<5); //disable
+  //  *(volatile uint32_t*)(EIC_BASE + 0x04) = (1<<5); //disable
     *(volatile uint32_t*)(EIC_BASE + 0x10) = (1<<5); //ifrc
     signal IRQ.captured((uint16_t) call Alarm.getNow());
 

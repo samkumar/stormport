@@ -121,6 +121,8 @@ implementation
     KernelMainP.RoutingTable_Driver -> StormRoutingTableC;
     components BLEDriverC;
     KernelMainP.BLE_Driver -> BLEDriverC;
+    components AESDriverC;
+    KernelMainP.AES_Driver -> AESDriverC;
    // components I2CDriverC;
     //KernelMainP.I2C_Driver -> I2CDriverC;
 }

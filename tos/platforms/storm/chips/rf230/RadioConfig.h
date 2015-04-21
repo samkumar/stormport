@@ -91,7 +91,7 @@ enum
 	 * This is the value of the CCA_THRES register that controls the
 	 * energy levels used for clear channel assessment
 	 */
-	RF230_CCA_THRES_VALUE = 0xFF,
+	RF230_CCA_THRES_VALUE = 0xC7,
 };
 
 /* This is the default value of the TX_PWR field of the PHY_TX_PWR register. 0-15*/

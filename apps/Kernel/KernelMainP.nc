@@ -64,7 +64,7 @@ module KernelMainP
         interface Driver as RoutingTable_Driver;
         interface Driver as BLE_Driver;
         interface Driver as I2C_Driver;
-
+        interface Driver as AES_Driver;
         interface GeneralIO as ENSEN;
         interface HplSam4PeripheralClockCntl as ADCIFEClockCtl;
 
@@ -156,7 +156,7 @@ implementation
         inet_pton6("2001:470:4956:1::1", &route_dest.sin6_addr);
 
         call Dmesg.bind(514);
-        //call Timer.startPeriodic(32768);
+        call Timer.startPeriodic(32768);
 
         call ENSEN.makeOutput();
         call ENSEN.set();
@@ -260,14 +260,14 @@ implementation
 
     event void Timer.fired()
     {
-        /*
+/*
         char *payload = "yoloyoloyoloyoloyoloyoloyoloyoloyoloyoloyoloyoloyoloyoloyoloyoloyoloyoloyoloyoloyoloyolo";
         uint8_t len = 88;
         struct sockaddr_in6 dest;
         error_t rv;
         inet_pton6("ff02::1", &dest.sin6_addr);
         call Dmesg.sendto(&dest, payload, len);
-        */
+*/
 
        // call I2C_Driver.syscall_ex(0, 0, 0, 0, NULL);
     }
@@ -519,6 +519,7 @@ implementation
              //   if (( syscall_args[0] >> 8) == 5 ) rv = call I2C_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
                 if (( syscall_args[0] >> 8) == 6 ) rv = call BLE_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
                 if (( syscall_args[0] >> 8) == 7 ) rv = call RoutingTable_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
+                if (( syscall_args[0] >> 8) == 8 ) rv = call AES_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
                 *process_syscall_rv = rv;
                 return RET_KERNEL;
             }

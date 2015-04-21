@@ -68,14 +68,14 @@ typedef struct
     aesa_sr_ixr_t       imr;
     uint32_t            _reserved0;
 
-    uint32_t [8]        key;
-    uint32_t [4]        iv;
+    uint32_t         key [8];
+    uint32_t         iv [4];
 
     uint32_t            idata;
-    uint32_t [3]        _reserved1;
+    uint32_t         _reserved1 [3];
 
     uint32_t            odata;
-    uint32_t [3]        _reserved2;
+    uint32_t         _reserved2 [3];
 
     uint32_t            drngseed;
 } aesa_t;

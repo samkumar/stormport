@@ -92,10 +92,10 @@ PFLAGS += -DNO_RPL
 ### Configure LPL
 ################################################################################
 
-PFLAGS += -DLOW_POWER_LISTENING
-PFLAGS += -DLPL_SLEEP_INTERVAL=100
-PFLAGS += -DLPL_DEF_LOCAL_WAKEUP=100
-PFLAGS += -DLPL_DEF_REMOTE_WAKEUP=100
+#PFLAGS += -DLOW_POWER_LISTENING
+#PFLAGS += -DLPL_SLEEP_INTERVAL=100
+#PFLAGS += -DLPL_DEF_LOCAL_WAKEUP=100
+#PFLAGS += -DLPL_DEF_REMOTE_WAKEUP=100
 
 ################################################################################
 ### Configure printf() output
