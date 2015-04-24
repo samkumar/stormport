@@ -119,4 +119,6 @@ implementation
     KernelMainP.BLE_Driver -> BLEDriverC;
     components I2CDriverC;
     KernelMainP.I2C_Driver -> I2CDriverC;
+    components SPIDriverC;
+    KernelMainP.SPI_Driver -> SPIDriverC;
 }
