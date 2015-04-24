@@ -19,6 +19,7 @@ PFLAGS += -DBLIP_STATS_IP_MEM
 # radio options
 # CFLAGS += -DCC2420_DEF_CHANNEL=26
 CFLAGS += -DRF230_DEF_CHANNEL=26
+#CFLAGS += -DRF230_DEF_RFPOWER=15
 # CFLAGS += -DCC2420_DEF_RFPOWER=4 -DENABLE_SPI0_DMA
 
 # enable dma on the radio
@@ -56,8 +57,8 @@ PFLAGS += -DLIB6LOWPAN_FULL=1
 PFLAGS += -DLIB6LOWPAN_HC_VERSION=6
 
 # How many seconds to do aggregation statistics about retransmissions
-PFLAGS += -DRETRY_STAT_BUCKET_SIZE=1
-PFLAGS += -DRPL_STAT_BUCKET_SIZE=1
+PFLAGS += -DRETRY_STAT_BUCKET_SIZE=2
+PFLAGS += -DRPL_STAT_BUCKET_SIZE=2
 
 # Keep statistics about various BLIP/IPv6 parameters. See BlipStatistics.h
 #PFLAGS += -DBLIP_STATS
@@ -75,8 +76,8 @@ PFLAGS += -DRPL_ROUTING=1
 PFLAGS += -DRPL_STORING_MODE=1
 
 # Choose the objective function RPL should use
-PFLAGS += -DRPL_OF_0=1
-PFLAGS += -DRPL_OF_MRHOF=0
+PFLAGS += -DRPL_OF_0=0
+PFLAGS += -DRPL_OF_MRHOF=1
 
 # If this is defined, then RPL will only send/receive from the following address. It will be added
 # as the default 802.15.4 route. If you are using a border router/root node, do not use this flag.

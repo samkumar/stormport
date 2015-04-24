@@ -72,10 +72,13 @@ implementation
 	SubPacket = LowPowerListeningLayerP;
 	Config = LowPowerListeningLayerP;
 	PacketAcknowledgements = LowPowerListeningLayerP;
-	
+
 	LowPowerListeningLayerP.Timer -> TimerMilliC;
 	LowPowerListeningLayerP.SystemLowPowerListening -> SystemLowPowerListeningC;
 
 	components NoLedsC as LedsC;
 	LowPowerListeningLayerP.Leds -> LedsC;
+
+    components new TimerMilliC() as RetryStatTimer;
+    LowPowerListeningLayerP.Timer -> RetryStatTimer;
 }

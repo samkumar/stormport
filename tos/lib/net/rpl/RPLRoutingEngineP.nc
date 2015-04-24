@@ -663,7 +663,14 @@ implementation{
 #endif
     dio_cnt = 0;
     dis_cnt = 0;
-    cur_bucket = (cur_bucket + 1) & 0x1ff; // when we get to end, just loop back
+    if (cur_bucket == 180)
+    {
+        call RplStatTimer.stop();
+    }
+    else
+    {
+        cur_bucket++;
+    }
   }
 
 

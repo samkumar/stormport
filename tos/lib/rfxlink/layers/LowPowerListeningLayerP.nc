@@ -36,6 +36,9 @@
 #include <LowPowerListeningLayer.h>
 #include <Lpl.h>
 
+/** Retransmission statistics **/
+uint8_t lpl_tx_cnt @C();
+
 generic module LowPowerListeningLayerP()
 {
 	provides
@@ -75,6 +78,7 @@ implementation
 
 	message_t* txMsg;
 	error_t txError;
+
 
 /*----------------- state machine -----------------*/
 
@@ -352,6 +356,9 @@ implementation
 		RADIO_ASSERT( msg == txMsg );
 
 		txError = error;
+
+        // retransmission
+        lpl_tx_cnt++;
 
 		// TODO: extend the PacketAcknowledgements interface with getAckRequired
 		if( error != SUCCESS

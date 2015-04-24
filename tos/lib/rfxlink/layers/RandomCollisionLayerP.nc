@@ -92,7 +92,7 @@ implementation
 		//}
 		//post calcNextRandom();
 
-		//return (a % maxBackoff) + call Config.getMinimumBackoff();
+		//return ((a % maxBackoff) + call Config.getMinimumBackoff()) / 30;
         return 1;
 	}
 

@@ -143,7 +143,10 @@ generic module RPLDAORoutingEngineP() {
       /* in non-storing mode we must use global addresses */
       call IPAddress.getGlobalAddr(&dao_msg->s_pkt.ip6_hdr.ip6_src);
       /* and unicast to the DODAG root */
-      call RPLRouteInfo.getDodagId(&dao_msg->s_pkt.ip6_hdr.ip6_dst);
+      //call RPLRouteInfo.getDodagId(&dao_msg->s_pkt.ip6_hdr.ip6_dst);
+      //call RPLRouteInfo.getDodagId();
+      ip_memcpy((uint8_t*)&dao_msg->s_pkt.ip6_hdr.ip6_dst,
+                (uint8_t*)(call RPLRouteInfo.getDodagId()), sizeof(struct in6_addr));
 #endif
       dao_cnt++;
       call IP_DAO.send(&dao_msg->s_pkt);
@@ -477,7 +480,14 @@ generic module RPLDAORoutingEngineP() {
     printf("\033[33;1md%d\n\033[0m", dao_cnt);
 #endif
     dao_cnt = 0;
-    cur_bucket = (cur_bucket + 1) & 0x1ff; // when we get to end, just loop back
+    if (cur_bucket == 180)
+    {
+        call RplStatTimer.stop();
+    }
+    else
+    {
+        cur_bucket++;
+    }
   }
 
 }

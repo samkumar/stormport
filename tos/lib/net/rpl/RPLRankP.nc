@@ -716,6 +716,7 @@ implementation {
         dio_etx = (struct dio_etx_t*) (((uint8_t*) dio_metric_header) +
           sizeof(struct dio_metric_header_t));
         etx = dio_etx->etx;
+        printf("ETX %d", etx);
         METRICID = RPL_ROUTE_METRIC_ETX;
       }
     } else {

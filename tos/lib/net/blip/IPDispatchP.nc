@@ -32,6 +32,8 @@
 #include "BlipStatistics.h"
 #include "table.h"
 
+extern uint8_t lpl_tx_cnt;
+
 /*
  * Provides IP layer reception to applications on motes.
  *
@@ -738,7 +740,18 @@ void SENDINFO_DECR(struct send_info *si) {
     retry_stats.tx_cnt[cur_bucket] += tx_cnt;
     pkt_cnt = 0;
     tx_cnt = 0;
-    cur_bucket = (cur_bucket + 1) & 0x1ff; // when we get to end, just loop back
+#ifdef LOW_POWER_LISTENING
+    retry_stats.lpl_tx_cnt[cur_bucket] = lpl_tx_cnt;
+    lpl_tx_cnt = 0;
+#endif
+    if (cur_bucket == 180)
+    {
+        call RetryStatTimer.stop();
+    }
+    else
+    {
+        cur_bucket++;
+    }
   }
 
 }

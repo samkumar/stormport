@@ -107,6 +107,9 @@ implementation{
   /* Current parent */
   command struct in6_addr* RPLOF.getParent() {
     parent_t* parentNode = call ParentTable.get(desiredParent);
+    printf("parent ");
+    printf_in6addr(&parentNode->parentIP);
+    printf(" etx %d etxhop %d\n", parentNode->etx, parentNode->etx_hop);
     return &parentNode->parentIP;
   }
 
@@ -122,6 +125,9 @@ implementation{
 
     uint16_t prevEtx, prevRank;
     parent_t* parentNode = call ParentTable.get(desiredParent);
+    printf("parent ");
+    printf_in6addr(&parentNode->parentIP);
+    printf(" etx %d etxhop %d\n", parentNode->etx, parentNode->etx_hop);
 
     if (desiredParent == MAX_PARENT) {
       nodeRank = INFINITE_RANK;
@@ -163,6 +169,9 @@ implementation{
     //choose the first valid
 
     parentNode = call ParentTable.get(min);
+    printf("parent ");
+    printf_in6addr(&parentNode->parentIP);
+    printf(" etx %d etxhop %d\n", parentNode->etx, parentNode->etx_hop);
     while (!parentNode->valid && min < MAX_PARENT) {
       min++;
       parentNode = call ParentTable.get(min);

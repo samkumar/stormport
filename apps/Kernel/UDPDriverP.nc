@@ -46,8 +46,9 @@ implementation
 
     struct
     {
-        uint8_t pkt_cnt[256];
-        uint8_t tx_cnt[256];
+        uint8_t pkt_cnt[180];
+        uint8_t tx_cnt[180];
+        uint8_t lpl_tx_cnt[180];
     } __attribute__((packed)) rstats;
 
     struct
@@ -210,8 +211,11 @@ implementation
             {
                 retry_statistics_t r;
                 call retry_stats.get(&r);
-                memcpy(&rstats.pkt_cnt, &r.pkt_cnt, sizeof(uint8_t) * 256);
-                memcpy(&rstats.tx_cnt, &r.tx_cnt, sizeof(uint8_t) * 256);
+                memcpy(&rstats.pkt_cnt, &r.pkt_cnt, sizeof(uint8_t) * 180);
+                memcpy(&rstats.tx_cnt, &r.tx_cnt, sizeof(uint8_t) * 180);
+#ifdef LOW_POWER_LISTENING
+                memcpy(&rstats.lpl_tx_cnt, &r.lpl_tx_cnt, sizeof(uint8_t) * 180);
+#endif
                 return &rstats;
             }
             case 0x09: // udp_clear_retrystats()
