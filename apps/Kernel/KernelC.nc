@@ -121,4 +121,6 @@ implementation
     KernelMainP.I2C_Driver -> I2CDriverC;
     components SPIDriverC;
     KernelMainP.SPI_Driver -> SPIDriverC;
+    components AESDriverC;
+    KernelMainP.AES_Driver -> AESDriverC;
 }
