@@ -65,7 +65,6 @@ module KernelMainP
         interface Driver as I2C_Driver;
         interface Driver as SPI_Driver;
         interface Driver as AES_Driver;
-        interface Tcp as TcpSTDIO;
         interface GeneralIO as ENSEN;
         interface HplSam4PeripheralClockCntl as ADCIFEClockCtl;
 
@@ -168,34 +167,9 @@ implementation
 #ifndef WITH_WIZ
         post launch_payload(); // ignore this if we are the ethernet shield
 #endif
-        call TcpSTDIO.bind(23);
 
     }
 
-    /*
-   * Example code for setting up a TCP echo socket.
-   */
-
-    bool sock_connected = FALSE;
-    char tcp_buf[150];
-
-    event bool TcpSTDIO.accept(struct sockaddr_in6 *from,
-                            void **tx_buf, int *tx_buf_len) {
-        *tx_buf = tcp_buf;
-        *tx_buf_len = 150;
-        return TRUE;
-    }
-    event void TcpSTDIO.connectDone(error_t e) {
-
-    }
-    event void TcpSTDIO.recv(void *payload, uint16_t len) {
-        call TcpSTDIO.send(payload,len);
-    }
-    event void TcpSTDIO.closed(error_t e) {
-        printf ("CLOSED: ERR: %d\n", e);
-        call TcpSTDIO.bind(23);
-    }
-    event void TcpSTDIO.acked() {}
 
 
     task void launch_payload()
