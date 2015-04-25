@@ -16,7 +16,6 @@ implementation
         //oscsel=7 (cpu)
         //div=10?
         *((volatile uint32_t *) 0x400E0884) = 0x00000701;
-        printf("AES init called\n");
         AESA->ctrl.bits.enable = 1;
         AESA->ctrl.bits.swrst = 1;
         AESA->ctrl.bits.enable = 1;

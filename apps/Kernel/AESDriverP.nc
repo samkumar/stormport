@@ -26,7 +26,6 @@ implementation
         uint32_t arg1, uint32_t arg2,
         uint32_t *argx)
     {
-        printf("GOT AES X\n");
         switch(number & 0xFF)
         {
             case 0x01: //encrypt(iv(16), mlen, message, dest)
