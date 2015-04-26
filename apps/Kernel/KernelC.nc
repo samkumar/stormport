@@ -119,4 +119,6 @@ implementation
     KernelMainP.SPI_Driver -> SPIDriverC;
     components AESDriverC;
     KernelMainP.AES_Driver -> AESDriverC;
+    components FlashDriverC;
+    KernelMainP.Flash_Driver -> FlashDriverC;
 }
