@@ -150,7 +150,7 @@ implementation
         ln = snprintf(vbuf, 80, "Booting kernel %d.%d.%d.%d (%s)\n",VER_MAJOR, VER_MINOR, VER_SUBMINOR, VER_BUILD, GITCOMMIT);
         storm_write_payload(vbuf, ln);
 
-        dhcp_bcast_dest.sin6_port = htons(68);
+        dhcp_bcast_dest.sin6_port = htons(67);
 
         inet_pton6("ff02::1", &dhcp_bcast_dest.sin6_addr);
 
