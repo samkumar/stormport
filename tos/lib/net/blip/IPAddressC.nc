@@ -28,7 +28,7 @@
 configuration IPAddressC {
   provides {
     interface IPAddress;
-    interface SetIPAddress @exactlyonce();
+    interface SetIPAddress;
   }
 } implementation {
   components IPAddressP, Ieee154AddressC;
