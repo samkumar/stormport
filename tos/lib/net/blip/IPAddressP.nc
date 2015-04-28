@@ -30,7 +30,7 @@
 module IPAddressP {
   provides {
     interface IPAddress;
-    interface SetIPAddress @exactlyonce();
+    interface SetIPAddress;
   }
   uses {
     interface Ieee154Address;
