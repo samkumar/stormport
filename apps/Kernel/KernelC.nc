@@ -45,8 +45,13 @@ implementation
     KernelMainP.Boot -> MainC;
 
     components IPStackC;
+    components IPAddressC;
+    components LocalIeeeEui64P;
 
     KernelMainP.RadioControl ->  IPStackC;
+    KernelMainP.NeighborDiscovery ->  IPStackC;
+    KernelMainP.SetIPAddress -> IPAddressC;
+    KernelMainP.LocalIeeeEui64 -> LocalIeeeEui64P;
     components new UdpSocketC() as dhcp;
 
     KernelMainP.dhcp -> dhcp;
@@ -68,7 +73,6 @@ implementation
 
   #ifdef WITH_WIZ
   components IPPacketC;
-  components LocalIeeeEui64P;
   components EthernetP;
   components IPForwardingEngineP;
   components RplBorderRouterP;

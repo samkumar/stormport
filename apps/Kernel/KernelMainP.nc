@@ -68,7 +68,9 @@ module KernelMainP
         interface Driver as Flash_Driver;
         interface GeneralIO as ENSEN;
         interface HplSam4PeripheralClockCntl as ADCIFEClockCtl;
-
+        interface NeighborDiscovery;
+        interface SetIPAddress;
+        interface LocalIeeeEui64;
     }
 }
 implementation
@@ -156,7 +158,7 @@ implementation
 
         call dhcp.bind(67);
 #ifdef RPL_SINGLE_HOP_ROOT
-        call Timer.startPeriodic(32000);
+        call Timer.startPeriodic(320000);
 #endif
 
         call ENSEN.makeOutput();
@@ -214,7 +216,26 @@ implementation
     event void dhcp.recvfrom(struct sockaddr_in6 *from, void *data,
                              uint16_t len, struct ip6_metadata *meta)
     {
+        struct in6_addr newprefix;
+        ieee_eui64_t nodeid;
+        int i;
+#ifdef RPL_SINGLE_HOP
+        memset(&newprefix, 0, sizeof(newprefix));
+        inet_pton6(data, &newprefix);
+#ifndef BLIP_STFU
         printf("Got traffic on dmesg port\n");
+        printf_in6addr(&newprefix);
+        printf("\n");
+#endif
+        call NeighborDiscovery.setPrefix(&newprefix, 64, 0xFFFFFFFF, 0xFFFFFFFF); // infinite lifetimes
+        memcpy(IN6_PREFIX, data, 17);
+        nodeid = call LocalIeeeEui64.getId();
+        nodeid.data[0] ^= 0x02;
+        for (i = 0; i < 8; i++) {
+            newprefix.s6_addr[8+i] = nodeid.data[i];
+        }
+        call SetIPAddress.setAddress(&newprefix);
+#endif
     }
 
     event void Timer.fired()
