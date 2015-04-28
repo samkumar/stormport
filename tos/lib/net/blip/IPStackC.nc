@@ -32,6 +32,7 @@ configuration IPStackC {
     interface IP[uint8_t nxt_hdr];
     interface IP as IPRaw;
     interface ForwardingTable;
+    interface NeighborDiscovery;
     interface ForwardingTableEvents;
     interface ForwardingEvents[uint8_t ifindex];
   }
@@ -52,6 +53,8 @@ configuration IPStackC {
   IPStackControlP.RoutingControl = RoutingControl;
   IPStackControlP.SubSplitControl -> IPDispatchC;
   IPStackControlP.NeighborDiscoveryControl -> NdC.StdControl;
+
+  NeighborDiscovery = NdC.NeighborDiscovery;
 
   ForwardingTable = FwdP.ForwardingTable;
   ForwardingTableEvents = FwdP.ForwardingTableEvents;
