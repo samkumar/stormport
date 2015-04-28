@@ -52,7 +52,7 @@ module KernelMainP
     {
         interface Boot;
         interface SplitControl as RadioControl;
-        interface UDP as Dmesg;
+        interface UDP as dhcp;
         interface FlashAttr;
         interface Timer<T32khz> as Timer;
         interface UartStream;
@@ -140,7 +140,7 @@ implementation
             return rv;
         }
     }
-    struct sockaddr_in6 route_dest;
+    struct sockaddr_in6 dhcp_bcast_dest;
     task void launch_payload();
     event void Boot.booted() {
         char vbuf[80];
@@ -150,11 +150,14 @@ implementation
         ln = snprintf(vbuf, 80, "Booting kernel %d.%d.%d.%d (%s)\n",VER_MAJOR, VER_MINOR, VER_SUBMINOR, VER_BUILD, GITCOMMIT);
         storm_write_payload(vbuf, ln);
 
-        route_dest.sin6_port = htons(7000);
+        dhcp_bcast_dest.sin6_port = htons(68);
 
-        inet_pton6("2001:470:4956:1::1", &route_dest.sin6_addr);
+        inet_pton6("ff02::1", &dhcp_bcast_dest.sin6_addr);
 
-        call Dmesg.bind(514);
+        call dhcp.bind(67);
+#ifdef RPL_SINGLE_HOP_ROOT
+        call Timer.startPeriodic(32000);
+#endif
 
         call ENSEN.makeOutput();
         call ENSEN.clr();
@@ -208,7 +211,7 @@ implementation
 
     }
 
-    event void Dmesg.recvfrom(struct sockaddr_in6 *from, void *data,
+    event void dhcp.recvfrom(struct sockaddr_in6 *from, void *data,
                              uint16_t len, struct ip6_metadata *meta)
     {
         printf("Got traffic on dmesg port\n");
@@ -216,7 +219,9 @@ implementation
 
     event void Timer.fired()
     {
-       // call I2C_Driver.syscall_ex(0, 0, 0, 0, NULL);
+        
+        uint8_t *data = IN6_PREFIX;
+        call dhcp.sendto(&dhcp_bcast_dest, data, 17);
     }
     task void flush_process_stdout()
     {

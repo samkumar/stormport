@@ -7,6 +7,7 @@ module StormRoutingTableP
 {
     provides interface Driver;
     uses interface ForwardingTable;
+    uses interface NeighborDiscovery;
 }
 implementation
 {

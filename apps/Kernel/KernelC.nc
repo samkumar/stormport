@@ -47,9 +47,9 @@ implementation
     components IPStackC;
 
     KernelMainP.RadioControl ->  IPStackC;
-    components new UdpSocketC() as Dmesg;
+    components new UdpSocketC() as dhcp;
 
-    KernelMainP.Dmesg -> Dmesg;
+    KernelMainP.dhcp -> dhcp;
 
     components FlashAttrC;
     KernelMainP.FlashAttr -> FlashAttrC;
