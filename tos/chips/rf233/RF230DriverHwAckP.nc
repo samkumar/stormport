@@ -274,7 +274,7 @@ implementation
 
 		call BusyWait.wait(1000);
 
-#ifdef WITH_WIZ
+#if defined(WITH_WIZ) || defined(WITH_EXTERNAL_ANTENNA)
         //I think this the U.FL connector (with 98% certainty)
         writeRegister(0x0D, 0b0101);
 #else
