@@ -62,6 +62,7 @@ module KernelMainP
         interface Driver as SysInfo_Driver;
         interface Driver as RoutingTable_Driver;
         interface Driver as BLE_Driver;
+        interface Driver as BLE_PECS_Driver;
         interface Driver as I2C_Driver;
         interface Driver as SPI_Driver;
         interface Driver as AES_Driver;
@@ -395,6 +396,17 @@ implementation
                     call BLE_Driver.pop_callback();
                     return TRUE;
                 }
+                // check for BLE PECS callbacks
+                cb = call BLE_PECS_Driver.peek_callback();
+                if (cb != NULL)
+                {
+                    simple_callback_t* c = (simple_callback_t*) cb;
+                    __inject_function0((void*) c->addr);
+                    procstate = procstate_runnable;
+                    __syscall(KABI_RESUME_PROCESS);
+                    call BLE_PECS_Driver.pop_callback();
+                    return TRUE;
+                }
                 //check for SPI callbacks
                 cb = call SPI_Driver.peek_callback();
                 if (cb != NULL)
@@ -517,6 +529,8 @@ implementation
                 if (( syscall_args[0] >> 8) == 8 ) rv = call AES_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
                 if (( syscall_args[0] >> 8) == 9 ) rv = call SPI_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
                 if (( syscall_args[0] >> 8) == 10 ) rv = call Flash_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
+                // Application-specific BLE PECS Driver
+                if (( syscall_args[0] >> 8) == 0x57 ) rv = call BLE_PECS_Driver.syscall_ex(syscall_args[0], syscall_args[1], syscall_args[2], syscall_args[3], &syscall_args[STACKED+0]);
                 *process_syscall_rv = rv;
                 return RET_KERNEL;
             }
