@@ -72,6 +72,9 @@ module KernelMainP
         interface NeighborDiscovery;
         interface SetIPAddress;
         interface LocalIeeeEui64;
+        
+        interface StdControl as ScrufflesControl;
+        interface Scruffles as ScrufflesMain;
     }
 }
 implementation
@@ -170,6 +173,9 @@ implementation
         //oscsel=7 (cpu)
         //div=10?
         *((volatile uint32_t *) 0x400E089c) = 0x00f00703;
+        
+        // Start Scruffles
+        call ScrufflesControl.start();
 
 #ifndef WITH_WIZ
         post launch_payload(); // ignore this if we are the ethernet shield
@@ -528,7 +534,11 @@ implementation
                 if (( syscall_args[0] >> 8) == 7 ) rv = call RoutingTable_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
                 if (( syscall_args[0] >> 8) == 8 ) rv = call AES_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
                 if (( syscall_args[0] >> 8) == 9 ) rv = call SPI_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
-                if (( syscall_args[0] >> 8) == 10 ) rv = call Flash_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
+                if (( syscall_args[0] >> 8) == 10 ) {
+                    call ScrufflesMain.kick();
+                    rv = call Flash_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
+                }
+                
                 // Application-specific BLE PECS Driver
                 if (( syscall_args[0] >> 8) == 0x57 ) rv = call BLE_PECS_Driver.syscall_ex(syscall_args[0], syscall_args[1], syscall_args[2], syscall_args[3], &syscall_args[STACKED+0]);
                 *process_syscall_rv = rv;
