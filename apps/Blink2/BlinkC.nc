@@ -111,5 +111,8 @@ implementation
     call SpiPacket.send(txbuf, rxbuf, txlen);
     call Led.toggle();
   }
+    void SVC_Handler() @C() @spontaneous(){}
+    bool run_process() @C() @spontaneous()
+    {}
 }
 

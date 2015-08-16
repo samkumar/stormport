@@ -88,6 +88,11 @@ implementation
     HplSam4lSPIP.CS1 -> HplSam4lIOC.HplPC02;
     HplSam4lSPIP.CS2 -> HplSam4lIOC.HplPC00;
     HplSam4lSPIP.CS3 -> HplSam4lIOC.HplPC01;
+    HplSam4lSPIP.GPCS0 -> HplSam4lIOC.PC03;
+    HplSam4lSPIP.GPCS1 -> HplSam4lIOC.PC02;
+    HplSam4lSPIP.GPCS2 -> HplSam4lIOC.PC00;
+    HplSam4lSPIP.GPCS3 -> HplSam4lIOC.PC01;
+
     HplSam4lSPIP.CH0Init = ChannelInit[0];
     HplSam4lSPIP.CH1Init = ChannelInit[1];
     HplSam4lSPIP.CH2Init = ChannelInit[2];

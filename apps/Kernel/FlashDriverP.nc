@@ -25,7 +25,9 @@ implementation
     enum {
         OP_IDLE,
         OP_WRITE,
-        OP_READ
+        OP_READ,
+        OP_ERASE,
+        OP_ISBUSY,
     } operation;
 
     uint32_t addr;
@@ -82,6 +84,28 @@ implementation
                 call Resource.release();
                 callback_pending =1;
                 return;
+            case OP_ERASE:
+                printf("WARNING: DOING CHIP ERASE\n");
+                call CS.clr();
+                sleep();
+                call FastSpiByte.write(0xC7);
+                call FastSpiByte.write(0x94);
+                call FastSpiByte.write(0x80);
+                call FastSpiByte.write(0x9A);
+                call CS.set();
+                call Resource.release();
+                spi_busy=0;
+                return;
+            case OP_ISBUSY:
+                call CS.clr();
+                sleep();
+                call FastSpiByte.write(0xD7);
+                i = call FastSpiByte.write(0x00);
+                sleep();
+                call CS.set();
+                call Resource.release();
+                spi_busy=0;
+                return;
         }
     }
 
@@ -125,6 +149,24 @@ implementation
                 call Resource.request();
                 return 0;
             }
+
+            case 0x03: //erase_flash_chip
+            {
+                if (spi_busy || callback_pending) return 1;
+                operation = OP_ERASE;
+                spi_busy = 1;
+                call Resource.request();
+                return 0;
+            }
+            case 0x04: //poll busy
+            {
+                if (spi_busy || callback_pending) return 1;
+                operation = OP_ISBUSY;
+                spi_busy = 1;
+                call Resource.request();
+                return 0;
+            }
+
             break;
         }
     }

@@ -185,23 +185,7 @@ implementation
         uint8_t val_len;
         error_t rv;
         uint32_t addr;
-        rv = call FlashAttr.getAttr(1, key, val, &val_len);
-        if (rv != SUCCESS)
-        {
-            printf("Could not get flash attr\n");
-        }
-        if (val_len != 4)
-        {
-            printf("Did not find expected payload entry point: %d", val_len);
-            return;
-        }
-        addr = val[0] + ((uint32_t)val[1] << 8) + ((uint32_t)val[2] << 16) + ((uint32_t)val[3] << 24);
-        if (addr < 0x50000)
-        {
-            printf("Did not find expected payload entry point");
-            return;
-        }
-        __bootstrap_payload(addr);
+        __bootstrap_payload(0x050001);
         procstate = procstate_runnable;
     }
     event void RadioControl.startDone(error_t e)
@@ -240,7 +224,6 @@ implementation
 
     event void Timer.fired()
     {
-        
         uint8_t *data = IN6_PREFIX;
         call dhcp.sendto(&dhcp_bcast_dest, data, 17);
     }

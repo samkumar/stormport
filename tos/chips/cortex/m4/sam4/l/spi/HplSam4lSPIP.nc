@@ -15,6 +15,10 @@ module HplSam4lSPIP
 	    interface HplSam4lGeneralIO as CS1;
 	    interface HplSam4lGeneralIO as CS2;
 	    interface HplSam4lGeneralIO as CS3;
+	    interface GeneralIO as GPCS0;
+	    interface GeneralIO as GPCS1;
+	    interface GeneralIO as GPCS2;
+	    interface GeneralIO as GPCS3;
 	    interface Init as CH0Init;
 	    interface Init as CH1Init;
 	    interface Init as CH2Init;
@@ -35,6 +39,10 @@ implementation
 	    call CH1Init.init();
 	    call CH2Init.init();
 	    call CH3Init.init();
+	    call GPCS0.makeOutput();
+	    call GPCS3.makeOutput();
+	    call GPCS0.set();
+	    call GPCS3.set();
 	    return SUCCESS;
 	}
 	async command void HplSam4lSPIControl.enable()

@@ -21,7 +21,6 @@ implementation {
         uint8_t key [10];
         uint8_t val [65];
         uint8_t val_len;
-
         e = call FlashAttr.getAttr(0, key, val, &val_len);
         if (e != SUCCESS || val_len != 2)
         {
