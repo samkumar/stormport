@@ -62,7 +62,6 @@ module KernelMainP
         interface Driver as SysInfo_Driver;
         interface Driver as RoutingTable_Driver;
         interface Driver as BLE_Driver;
-        interface Driver as BLE_PECS_Driver;
         interface Driver as I2C_Driver;
         interface Driver as SPI_Driver;
         interface Driver as AES_Driver;
@@ -512,8 +511,6 @@ implementation
                 if (( syscall_args[0] >> 8) == 8 ) rv = call AES_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
                 if (( syscall_args[0] >> 8) == 9 ) rv = call SPI_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
                 if (( syscall_args[0] >> 8) == 10 ) rv = call Flash_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
-                // Application-specific BLE PECS Driver
-                if (( syscall_args[0] >> 8) == 0x57 ) rv = call BLE_PECS_Driver.syscall_ex(syscall_args[0], syscall_args[1], syscall_args[2], syscall_args[3], &syscall_args[STACKED+0]);
                 *process_syscall_rv = rv;
                 return RET_KERNEL;
             }

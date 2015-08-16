@@ -117,8 +117,6 @@ implementation
     KernelMainP.RoutingTable_Driver -> StormRoutingTableC;
     components BLEDriverC;
     KernelMainP.BLE_Driver -> BLEDriverC;
-    components BlePECSC;
-    KernelMainP.BLE_PECS_Driver -> BlePECSC;
     components I2CDriverC;
     KernelMainP.I2C_Driver -> I2CDriverC;
     components SPIDriverC;
