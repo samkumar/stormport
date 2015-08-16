@@ -4,6 +4,9 @@ module UDPDriverP
     provides interface Driver;
     provides interface Init;
     uses interface UDP[uint8_t clnt];
+    uses interface BlipStatistics<ip_statistics_t> as ip_stats;
+    uses interface BlipStatistics<udp_statistics_t> as udp_stats;
+    uses interface BlipStatistics<retry_statistics_t> as retry_stats;
 }
 implementation
 {
@@ -19,6 +22,33 @@ implementation
         udp_callback_t recv_callback;
         uint8_t bound;
     } socket_t;
+
+    // blipstats struct
+    struct
+    {
+        uint16_t sent;       // total IP datagrams sent
+        uint16_t forwarded;  // total IP datagrams forwarded
+        uint8_t rx_drop;     // L2 frags dropped due to 6lowpan failure
+        uint8_t tx_drop;     // L2 frags dropped due to link failures
+        uint8_t fw_drop;     // L2 frags dropped when forwarding due to queue overflow
+        uint8_t rx_total;    // L2 frags received
+        uint8_t encfail;     // frags dropped due to send queue
+        uint8_t fragpool;    // free fragments in pool
+        uint8_t sendinfo;    // free sendinfo structures
+        uint8_t sendentry;   // free send entryies
+        uint8_t sndqueue;    // free send queue entries
+        uint8_t reserved;
+        uint16_t heapfree;   // available free space in the heap
+        uint16_t udpsent;  // UDP datagrams sent from app
+        uint16_t udprcvd;  // UDP datagrams delivered to apps
+    } __attribute__((packed)) stats;
+
+    // retry stats struct
+    struct
+    {
+        uint16_t pkt_cnt;
+        uint16_t tx_cnt;
+    } __attribute__((packed)) rstats;
 
     uint8_t scanidx;
 
@@ -139,6 +169,53 @@ implementation
                 }
                 return -1;
             }
+#ifdef BLIP_STATS
+            case 0x06: //udp_get_blipstats()
+            {
+                ip_statistics_t ips;
+                udp_statistics_t udps;
+                call ip_stats.get(&ips);
+                call udp_stats.get(&udps);
+
+                stats.sent = ips.sent;
+                stats.forwarded = ips.forwarded;
+                stats.rx_drop = ips.rx_drop;
+                stats.tx_drop = ips.tx_drop;
+                stats.fw_drop = ips.fw_drop;
+                stats.rx_total = ips.rx_total;
+                stats.encfail = ips.encfail;
+                stats.fragpool = ips.fragpool;
+                stats.sendinfo = ips.sendinfo;
+                stats.sendentry = ips.sendentry;
+                stats.sndqueue = ips.sndqueue;
+                stats.heapfree = ips.heapfree;
+
+                stats.udpsent = udps.sent;
+                stats.udprcvd = udps.rcvd;
+
+                return &stats;
+            }
+            case 0x07: //udp_clear_blipstats()
+            {
+                call ip_stats.clear();
+                call udp_stats.clear();
+                return 0;
+            }
+
+            case 0x08: //udp_get_retrystats()
+            {
+                retry_statistics_t r;
+                call retry_stats.get(&r);
+                rstats.pkt_cnt = r.pkt_cnt;
+                rstats.tx_cnt = r.tx_cnt;
+                return &rstats;
+            }
+            case 0x09: // udp_clear_retrystats()
+            {
+                call retry_stats.clear();
+                return 0;
+            }
+#endif // BLIP_STATS
         }
     }
 

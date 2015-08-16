@@ -84,4 +84,11 @@ typedef nx_struct {
   nx_uint16_t cksum; // UDP datagrams dropped due to checksum error
 } udp_statistics_t;
 
+typedef nx_struct {
+  // distinct packets sent
+  nx_uint16_t pkt_cnt;
+  // number of transmissions for all packets
+  nx_uint16_t tx_cnt;
+} retry_statistics_t;
+
 #endif

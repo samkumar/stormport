@@ -47,6 +47,7 @@ module IPDispatchP {
     interface IPLower;
 
     interface BlipStatistics<ip_statistics_t>;
+    interface BlipStatistics<retry_statistics_t> as RetryStatistics;
   }
   uses {
     /* link-layer wiring */
@@ -114,6 +115,9 @@ int lowpan_extern_match_context(struct in6_addr *addr, uint8_t *ctx_id) {
   bool ack_required=TRUE;
   uint8_t current_local_label = 0;
   ip_statistics_t stats;
+
+  /** Retransmission statistics **/
+  retry_statistics_t retry_stats;
 
   // this in theory could be arbitrarily large; however, it needs to
   // be large enough to hold all active reconstructions, and any tags
@@ -653,6 +657,11 @@ void SENDINFO_DECR(struct send_info *si) {
     s_entry->info->link_transmissions += (call PacketLink.getRetries(msg));
     s_entry->info->link_fragment_attempts++;
 
+    //populate retry stats
+    retry_stats.pkt_cnt += 1;
+    retry_stats.tx_cnt += (1 + call PacketLink.getRetries(msg));
+    
+
  //acknowledgements are not required for multicast packets, useful for fragmentation
    if (!call PacketLink.wasDelivered(msg) && ack_required) {
       printf("sendDone: was not delivered! (%i tries)\n",
@@ -706,4 +715,14 @@ void SENDINFO_DECR(struct send_info *si) {
     memclr((uint8_t *)&stats, sizeof(ip_statistics_t));
   }
 
+  /*
+   * RetryStatistics interface
+   */
+  command void RetryStatistics.get(retry_statistics_t *statistics) {
+    memcpy(statistics, &retry_stats, sizeof(retry_statistics_t));
+  }
+
+  command void RetryStatistics.clear() {
+    memclr((uint8_t *)&retry_stats, sizeof(retry_statistics_t));
+  }
 }

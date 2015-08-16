@@ -20,6 +20,9 @@ CFLAGS += -DRF230_DEF_CHANNEL=26
 # enable dma on the radio
 # PFLAGS += -DENABLE_SPI0_DMA
 
+# enable external antenna
+#PFLAGS += -DWITH_EXTERNAL_ANTENNA
+
 ################################################################################
 ### Set the addressing scheme
 ################################################################################
