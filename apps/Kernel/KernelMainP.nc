@@ -46,6 +46,13 @@ extern void __inject_function0(void* f);
 extern void __inject_function1(void* f, void* r);
 extern void __inject_function2(void* f, void* r, uint32_t);
 extern void __inject_function3(void* f, void* r, uint32_t, uint32_t);
+
+#define BUFFER_PATTERN 0xbed0f3ed
+#define BUFFER_SIZE 900
+uint32_t mem_buffer[BUFFER_SIZE];
+uint32_t* userland_buffer = NULL;
+int userland_buffer_len;
+uint32_t userland_buffer_pattern;
 module KernelMainP
 {
     uses
@@ -143,16 +150,47 @@ implementation
             return rv;
         }
     }
+    inline int verify_buffer(uint32_t* buffer, int size) {
+        int i, len, valid;
+        char vbuf[80];
+        valid = 1;
+        for (i = 0; i < size; i++) {
+            if (buffer[i] != BUFFER_PATTERN) {
+                len = snprintf(vbuf, 80, "Bad buffer: got 0x%08x at address 0x%08x (expected 0x%08x)\n", buffer[i], (uint32_t) (buffer + i), BUFFER_PATTERN);
+                storm_write_payload(vbuf, len);
+                valid = 0;
+            }
+        }
+        if (valid) {
+            return 0;
+        } else {
+            // Panic!
+            uint32_t* mem_addr = (uint32_t*) 0x1eadfeed;
+            *mem_addr = (uint32_t) 0x17c0ffee;
+            len = snprintf(vbuf, 80, "Valid is %d\n", valid);
+            storm_write_payload(vbuf, len);
+            return 1;
+        }
+    }
     struct sockaddr_in6 dhcp_bcast_dest;
     task void launch_payload();
     event void Boot.booted() {
         char vbuf[80];
         int ln;
+        
+        // Initializing buffer
+        int i;
+        for (i = 0; i < BUFFER_SIZE; i++) {
+            mem_buffer[i] = BUFFER_PATTERN;
+        }
+              
         call RadioControl.start();
         call UartStream.enableReceiveInterrupt();
+        ln = snprintf(vbuf, 80, "Buffer: 0x%08x to 0x%08x (filled with 0x%08x)\n", (uint32_t) mem_buffer, (uint32_t) (mem_buffer + BUFFER_SIZE), BUFFER_PATTERN);
+        storm_write_payload(vbuf, ln);
         ln = snprintf(vbuf, 80, "Booting kernel %d.%d.%d.%d (%s)\n",VER_MAJOR, VER_MINOR, VER_SUBMINOR, VER_BUILD, GITCOMMIT);
         storm_write_payload(vbuf, ln);
-
+        
         dhcp_bcast_dest.sin6_port = htons(67);
 
         inet_pton6("ff02::1", &dhcp_bcast_dest.sin6_addr);
@@ -307,6 +345,10 @@ implementation
     bool run_process() @C() @spontaneous()
     {
         uint32_t tmp;
+        verify_buffer(mem_buffer, BUFFER_SIZE);
+        if (userland_buffer != NULL) {
+            verify_buffer(userland_buffer, userland_buffer_len);
+        }
         switch(procstate)
         {
             case procstate_runnable:
@@ -531,6 +573,18 @@ implementation
                 if (( syscall_args[0] >> 8) == 10 ) rv = call Flash_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
                 // Application-specific BLE PECS Driver
                 if (( syscall_args[0] >> 8) == 0x57 ) rv = call BLE_PECS_Driver.syscall_ex(syscall_args[0], syscall_args[1], syscall_args[2], syscall_args[3], &syscall_args[STACKED+0]);
+                
+                // Syscall to register userland buffer so it can also be checked
+                if ((syscall_args[0] >> 8) == 0x5a ) {
+                    userland_buffer_len = (int) syscall_args[2];
+                    userland_buffer_pattern = (uint32_t) syscall_args[3];
+                    userland_buffer = (uint32_t*) syscall_args[1];
+                    printf("Got userland buffer info: 0x%08x to 0x%08x\n", (uint32_t) userland_buffer, (uint32_t) (userland_buffer + userland_buffer_len));
+                    for (rv = 0; rv < userland_buffer_len; rv++) {
+                        userland_buffer[rv] = BUFFER_PATTERN;
+                    }
+                    rv = 0;
+                }
                 *process_syscall_rv = rv;
                 return RET_KERNEL;
             }
