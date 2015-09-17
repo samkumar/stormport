@@ -53,6 +53,8 @@ uint32_t mem_buffer[BUFFER_SIZE];
 uint32_t* userland_buffer = NULL;
 int userland_buffer_len;
 uint32_t userland_buffer_pattern;
+
+uint32_t seconds;
 module KernelMainP
 {
     uses
@@ -62,6 +64,7 @@ module KernelMainP
         interface UDP as dhcp;
         interface FlashAttr;
         interface Timer<T32khz> as Timer;
+        interface Timer<T32khz> as PrintTimer;
         interface UartStream;
         interface Driver as GPIO_Driver;
         interface Driver as Timer_Driver;
@@ -200,6 +203,9 @@ implementation
         call Timer.startPeriodic(320000);
 #endif
 
+        call PrintTimer.startPeriodic(32000);
+        seconds = 0;
+
         call ENSEN.makeOutput();
         call ENSEN.clr();
         call ADCIFEClockCtl.enable();
@@ -210,7 +216,7 @@ implementation
         *((volatile uint32_t *) 0x400E089c) = 0x00f00703;
 
 #ifndef WITH_WIZ
-        post launch_payload(); // ignore this if we are the ethernet shield
+        //post launch_payload(); // ignore this if we are the ethernet shield
 #endif
 
     }
@@ -279,9 +285,13 @@ implementation
 
     event void Timer.fired()
     {
-        
         uint8_t *data = IN6_PREFIX;
         call dhcp.sendto(&dhcp_bcast_dest, data, 17);
+    }
+    event void PrintTimer.fired()
+    {
+        volatile int x = 0;
+        printf("%d: sp = 0x%08x\n", seconds++, (uint32_t) &x);
     }
     task void flush_process_stdout()
     {

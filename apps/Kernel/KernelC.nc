@@ -61,6 +61,9 @@ implementation
 
     components new Timer32khzC();
     KernelMainP.Timer -> Timer32khzC;
+    
+    components new Timer32khzC() as ptimer;
+    KernelMainP.PrintTimer -> ptimer;
 
     components UdpC, IPDispatchC;
     components RPLRoutingC;
