@@ -110,8 +110,8 @@ implementation
     //Drivers
     components StormSimpleGPIOC;
     KernelMainP.GPIO_Driver -> StormSimpleGPIOC.Driver;
-    components TimerDriverC;
-    KernelMainP.Timer_Driver -> TimerDriverC.Driver;
+    components LowPowerTimerDriverC;
+    KernelMainP.Timer_Driver -> LowPowerTimerDriverC.Driver;
     components UDPDriverC;
     KernelMainP.UDP_Driver -> UDPDriverC;
     components StormSysInfoC;

@@ -31,6 +31,7 @@
  *
  */
 
+#include <asthardware.h>
 #include <IPDispatch.h>
 #include <lib6lowpan/lib6lowpan.h>
 #include <lib6lowpan/ip.h>
@@ -54,7 +55,6 @@ uint32_t* userland_buffer = NULL;
 int userland_buffer_len;
 uint32_t userland_buffer_pattern;
 
-uint32_t seconds;
 module KernelMainP
 {
     uses
@@ -204,7 +204,6 @@ implementation
 #endif
 
         call PrintTimer.startPeriodic(32000);
-        seconds = 0;
 
         call ENSEN.makeOutput();
         call ENSEN.clr();
@@ -290,8 +289,8 @@ implementation
     }
     event void PrintTimer.fired()
     {
-        volatile int x = 0;
-        printf("%d: sp = 0x%08x\n", seconds++, (uint32_t) &x);
+        volatile uint32_t time = AST->cv; // Maybe I should include HplSam4lAST as a required interface, but I don't want to add too much overhead
+        printf("%d: sp = 0x%08x\n", time, (uint32_t) &time);
     }
     task void flush_process_stdout()
     {
