@@ -26,6 +26,12 @@ implementation
         signal HplSam4lAST.overflowFired();
         call OverflowWrapper.postamble();
     }
+    
+    void AST_PER_Handler() @C() @spontaneous()
+    {
+        printf("PER: %d\n", call HplSam4lAST.getPeriod());
+        signal HplSam4lAST.periodFired();
+    }
 
     async command void HplSam4lAST.enable()
 	{
@@ -43,6 +49,11 @@ implementation
 	    while(AST->sr.bits.busy == 1);
 		AST->cr.bits.en = 0;
 		while(AST->sr.bits.busy == 1);
+	}
+	
+	async command void HplSam4lAST.clearPrescaler()
+	{
+	    AST->cr.bits.pclr = 1;
 	}
 
 	async command void HplSam4lAST.setPrescalarBit(uint8_t bit)
@@ -82,6 +93,17 @@ implementation
 	{
 	    while(AST->sr.bits.busy == 1);
 		AST->scr.bits.alarm0 = 1;
+	}
+	
+	async command bool HplSam4lAST.period()
+	{
+	    return AST->sr.bits.per0 == 1;
+	}
+	
+	async command void HplSam4lAST.clearPeriod()
+	{
+	    while(AST->sr.bits.busy == 1);
+		AST->scr.bits.per0 = 1;
 	}
 
 	async command bool HplSam4lAST.busy()
@@ -197,7 +219,13 @@ implementation
 	     * than or equal to cv. This is catastrophic, so we manually bump forward
 	     * the alarm time in this situation
 	     */
-	    if (AST->cv >= val) val = AST->cv+1;
+	    /*if ((AST->cv >= val) && (AST->cv < (val + 1024))) {
+	        printf("WARNING! %d >= %d\n", AST->cv, val);
+	        val = AST->cv+1;
+	    } else*/ if (AST->cv >= val) {
+	        //printf("Would have rescheduled\n");
+	        val = AST->cv+1;
+	    }
 		AST->ar0 = val;
 	}
 
@@ -208,12 +236,16 @@ implementation
 
 	async command void HplSam4lAST.setPeriod(uint8_t val)
 	{
+	    /** Don't use this function unless you really know what you're doing.
+	    The code to handle overflow depends on the counter being in sync with
+	    the prescaler, and using this function could cause that to lose sync. */
 	    while(AST->sr.bits.busy == 1);
 		AST->pir0 = val;
 	}
 
 	async command uint8_t HplSam4lAST.getPeriod()
 	{
+	    while(AST->sr.bits.busy == 1);
 		return AST->pir0;
 	}
 

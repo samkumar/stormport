@@ -94,12 +94,12 @@ implementation
       // now=t0 for some arbitrary t0 is not okay, which is what the previous
       // version of setAlarm did.
 
-      const size_type now = call AlarmFrom.getNow();
-      const alarm_t* pEnd = m.alarm+NUM_ALARMS;
-      bool isset = FALSE;
-      alarm_t* p = m.alarm;
-      bool* pset = m.isset;
-      size_type dt = ((size_type)0)-((size_type)1);
+      volatile const size_type now = call AlarmFrom.getNow();
+      volatile const alarm_t* pEnd = m.alarm+NUM_ALARMS;
+      volatile bool isset = FALSE;
+      volatile alarm_t* p = m.alarm;
+      volatile bool* pset = m.isset;
+      volatile size_type dt = ((size_type)0)-((size_type)1);
 
       for( ; p!=pEnd; p++,pset++ ) {
         if( *pset ) {
@@ -169,8 +169,10 @@ implementation
 
   async event void AlarmFrom.fired() {
     atomic {
+      //printf("Fired\n");
       signalAlarms();
       setNextAlarm();
+      //printf("Finished firing\n");
     }
   }
 

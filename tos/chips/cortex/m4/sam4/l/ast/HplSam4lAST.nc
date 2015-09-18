@@ -7,6 +7,8 @@ interface HplSam4lAST
 	async command void disable();
 
     async command bool isEnabled();
+    
+    async command void clearPrescaler();
 
 	async command void setPrescalarBit(uint8_t bit);
 
@@ -25,6 +27,12 @@ interface HplSam4lAST
 	async event void alarmFired();
 
 	async command void clearAlarm();
+	
+	async command bool period();
+	
+	async event void periodFired();
+	
+	async command void clearPeriod();
 
 	async command bool busy();
 

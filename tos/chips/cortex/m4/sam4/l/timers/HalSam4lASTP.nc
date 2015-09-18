@@ -1,4 +1,4 @@
-
+#include "printf.h"
 module HalSam4lASTP
 {
     provides
@@ -33,6 +33,7 @@ implementation
         call ast.disableAlarmIRQ();
         call ast.disableOverflowIRQ();
         call ast.enableAlarmWake();
+        //call ast.setPeriod(18);
         call ast.disablePeriodIRQ();
         call ast.clearAlarm();
         call ast.enable();
@@ -41,6 +42,22 @@ implementation
     async event void ast.alarmFired()
     {
         signal Alarm.fired();
+    }
+    
+    async event void ast.periodFired()
+    {
+        uint32_t cv = call ast.getCounterValue();
+        uint32_t newval;
+        if (cv > 0x7FFFFFFF) { // artificially overflow at 31 bits
+            newval = cv - 0x80000000;
+            call ast.setCounterValue(cv - 0x80000000);
+            
+            // What if we missed a timer?
+            if (call ast.getAlarm() <= newval) {
+                call ast.setAlarm(2 + call ast.getCounterValue());
+            }
+        }
+        call ast.clearPeriod();
     }
 
     default async event void Alarm.fired(){}
@@ -87,36 +104,46 @@ implementation
     }
     async command void Alarm.startAt(uint32_t t0, uint32_t dt)
     {
-        uint32_t n, t1;
+        /** t0 is a time in the past. The Alarm should fire dt ticks after t0. */
+        
+        volatile uint32_t t0_volatile = t0;
+        volatile uint32_t dt_volatile = dt;
+        volatile uint32_t n, t1, cv;
         call ast.disable();
         call ast.disableAlarmIRQ();
         call ast.clearAlarm();
-        n = call Alarm.getNow();
-        //We are discarding bottom bit later in shift.
-        t0 &= ~1;
-        t1 = (t0 + dt) & ~1;
-
-        if ( (t0 <= n && n < t1) ||
-             (t1 < n && n <= t0) )
-        {//now is between the two events
-            if (t1 < t0)
-            {
-                call ast.enable();
-                signal Alarm.fired();
-            }
-            else
-            {
-                call ast.setAlarm(t1 >> 1);
-                call ast.enableAlarmIRQ();
-                call ast.enable();
-            }
+        cv = call ast.getCounterValue();
+        if (cv > (uint32_t) 0x7FFFFFFF) { // artificially overflow it at 31 bits.
+            cv -= (uint32_t) 0x80000000;
+            call ast.setCounterValue(cv);
         }
-        else
-        {   //t0 is always in the past, so if we are not in-between, the event is in the past
+        n = cv << 1;
+        
+        // t1 is the time at which the Alarm should fire.
+        // We are discarding bottom bit because the underlying timer is only 16 kHz, but the inputs are in 32 kHz ticks
+        t1 = ((t0 >> 1) + (dt >> 1)) + ((t0 & 1) && (dt & 1)); // we bitshift first so there's no overflow possibility
+        t0 >>= 1;
+        
+        /*
+         * Now, t1 is the 16 kHz counter value when the Alarm should fire. It may be higher than 0x7FFFFFFF.
+         * But, that's OK. It will fire on time, and then when the next alarm is started via this function,
+         * Alarm will be artificially wrapped before it is compared to t0 and t1 of that function call.
+         * Note that there is absolutely no possibility of overflow in computing t1 and t0, since we have
+         * effectively gained a bit when converting from 32 kHz to 16 kHz.
+         */
+         
+        if (t0 <= cv && cv < t1) {
+            // Wait until t1.
+            call ast.setAlarm(t1);
+            call ast.enableAlarmIRQ();
+            call ast.enable();
+        } else {
+            // We need to fire the alarm right away, since it has already expired.
+            // t0 is in the past, so if cv < t0, then the counter has overflowed and it's still past t1.
             call ast.enable();
             signal Alarm.fired();
         }
-
+        
     }
     async command uint32_t Alarm.getNow()
     {

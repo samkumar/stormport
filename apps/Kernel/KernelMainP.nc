@@ -67,7 +67,7 @@ module KernelMainP
         interface Timer<T32khz> as PrintTimer;
         interface UartStream;
         interface Driver as GPIO_Driver;
-        interface Driver as Timer_Driver;
+        //interface Driver as Timer_Driver;
         interface Driver as UDP_Driver;
         interface Driver as SysInfo_Driver;
         interface Driver as RoutingTable_Driver;
@@ -180,9 +180,13 @@ implementation
     event void Boot.booted() {
         char vbuf[80];
         int ln;
+        int i;
+        
+        // Set the AST
+        while(AST->sr.bits.busy == 1);
+        AST->cv = 2147163648; // almost 1 << 31
         
         // Initializing buffer
-        int i;
         for (i = 0; i < BUFFER_SIZE; i++) {
             mem_buffer[i] = BUFFER_PATTERN;
         }
@@ -390,7 +394,7 @@ implementation
                     __syscall(KABI_RESUME_PROCESS);
                     return TRUE;
                 }
-                //check for timer callbacks:
+                /*//check for timer callbacks:
                 cb = call Timer_Driver.peek_callback();
                 if (cb != NULL)
                 {
@@ -400,7 +404,7 @@ implementation
                     __syscall(KABI_RESUME_PROCESS);
                     call Timer_Driver.pop_callback();
                     return TRUE;
-                }
+                }*/
                 //check for io pin callbacks:
                 cb = call GPIO_Driver.peek_callback();
                 if (cb != NULL)
@@ -571,7 +575,7 @@ implementation
             {
                 uint32_t rv;
                 if (( syscall_args[0] >> 8) == 1 ) rv = call GPIO_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
-                if (( syscall_args[0] >> 8) == 2 ) rv = call Timer_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
+                //if (( syscall_args[0] >> 8) == 2 ) rv = call Timer_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
                 if (( syscall_args[0] >> 8) == 3 ) rv = call UDP_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
                 if (( syscall_args[0] >> 8) == 4 ) rv = call SysInfo_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
                 if (( syscall_args[0] >> 8) == 5 ) rv = call I2C_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
