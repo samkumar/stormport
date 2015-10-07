@@ -155,7 +155,7 @@ implementation
         post recvUDP();
     }
 
-    event void SocketSpi.taskDone(error_t error, uint8_t *buf, uint8_t len)
+    event void SocketSpi.taskDone(error_t error, uint8_t *buf, uint16_t len)
     {
         // copy results into our rxbuffer
         memcpy(rxbuf, buf, len);
@@ -401,7 +401,7 @@ implementation
                 break;
 
             case state_writeudp_advancetxwr:
-                tx_ptr = (tx_ptr + senddata_len) & TXMASK;
+                tx_ptr += senddata_len;
                 txbuf[0] = tx_ptr >> 8;
                 txbuf[1] = tx_ptr & 0xff;
                 sendUDPstate = state_writeudp_writesendcmd;
@@ -581,7 +581,6 @@ implementation
             case state_recv_read_packet:
                 rx_ptr += headerlength; // advance rx_ptr bc we just read headerlength bytes
                 src_mask = rx_ptr & RXMASK; // recalculate offset
-		        printf("\033[32;1mrx_ptr %x\n\033[0m", src_ptr);
                 src_ptr = RXBASE + src_mask;
                 // decode header
                 recvipaddress = recvheader[3] | (recvheader[2] << 8) | (recvheader[1] << 16) | (recvheader[0] << 24);
@@ -594,22 +593,18 @@ implementation
                 {
                     packetlen = ((uint16_t)(recvheader[4]) << 8) | recvheader[5];
                 }
-		        printf("\033[33;1mlen %d\n\033[0m", packetlen);
 
                 if ((src_mask + packetlen) > RXBUF_SIZE)
                 {
                     readsize = RXBUF_SIZE - src_mask;
-		            printf("\033[36;1mread first %d\n\033[0m", readsize);
                     recvUDPstate = state_recv_read_morepacket;
                     //read readsize bytes from src_ptr into buffer
                     call SocketSpi.readRegister(src_ptr, rxbuf, readsize);
                 }
                 else // it all fits
                 {
-		            printf("\033[36;1mall fits %d\n\033[0m", packetlen);
                     readsize = 0;
                     recvUDPstate = state_recv_increment_snrx_rd;
-                    //THE REASON IS BECAUSE LEN ON SOCKETSPI IS ONLY UINT8_t
                     call SocketSpi.readRegister(src_ptr, rxbuf, packetlen);
                 }
                 break;
@@ -618,7 +613,6 @@ implementation
             case state_recv_read_morepacket:
                 recvUDPstate = state_recv_increment_snrx_rd;
                 memcpy(recvbuf, rxbuf, readsize);
-                printf("\033[36;1mread final %d\n\033[0m", readsize);
                 call SocketSpi.readRegister(RXBASE, rxbuf, packetlen - readsize);
                 break;
 
@@ -628,9 +622,8 @@ implementation
                 // copy packet contents into local buffer
 
                 memcpy(recvbuf+readsize, rxbuf, packetlen - readsize);
-		        printf("\033[33;1mrecvbuf %x size %x\n\033[0m", recvbuf, readsize);
 
-                rx_ptr = (rx_ptr + packetlen) & RXMASK;
+                rx_ptr += packetlen;
                 txbuf[0] = (rx_ptr >> 8);
                 txbuf[1] = (rx_ptr & 0xff);
                 call SocketSpi.writeRegister(0x4028 + socket * 0x100, _txbuf, 2);

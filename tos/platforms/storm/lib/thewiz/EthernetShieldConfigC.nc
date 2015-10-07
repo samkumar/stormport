@@ -143,7 +143,7 @@ implementation
         post init();
     }
     
-    event void SocketSpi.taskDone(error_t error, uint8_t *buf, uint8_t len)
+    event void SocketSpi.taskDone(error_t error, uint8_t *buf, uint16_t len)
     {
         if (!(call SpiResource.isOwner()))
         {
