@@ -147,6 +147,41 @@ implementation
     event void Boot.booted() {
         char vbuf[80];
         int ln;
+
+        // load prefix from attribute
+        struct in6_addr newprefix;
+        ieee_eui64_t nodeid;
+        int i;
+
+        // for reading from flash
+        error_t e;
+        uint8_t key [10];
+        char val [65];
+        uint8_t val_len;
+
+
+        e = call FlashAttr.getAttr(2, key, val, &val_len);
+        if (e != SUCCESS)
+        {
+            printf("error? %d length %d\n", e, EBUSY);
+        }
+        if (val_len > 0)
+        {
+            memset(&newprefix, 0, sizeof(newprefix));
+            inet_pton6(val, &newprefix);
+            call NeighborDiscovery.setPrefix(&newprefix, 64, 0xFFFFFFFF, 0xFFFFFFFF); // infinite lifetimes
+            nodeid = call LocalIeeeEui64.getId();
+            nodeid.data[0] ^= 0x02;
+            for (i = 0; i < 8; i++) {
+                newprefix.s6_addr[8+i] = nodeid.data[i];
+            }
+            printf("\033[36;1mLoading prefix from flash attribute 2: ");
+            printf_in6addr(&newprefix);
+            printf("\n\033[0m");
+            call SetIPAddress.setAddress(&newprefix);
+        }
+
+
         call RadioControl.start();
         call UartStream.enableReceiveInterrupt();
         ln = snprintf(vbuf, 80, "Booting kernel %d.%d.%d.%d (%s)\n",VER_MAJOR, VER_MINOR, VER_SUBMINOR, VER_BUILD, GITCOMMIT);
