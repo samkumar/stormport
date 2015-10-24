@@ -19,9 +19,9 @@ implementation
     bool isinitialized = 0;
 
     // buffers for SPI
-    uint8_t _txbuf [260];
+    uint8_t _txbuf [2052];
     uint8_t * const txbuf = &_txbuf[4];
-    uint8_t rxbuf [260];
+    uint8_t rxbuf [2052];
 
     // local port for our socket
     uint16_t localport;
@@ -29,7 +29,7 @@ implementation
     // destination for sending
     uint16_t sendport;
     uint32_t sendipaddress;
-    uint8_t senddata [256];
+    uint8_t senddata [2048];
     int senddata_len;
 
     // vars for receiving
@@ -37,7 +37,7 @@ implementation
     uint16_t recvport;
     uint32_t recvipaddress;
     uint8_t recvheader [8];
-    uint8_t recvbuf [256];
+    uint8_t recvbuf [2048];
     uint16_t recvlen;
 
     // state machine vars
@@ -155,7 +155,7 @@ implementation
         post recvUDP();
     }
 
-    event void SocketSpi.taskDone(error_t error, uint8_t *buf, uint8_t len)
+    event void SocketSpi.taskDone(error_t error, uint8_t *buf, uint16_t len)
     {
         // copy results into our rxbuffer
         memcpy(rxbuf, buf, len);
@@ -373,7 +373,7 @@ implementation
                 break;
 
             case state_writeudp_copytotxbuf:
-                tx_ptr = ((uint16_t)rxbuf[0] << 8) | rxbuf[1];
+                tx_ptr = ((uint16_t)(rxbuf[0] << 8)) | rxbuf[1];
                 tx_src_mask = tx_ptr & TXMASK;
                 tx_src_ptr = TXBASE + tx_src_mask;
                 if ((tx_src_mask + senddata_len) > TXBUF_SIZE) // can't write it all; need to circle around
@@ -586,12 +586,12 @@ implementation
                 recvipaddress = recvheader[3] | (recvheader[2] << 8) | (recvheader[1] << 16) | (recvheader[0] << 24);
                 if (sockettype == SocketType_UDP)
                 {
-                    recvport = ((uint16_t)recvheader[4] << 8) | recvheader[5];
-                    packetlen = ((uint16_t)recvheader[6] << 8) | recvheader[7];
+                    recvport = ((uint16_t)(recvheader[4]) << 8) | recvheader[5];
+                    packetlen = ((uint16_t)(recvheader[6]) << 8) | recvheader[7];
                 }
                 else if (sockettype == SocketType_IPRAW)
                 {
-                    packetlen = ((uint16_t)recvheader[4] << 8) | recvheader[5];
+                    packetlen = ((uint16_t)(recvheader[4]) << 8) | recvheader[5];
                 }
 
                 if ((src_mask + packetlen) > RXBUF_SIZE)
@@ -624,8 +624,8 @@ implementation
                 memcpy(recvbuf+readsize, rxbuf, packetlen - readsize);
 
                 rx_ptr += packetlen;
-                txbuf[0] = rx_ptr >> 8;
-                txbuf[1] = rx_ptr & 0xff;
+                txbuf[0] = (rx_ptr >> 8);
+                txbuf[1] = (rx_ptr & 0xff);
                 call SocketSpi.writeRegister(0x4028 + socket * 0x100, _txbuf, 2);
                 break;
 
@@ -658,7 +658,7 @@ implementation
                 recvsize -= (packetlen + headerlength);
                 call RecvResource.release();
                 recvipaddress = recvheader[3] | (recvheader[2] << 8) | (recvheader[1] << 16) | (recvheader[0] << 24);
-                recvport = ((uint16_t)recvheader[4] << 8) | recvheader[5];
+                recvport = ((uint16_t)(recvheader[4]) << 8) | recvheader[5];
 #ifndef BLIP_STFU
                 printf("Received packet from %d:%d\n", recvipaddress, recvport);
 #endif

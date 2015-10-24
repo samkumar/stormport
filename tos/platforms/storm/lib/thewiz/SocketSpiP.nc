@@ -13,10 +13,9 @@ module SocketSpiP
 }
 implementation
 {
-    bool ssd;
-    uint8_t _rxbuf [260];
-    uint8_t txbuf[260];
-    volatile norace uint8_t len;
+    uint8_t _rxbuf [2052];
+    uint8_t txbuf[2052];
+    volatile norace uint16_t len;
 
     // initializes SPI
     command error_t Init.init()
@@ -38,39 +37,38 @@ implementation
 
     // initialize
     // write to W5200 register
-    command void SocketSpi.writeRegister(uint16_t reg_addr, uint8_t *buf, uint8_t _len)
+    command void SocketSpi.writeRegister(uint16_t reg_addr, uint8_t *buf, uint16_t _len)
     {
         call EthernetSS.clr();
-        ssd = 1;
         buf[0] = (uint8_t) (reg_addr >> 8); //network byte order
         buf[1] = (uint8_t) reg_addr;
         //Set top bit for write
-        buf[2] = 0x80; //Len MSB is null
-        buf[3] = _len;
-        len = _len+4;
+        buf[2] = (0x80 | ((_len & 0x7f00) >> 8)); // set top bit for write
+        buf[3] = _len & 0x00ff;
+
+        len = _len;
         // should copy contents of buf into the transmission buffer
-        call SpiPacket.send(buf, _rxbuf, ((int)_len) + 4);
+        call SpiPacket.send(buf, _rxbuf, _len + 4);
     }
 
     // read from W5200 register
-    command void SocketSpi.readRegister(uint16_t reg_addr, uint8_t *buf, uint8_t _len)
+    command void SocketSpi.readRegister(uint16_t reg_addr, uint8_t *buf, uint16_t _len)
     {
         uint16_t i;
-        for (i = 0; i < 256; i++)  txbuf[4+i] = 0;
+        for (i = 0; i < 2048; i++)  txbuf[4+i] = 0;
         call EthernetSS.clr();
-        ssd = 1;
         txbuf[0] = (uint8_t) (reg_addr >> 8); //network byte order
         txbuf[1] = (uint8_t) reg_addr;
-        txbuf[2] = 0x00; //Clear top bit for read
-        txbuf[3] = _len;
-        len = _len+4;
-        call SpiPacket.send(txbuf, _rxbuf, ((int)_len) + 4);
+        txbuf[2] = (0x00 | ((_len & 0x7f00) >> 8)); //Clear top bit for read
+        txbuf[3] = _len & 0x00ff;
+        len = _len;
+        call SpiPacket.send(txbuf, _rxbuf, _len + 4);
     }
 
     event void Timer.fired()
     {
         call EthernetSS.set();
-        signal SocketSpi.taskDone(SUCCESS, &_rxbuf[4], len-4);
+        signal SocketSpi.taskDone(SUCCESS, &_rxbuf[4], len);
     }
 
     void task startTimerOneShot()
