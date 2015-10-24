@@ -16,9 +16,6 @@ module EthernetP
         interface EthernetShieldConfig;
         interface RawSocket;
         interface LocalIeeeEui64;
-#ifdef FORWARD_SERVICE_DISCOVERY
-        interface UDP as SvcDiscovery;
-#endif
     }
     provides
     {
@@ -32,9 +29,6 @@ implementation
     uint32_t destip;
 
     struct sockaddr_in6 route_dest_154;
-#ifdef FORWARD_SERVICE_DISCOVERY
-    struct in6_addr root_addr;
-#endif
     ieee_eui64_t address;
     uint8_t mac [6];
 
@@ -43,13 +37,6 @@ implementation
         inet_pton6(IN6_PREFIX, &route_dest_154.sin6_addr);
         call ForwardingTable.addRoute(NULL, 0, NULL, ROUTE_IFACE_ETH0);
         call ForwardingTable.addRoute((uint8_t*) &route_dest_154.sin6_addr, 64, NULL, ROUTE_IFACE_154);
-#ifdef FORWARD_SERVICE_DISCOVERY
-        // initialize the 'null' address so we can send via it
-        root_addr.s6_addr32[0] = 0;
-        root_addr.s6_addr32[1] = 0;
-        root_addr.s6_addr32[2] = 0;
-        root_addr.s6_addr32[3] = 0;
-#endif
         {
             int i;
             address = call LocalIeeeEui64.getId(); // This is how we autogenerate the MAC address from the serial number -- GTF
@@ -71,9 +58,6 @@ implementation
         call RootControl.setRoot();
         call RawSocket.initialize(41);
         call RootControl.setRoot();
-#ifdef FORWARD_SERVICE_DISCOVERY
-        call SvcDiscovery.bind(1525);
-#endif
     }
 
     event void RawSocket.initializeDone(error_t error) {}
@@ -106,18 +90,5 @@ implementation
         void *payload = (iph + 1);
         signal IPForward.recv(iph, payload, NULL);
     }
-
-#ifdef FORWARD_SERVICE_DISCOVERY
-    event void SvcDiscovery.recvfrom(struct sockaddr_in6 *from, void *data,
-                             uint16_t len, struct ip6_metadata *meta)
-    {
-        struct ip6_packet *pkt = (struct ip6_packet *)data;
-        printf("got me a packet\n");
-        printf_in6addr(&pkt->ip6_hdr.ip6_dst);
-        printf("\n");
-        call IPForward.send(&root_addr, pkt, (struct ip6_packet *)(data + 1));
-    }
-#endif
-
 
 }

@@ -81,10 +81,6 @@ PFLAGS += -DRPL_SINGLE_HOP=\"fe80::212:6d02:0:400d\"
 # if NO_RPL is defined, then *hopefully* no rpl messages should be sent, freeing up the airwaves
 PFLAGS += -DNO_RPL
 
-# This should only be defined if you are the border router/root node. Defining this will forward
-# all UDP multicast packets ff02::1 to the address defined here
-#PFLAGS += -DFORWARD_SERVICE_DISCOVERY=\"2001:470:4956:1::1\"
-
 ################################################################################
 ### Configure LPL
 ################################################################################

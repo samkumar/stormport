@@ -90,10 +90,6 @@ implementation
   //EthernetP.GRESocket -> GRESocketP;
   EthernetP.RawSocket -> SocketC;
   EthernetP.EthernetShieldConfig -> EthernetShieldConfigC;
-#ifdef FORWARD_SERVICE_DISCOVERY
-  components new UdpSocketC() as SvcDiscovery;
-  EthernetP.SvcDiscovery -> SvcDiscovery;
-#endif
 
   #endif
 
