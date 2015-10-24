@@ -188,9 +188,22 @@ implementation
     }
     async event void dmac.transfersCompleteFired[uint8_t id]()
     {
-     //   printf("tcf\n");
-        if (nstop[id])
-            dispatch_status(id, STATUS_OK);
+        atomic
+        {
+          call dmac.disableTransfer[id]();
+          call dmac.disableTransfersCompleteIRQ[id]();
+          call dmac.disableTransferErrorIRQ[id]();
+          if (!nstop[id]) return;
+          TWIMx[id]->idr.flat = 0x710; //ARBLST, DNAK, ANAK
+        }
+        while(!(TWIMx[id]->sr.bits.txrdy || TWIMx[id]->sr.bits.idle));
+        if (TWIMx[id]->sr.bits.dnak) dispatch_status(id, STATUS_DNAK);
+        else if (TWIMx[id]->sr.bits.anak) dispatch_status(id, STATUS_ANAK);
+        else if (TWIMx[id]->sr.bits.arblst) dispatch_status(id, STATUS_ARBLST);
+        else
+        {
+          dispatch_status(id, STATUS_OK);
+        }
     }
     async event void dmac.reloadableFired[uint8_t id]()
     {

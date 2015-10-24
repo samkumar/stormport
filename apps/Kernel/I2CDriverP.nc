@@ -22,6 +22,8 @@ implementation
     {
         done[0] = 0;
         done[1] = 0;
+        callback[0].addr = 0;
+        callback[1].addr = 0;
         call HplSam4lTWIM.init[1]();
         call HplSam4lTWIM.init[2]();
         return SUCCESS;
@@ -61,14 +63,14 @@ implementation
                 if (chan < 1 || chan > 2)
                     return -1;
                 if (callback[chan-1].addr != 0)
-                    return -1;
+                    return -2;
                 callback[chan-1].addr = argx[1];
                 callback[chan-1].r = (void*) argx[2];
                 rv = call HplSam4lTWIM.write[chan] (arg1, arg0 & 0xFF, (uint8_t*)arg2, argx[0]);
                 if (rv != SUCCESS)
                 {
                     callback[chan-1].addr = 0;
-                    return -1;
+                    return -3;
                 }
                 return 0;
             }
@@ -94,6 +96,7 @@ implementation
     {
         callback[id-1].status = status;
         done[id-1] = 1;
+
     }
     async event void HplSam4lTWIM.readDone[uint8_t id](int status, uint8_t *buf)
     {

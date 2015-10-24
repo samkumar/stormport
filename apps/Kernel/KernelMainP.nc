@@ -378,17 +378,6 @@ implementation
                     call BLE_Driver.pop_callback();
                     return TRUE;
                 }
-                // check for BLE PECS callbacks
-                cb = call BLE_PECS_Driver.peek_callback();
-                if (cb != NULL)
-                {
-                    simple_callback_t* c = (simple_callback_t*) cb;
-                    __inject_function0((void*) c->addr);
-                    procstate = procstate_runnable;
-                    __syscall(KABI_RESUME_PROCESS);
-                    call BLE_PECS_Driver.pop_callback();
-                    return TRUE;
-                }
                 //check for SPI callbacks
                 cb = call SPI_Driver.peek_callback();
                 if (cb != NULL)
