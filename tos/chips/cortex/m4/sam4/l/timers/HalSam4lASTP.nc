@@ -87,36 +87,52 @@ implementation
     }
     async command void Alarm.startAt(uint32_t t0, uint32_t dt)
     {
-        uint32_t n, t1;
+        uint32_t cv, t1;
         call ast.disable();
         call ast.disableAlarmIRQ();
         call ast.clearAlarm();
-        n = call Alarm.getNow();
-        //We are discarding bottom bit later in shift.
-        t0 &= ~1;
-        t1 = (t0 + dt) & ~1;
-
-        if ( (t0 <= n && n < t1) ||
-             (t1 < n && n <= t0) )
-        {//now is between the two events
-            if (t1 < t0)
-            {
-                call ast.enable();
-                signal Alarm.fired();
-            }
-            else
-            {
-                call ast.setAlarm(t1 >> 1);
-                call ast.enableAlarmIRQ();
-                call ast.enable();
+        cv = call ast.getCounterValue();
+        
+        atomic {
+            if (cv > (uint32_t) 0x7FFFFFFF) { // artificially overflow at 31 bits
+                cv &= (uint32_t) 0x7FFFFFFF;
+                call ast.setCounterValue(cv);
             }
         }
-        else
-        {   //t0 is always in the past, so if we are not in-between, the event is in the past
+        
+        // t1 is the counter value at which the timer should fire, on the 16 kHz timer
+        t1 = (t0 >> 1) + (dt >> 1) + (t0 & dt & 1);
+        
+        // t0 is the 16 kHz counter corresponding to the base time
+        t0 >>= 1;
+         
+        if (cv < t0) {
+            // t0 is guaranteed to be in the past, so if cv < t0, then that's because counter has overflowed
+            t1 &= (uint32_t) 0x7FFFFFFF;
+        }
+        
+        /*
+         * Now, t1 is the 16 kHz counter value when the Alarm should fire. It may be higher than 0x7FFFFFFF.
+         * But, that's OK, because it's correct relative to cv. It will fire on time, and then when the next
+         * alarm is started via this function, cv will be artificially wrapped before it is compared to t0
+         * and t1 of that function call.
+         *
+         * Note that there is absolutely no possibility of overflow in computing t1; since t1 represents a
+         * 16 kHz count and t0 and dt represent 32 kHz counts, their sum will not overflow t1. However, since
+         * t1 is computed as an offset from t0, it must be wrapped if cv wrapped, so that it is correct
+         * relative to cv (not necessarily relative to t0).
+         */
+        
+        if (cv < t0 || cv >= t1) {
+            // We need to fire the alarm right away, since it has already expired.
             call ast.enable();
             signal Alarm.fired();
+        } else {
+            // Wait until t1.
+            call ast.setAlarm(t1);
+            call ast.enableAlarmIRQ();
+            call ast.enable();
         }
-
     }
     async command uint32_t Alarm.getNow()
     {
