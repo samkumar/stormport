@@ -113,41 +113,7 @@ module UdpP {
     }
 
     BLIP_STATS_INCR(stats.rcvd);
-#ifdef FORWARD_SERVICE_DISCOVERY
-    /*
-     * Check if this was a broadcast packet to ff02::1 (TODO: also check if is correct port 1525)
-     * If it is, then we create an IP packet and place that in the payload data for UDP.recvfrom,
-     * so that inside EthernetP, we can pull out the already formed IPv6 packet to forward over
-     * Ethernet
-     */
-      if (iph->ip6_dst.s6_addr32[0] == htons(0xff02) &&
-          iph->ip6_dst.s6_addr32[1] == 0 &&
-          iph->ip6_dst.s6_addr32[2] == 0 &&
-          iph->ip6_dst.s6_addr32[3] == htonl(1))
-      {
-        // copy the desired destination into the header
-        inet_pton6(FORWARD_SERVICE_DISCOVERY, &iph->ip6_dst);
-        iph->ip6_src.s6_addr16[0] = htons(0x2001);
-        iph->ip6_src.s6_addr16[1] = htons(0x470);
-        iph->ip6_src.s6_addr16[2] = htons(0x4956);
-        iph->ip6_src.s6_addr16[3] = htons(0x2);
-        iph->ip6_src.s6_addr16[4] = htons(0x212);
-        iph->ip6_src.s6_addr16[5] = htons(0x6d02);
-        iph->ip6_src.s6_addr16[6] = 0;
-        // copy the header into the packet
-        memcpy(&pkt.ip6_hdr, iph, sizeof(struct ip6_hdr));
-        // and data
-        pkt.ip6_data = &v;
-        // and input interface (this is probably 1 for 802_15_4)
-        pkt.ip6_inputif = 3;
-        printf("broadcast meeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\n");
-        // recompute checksum because we changed the header
-        udph->chksum = htons(msg_cksum(iph, &v, IANA_UDP));
-      }
-    signal UDP.recvfrom[i](&addr, (void *)&pkt, len - sizeof(struct udp_hdr) + sizeof(struct ip6_packet), meta);
-#else
     signal UDP.recvfrom[i](&addr, (void *)(udph + 1), len - sizeof(struct udp_hdr), meta);
-#endif
   }
 
   /**
