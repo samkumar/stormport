@@ -26,6 +26,12 @@ configuration IPNeighborDiscoveryC {
   IPForward = IPNeighborDiscoveryP.IPForward;
   StdControl = IPNeighborDiscoveryP.StdControl;
 
+  components FlashAttrC;
+  IPForwardingEngineP.FlashAttr -> FlashAttrC;
+  IPNeighborDiscoveryP.FlashAttr -> FlashAttrC;
+  components MainC;
+  IPForwardingEngineP.Init <- MainC.SoftwareInit;
+
   IPNeighborDiscoveryP.IP_RS -> ICMP_RS.IP[ICMPV6_CODE_RS];
   IPNeighborDiscoveryP.IP_RA -> ICMP_RA.IP[ICMPV6_CODE_RA];
   IPNeighborDiscoveryP.RSTimer -> RSTimer.Timer;

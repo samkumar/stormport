@@ -29,6 +29,7 @@ module IPForwardingEngineP {
     interface IPAddress;
     interface IPPacket;
     interface Pool<struct in6_iid>;
+    interface FlashAttr;
 
 #ifdef PRINTFUART_ENABLED
     interface Timer<TMilli> as PrintTimer;
@@ -47,10 +48,28 @@ module IPForwardingEngineP {
   /* if a route to the given prefix already exists, this updates it. */
   struct route_entry routing_table[ROUTE_TABLE_SZ];
 
+  // read from flash
+  uint8_t flashkey [10];
+  char flashprefix [65];
+  uint8_t flashval_len;
+  bool prefix_from_flash = 0;
+  error_t e;
+
   route_key_t last_key = 1;
+
+  void task getPrefix() {
+    e = call FlashAttr.getAttr(2, flashkey, flashprefix, &flashval_len);
+    // use the prefix if we get it from flash
+    if (e == SUCCESS && flashval_len > 0) {
+        prefix_from_flash = 1;
+    } else {
+        printf("error? %d length %d\n", e, flashval_len);
+    }
+  }
 
   command error_t Init.init() {
     memset(routing_table, 0, sizeof(routing_table));
+    post getPrefix();
   }
 
   int alloc_key() {
@@ -331,8 +350,14 @@ module IPForwardingEngineP {
 #ifdef RPL_SINGLE_HOP_ROOT
         // if we are the root in a single hop network, we use the IN6_PREFIX
         // in order to do the address translation
+        // IN6_PREFIX comes from flash if the getPrefix() task completes. and has
+        // something valid in attribute 2, else we use the Makefile IN6_PREFIX
         struct sockaddr_in6 local_prefix;
-        inet_pton6(IN6_PREFIX, &local_prefix.sin6_addr);
+        if (prefix_from_flash) {
+            inet_pton6(flashprefix, &local_prefix.sin6_addr);
+        } else {
+            inet_pton6(IN6_PREFIX, &local_prefix.sin6_addr);
+        }
 #endif
 
 

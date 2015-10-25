@@ -52,9 +52,6 @@ implementation
     KernelMainP.NeighborDiscovery ->  IPStackC;
     KernelMainP.SetIPAddress -> IPAddressC;
     KernelMainP.LocalIeeeEui64 -> LocalIeeeEui64P;
-    components new UdpSocketC() as dhcp;
-
-    KernelMainP.dhcp -> dhcp;
 
     components FlashAttrC;
     KernelMainP.FlashAttr -> FlashAttrC;
@@ -71,31 +68,26 @@ implementation
     components StaticIPAddressC; // Use LocalIeee154 in address
     components SerialPrintfC;
 
-  #ifdef WITH_WIZ
-  components IPPacketC;
-  components EthernetP;
-  components IPForwardingEngineP;
-  components RplBorderRouterP;
-  EthernetP.LocalIeeeEui64 -> LocalIeeeEui64P;
-  RplBorderRouterP.IPPacket -> IPPacketC;
-  RplBorderRouterP.ForwardingEvents -> IPStackC.ForwardingEvents[ROUTE_IFACE_ETH0];
-  IPForwardingEngineP.IPForward[ROUTE_IFACE_ETH0] -> EthernetP.IPForward;
-  //components GRESocketP;
-  components new SocketC();
-  //GRESocketP.RawSocket -> SocketC;
-  components EthernetShieldConfigC;
-  EthernetP.IPControl -> IPStackC;
-  EthernetP.RootControl -> RPLRoutingC;
-  EthernetP.ForwardingTable -> IPStackC;
-  //EthernetP.GRESocket -> GRESocketP;
-  EthernetP.RawSocket -> SocketC;
-  EthernetP.EthernetShieldConfig -> EthernetShieldConfigC;
-#ifdef FORWARD_SERVICE_DISCOVERY
-  components new UdpSocketC() as SvcDiscovery;
-  EthernetP.SvcDiscovery -> SvcDiscovery;
-#endif
+#ifdef WITH_WIZ
+    components IPPacketC;
+    components EthernetP;
+    components IPForwardingEngineP;
+    components RplBorderRouterP;
+    EthernetP.LocalIeeeEui64 -> LocalIeeeEui64P;
+    RplBorderRouterP.IPPacket -> IPPacketC;
+    RplBorderRouterP.ForwardingEvents -> IPStackC.ForwardingEvents[ROUTE_IFACE_ETH0];
+    IPForwardingEngineP.IPForward[ROUTE_IFACE_ETH0] -> EthernetP.IPForward;
 
-  #endif
+    components new SocketC();
+    components EthernetShieldConfigC;
+    EthernetP.IPControl -> IPStackC;
+    EthernetP.RootControl -> RPLRoutingC;
+    EthernetP.ForwardingTable -> IPStackC;
+    EthernetP.RawSocket -> SocketC;
+    EthernetP.FlashAttr -> FlashAttrC;
+    EthernetP.EthernetShieldConfig -> EthernetShieldConfigC;
+
+#endif
 
     //I2C sensor rail
     components HplSam4lIOC;

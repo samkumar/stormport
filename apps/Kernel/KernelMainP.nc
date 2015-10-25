@@ -52,7 +52,6 @@ module KernelMainP
     {
         interface Boot;
         interface SplitControl as RadioControl;
-        interface UDP as dhcp;
         interface FlashAttr;
         interface Timer<T32khz> as Timer;
         interface UartStream;
@@ -148,6 +147,41 @@ implementation
     event void Boot.booted() {
         char vbuf[80];
         int ln;
+
+        // load prefix from attribute
+        struct in6_addr newprefix;
+        ieee_eui64_t nodeid;
+        int i;
+
+        // for reading from flash
+        error_t e;
+        uint8_t key [10];
+        char val [65];
+        uint8_t val_len;
+
+
+        e = call FlashAttr.getAttr(2, key, val, &val_len);
+        if (e != SUCCESS)
+        {
+            printf("error? %d length %d\n", e, EBUSY);
+        }
+        if (val_len > 0)
+        {
+            memset(&newprefix, 0, sizeof(newprefix));
+            inet_pton6(val, &newprefix);
+            call NeighborDiscovery.setPrefix(&newprefix, 64, 0xFFFFFFFF, 0xFFFFFFFF); // infinite lifetimes
+            nodeid = call LocalIeeeEui64.getId();
+            nodeid.data[0] ^= 0x02;
+            for (i = 0; i < 8; i++) {
+                newprefix.s6_addr[8+i] = nodeid.data[i];
+            }
+            printf("\033[36;1mLoading prefix from flash attribute 2: ");
+            printf_in6addr(&newprefix);
+            printf("\n\033[0m");
+            call SetIPAddress.setAddress(&newprefix);
+        }
+
+
         call RadioControl.start();
         call UartStream.enableReceiveInterrupt();
         ln = snprintf(vbuf, 80, "Booting kernel %d.%d.%d.%d (%s)\n",VER_MAJOR, VER_MINOR, VER_SUBMINOR, VER_BUILD, GITCOMMIT);
@@ -157,7 +191,6 @@ implementation
 
         inet_pton6("ff02::1", &dhcp_bcast_dest.sin6_addr);
 
-        call dhcp.bind(67);
 #ifdef RPL_SINGLE_HOP_ROOT
         call Timer.startPeriodic(320000);
 #endif
@@ -198,35 +231,8 @@ implementation
 
     }
 
-    event void dhcp.recvfrom(struct sockaddr_in6 *from, void *data,
-                             uint16_t len, struct ip6_metadata *meta)
-    {
-        struct in6_addr newprefix;
-        ieee_eui64_t nodeid;
-        int i;
-#ifdef RPL_SINGLE_HOP
-        memset(&newprefix, 0, sizeof(newprefix));
-        inet_pton6(data, &newprefix);
-#ifndef BLIP_STFU
-        printf("Got traffic on dmesg port\n");
-        printf_in6addr(&newprefix);
-        printf("\n");
-#endif
-        call NeighborDiscovery.setPrefix(&newprefix, 64, 0xFFFFFFFF, 0xFFFFFFFF); // infinite lifetimes
-        memcpy(IN6_PREFIX, data, 17);
-        nodeid = call LocalIeeeEui64.getId();
-        nodeid.data[0] ^= 0x02;
-        for (i = 0; i < 8; i++) {
-            newprefix.s6_addr[8+i] = nodeid.data[i];
-        }
-        call SetIPAddress.setAddress(&newprefix);
-#endif
-    }
-
     event void Timer.fired()
     {
-        uint8_t *data = IN6_PREFIX;
-        call dhcp.sendto(&dhcp_bcast_dest, data, 17);
     }
     task void flush_process_stdout()
     {
