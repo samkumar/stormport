@@ -142,7 +142,6 @@ implementation
             return rv;
         }
     }
-    struct sockaddr_in6 dhcp_bcast_dest;
     task void launch_payload();
     event void Boot.booted() {
         char vbuf[80];
@@ -186,10 +185,6 @@ implementation
         call UartStream.enableReceiveInterrupt();
         ln = snprintf(vbuf, 80, "Booting kernel %d.%d.%d.%d (%s)\n",VER_MAJOR, VER_MINOR, VER_SUBMINOR, VER_BUILD, GITCOMMIT);
         storm_write_payload(vbuf, ln);
-
-        dhcp_bcast_dest.sin6_port = htons(67);
-
-        inet_pton6("ff02::1", &dhcp_bcast_dest.sin6_addr);
 
 #ifdef RPL_SINGLE_HOP_ROOT
         call Timer.startPeriodic(320000);
