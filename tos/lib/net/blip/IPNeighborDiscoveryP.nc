@@ -36,6 +36,7 @@ module IPNeighborDiscoveryP {
     interface Timer<TMilli> as RSTimer;
 
     interface Random;
+    interface FlashAttr;
 
     interface ForwardingTable;
     interface IPLower;
@@ -71,6 +72,25 @@ module IPNeighborDiscoveryP {
 
   uint16_t rs_transmission_count = 0;
 
+  // read from flash
+  uint8_t flashkey [10];
+  char flashprefix [65];
+  uint8_t flashval_len;
+  error_t e;
+  route_key_t defaultroute_key;
+
+  void task setDefaultRoute() {
+    e = call FlashAttr.getAttr(7, flashkey, flashprefix, &flashval_len);
+    // use the border router address if we get it from flash
+    if (e == SUCCESS && flashval_len > 0) {
+        call ForwardingTable.delRoute(defaultroute_key);
+        inet_pton6(flashprefix, &single_hop_route.sin6_addr);
+        call ForwardingTable.addRoute(NULL, 0, &single_hop_route.sin6_addr, ROUTE_IFACE_154);
+    } else {
+        printf("error? %d length %d\n", e, flashval_len);
+    }
+  }
+
   command error_t StdControl.start() {
 
     inet_pton6(IPV6_ADDR_ALL_ROUTERS, &ALL_ROUTERS_ADDR);
@@ -83,7 +103,8 @@ module IPNeighborDiscoveryP {
      * be the case). We add in the default route from the Makefile here -- Gabe
      */
     inet_pton6(RPL_SINGLE_HOP, &single_hop_route.sin6_addr);
-    call ForwardingTable.addRoute(NULL, 0, &single_hop_route.sin6_addr, ROUTE_IFACE_154);
+    defaultroute_key = call ForwardingTable.addRoute(NULL, 0, &single_hop_route.sin6_addr, ROUTE_IFACE_154);
+    post setDefaultRoute();
 #endif
 
 #if BLIP_SEND_ROUTER_SOLICITATIONS
@@ -133,9 +154,9 @@ module IPNeighborDiscoveryP {
     if (addr->s6_addr16[0] == htons(0xfe80)) {
       if (addr->s6_addr16[5] == htons(0x00FF) &&
           addr->s6_addr16[6] == htons(0xFE00)) {
-        /* U bit must not be set if a short address is in use */       
+        /* U bit must not be set if a short address is in use */
           link_addr->ieee_mode = IEEE154_ADDR_SHORT;
-          link_addr->i_saddr = htole16(ntohs(addr->s6_addr16[7]));       
+          link_addr->i_saddr = htole16(ntohs(addr->s6_addr16[7]));
       } else {
         int i;
         link_addr->ieee_mode = IEEE154_ADDR_EXT;
@@ -454,7 +475,7 @@ module IPNeighborDiscoveryP {
           if (entry == NULL) {
             // For now, just add this router as the default route
             // if we don't already have a default route
-            
+
             call ForwardingTable.addRoute(NULL,
                                           0,
                                           &hdr->ip6_src,

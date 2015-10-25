@@ -28,6 +28,7 @@ configuration IPNeighborDiscoveryC {
 
   components FlashAttrC;
   IPForwardingEngineP.FlashAttr -> FlashAttrC;
+  IPNeighborDiscoveryP.FlashAttr -> FlashAttrC;
   components MainC;
   IPForwardingEngineP.Init <- MainC.SoftwareInit;
 
