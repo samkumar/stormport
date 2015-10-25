@@ -70,7 +70,7 @@ implementation
 #ifndef BLIP_STFU
         printf("\033[33;1m[[Border Router Configuration]]\n");
         printf("Loaded mesh prefix from config: ");
-        printf_in6addr(&route_dest_154);
+        printf_in6addr(&route_dest_154.sin6_addr);
         printf("\n\033[0m");
 #endif
 

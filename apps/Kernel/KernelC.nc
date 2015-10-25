@@ -52,9 +52,6 @@ implementation
     KernelMainP.NeighborDiscovery ->  IPStackC;
     KernelMainP.SetIPAddress -> IPAddressC;
     KernelMainP.LocalIeeeEui64 -> LocalIeeeEui64P;
-    components new UdpSocketC() as dhcp;
-
-    KernelMainP.dhcp -> dhcp;
 
     components FlashAttrC;
     KernelMainP.FlashAttr -> FlashAttrC;
