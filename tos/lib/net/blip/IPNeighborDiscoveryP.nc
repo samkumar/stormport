@@ -85,6 +85,11 @@ module IPNeighborDiscoveryP {
     if (e == SUCCESS && flashval_len > 0) {
         call ForwardingTable.delRoute(defaultroute_key);
         inet_pton6(flashprefix, &single_hop_route.sin6_addr);
+#ifndef BLIP_STFU
+        printf("\n\033[33;1m[[Loaded border router]]\n");
+        printf_in6addr(&single_hop_route.sin6_addr);
+        printf("\n\033[0m");
+#endif
         call ForwardingTable.addRoute(NULL, 0, &single_hop_route.sin6_addr, ROUTE_IFACE_154);
     } else {
         printf("error? %d length %d\n", e, flashval_len);
