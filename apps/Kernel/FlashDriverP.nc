@@ -121,7 +121,7 @@ implementation
             {
                 if (spi_busy || callback_pending) return 1;
                 addr = arg0+0x80000;
-                buf = arg1;
+                buf = (uint8_t*) arg1;
                 len = arg2;
                 if (addr + len > 0x3ffffff) {
                     return 1;
@@ -137,7 +137,7 @@ implementation
             {
                 if (spi_busy || callback_pending) return 1;
                 addr = arg0+0x80000;
-                buf = arg1;
+                buf = (uint8_t*) arg1;
                 len = arg2;
                 if (addr + len > 0x3ffffff) {
                     return 1;

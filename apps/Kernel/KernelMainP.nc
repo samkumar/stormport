@@ -66,6 +66,7 @@ module KernelMainP
         interface Driver as SPI_Driver;
         interface Driver as AES_Driver;
         interface Driver as Flash_Driver;
+        interface Driver as Scruffles_Driver;
         interface GeneralIO as ENSEN;
         interface HplSam4PeripheralClockCntl as ADCIFEClockCtl;
         interface NeighborDiscovery;
@@ -500,6 +501,7 @@ implementation
                 if (( syscall_args[0] >> 8) == 8 ) rv = call AES_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
                 if (( syscall_args[0] >> 8) == 9 ) rv = call SPI_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
                 if (( syscall_args[0] >> 8) == 10 ) rv = call Flash_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
+                if (( syscall_args[0] >> 8) == 11 ) rv = call Scruffles_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
                 *process_syscall_rv = rv;
                 return RET_KERNEL;
             }

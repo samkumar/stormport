@@ -91,8 +91,8 @@ implementation
     }
 
     async command syscall_rv_t Driver.syscall_ex(
-        uint32_t number, uint32_t arg0, 
-        uint32_t arg1, uint32_t arg2, 
+        uint32_t number, uint32_t arg0,
+        uint32_t arg1, uint32_t arg2,
         uint32_t *argx)
     {
         switch(number & 0xFF)
@@ -223,7 +223,7 @@ implementation
                 uint8_t port = arg0 >> 8;
                 uint8_t pin = arg0 & 0xFF;
                 uint32_t pinmask = 1 << (arg0 & 0xFF);
-                if (irq_allowed[port] & pinmask == 0)
+                if ((irq_allowed[port] & pinmask == 0))
                     return (uint32_t) -1;
                 irq_callback[port][pin].addr = arg2;
                 irq_callback[port][pin].r = (void*) argx[0];
@@ -261,7 +261,7 @@ implementation
                 uint8_t port = arg0 >> 8;
                 uint8_t pin = arg0 & 0xFF;
                 uint32_t pinmask = 1 << (arg0 & 0xFF);
-                if (irq_allowed[port] & pinmask == 0)
+                if ((irq_allowed[port] & pinmask) == 0)
                     return (uint32_t) -1;
                 irq_callback[port][pin].r = NULL;
                 irq_callback[port][pin].addr = 0;
@@ -279,4 +279,3 @@ implementation
         }
     }
 }
-
