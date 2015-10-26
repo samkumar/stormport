@@ -31,6 +31,20 @@ void sleep()
         call HplSam4lSPIChannel.setMode(0,0);
         call CS.makeOutput();
 
+        call CS.clr();
+        sleep();
+        call FastSpiByte.write(0xD7);
+        i = call FastSpiByte.write(0x00);
+        sleep();
+        call CS.set();
+
+        if ((i & 0x80) != 0x80)
+        {
+          //Device is busy with write
+          call Resource.release();
+          return EBUSY;
+        }
+
         /*
         printf("idx is %d\n", idx);
         //In case we were in (deep) power down
