@@ -80,7 +80,7 @@ module IPNeighborDiscoveryP {
   void task setDefaultRoute() {
     e = call FlashAttr.getAttr(7, flashkey, flashprefix, &flashval_len);
     // use the border router address if we get it from flash
-    if (e == SUCCESS && flashval_len > 0) {
+    if (e == SUCCESS && flashval_len > 0) { // success
         call ForwardingTable.delRoute(defaultroute_key);
         inet_pton6(flashprefix, &single_hop_route.sin6_addr);
 #ifndef BLIP_STFU
@@ -89,8 +89,11 @@ module IPNeighborDiscoveryP {
         printf("\n\033[0m");
 #endif
         call ForwardingTable.addRoute(NULL, 0, &single_hop_route.sin6_addr, ROUTE_IFACE_154);
-    } else {
+    } else if (e == SUCCESS && flashval_len == 0) { // no setting
+        return;
+    } else if (e == EBUSY) { // retry
         printf("error? %d length %d\n", e, flashval_len);
+        post setDefaultRoute();
     }
   }
 

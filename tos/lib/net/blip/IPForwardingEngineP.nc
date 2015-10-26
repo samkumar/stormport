@@ -60,10 +60,13 @@ module IPForwardingEngineP {
   void task getPrefix() {
     e = call FlashAttr.getAttr(2, flashkey, flashprefix, &flashval_len);
     // use the prefix if we get it from flash
-    if (e == SUCCESS && flashval_len > 0) {
+    if (e == SUCCESS && flashval_len > 0) { // prefix set
         prefix_from_flash = 1;
-    } else {
+    } else if (e == SUCCESS && flashval_len == 0) { // prefix not set
+        return;
+    } else if (e == EBUSY) { // busy = retry
         printf("error? %d length %d\n", e, flashval_len);
+        post getPrefix();
     }
   }
 
