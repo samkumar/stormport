@@ -58,10 +58,8 @@ module IPNeighborDiscoveryP {
 
   struct in6_addr ALL_ROUTERS_ADDR;
 
-#ifdef RPL_SINGLE_HOP
   // ipv6 address for root of single hop route
   struct sockaddr_in6 single_hop_route;
-#endif
 
   // Global prefix for this network
   struct in6_addr prefix;
