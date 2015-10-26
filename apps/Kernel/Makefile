@@ -4,14 +4,14 @@ COMPONENT=KernelC
 
 PFLAGS += -DLONG_ADDR_SUFFIX=0x40
 #ifdef KERNEL_QUIET_MODE
-#    PFLAGS += -DKERNEL_STFU
-#    PFLAGS += -DBLIP_STFU
+    PFLAGS += -DKERNEL_STFU
+    PFLAGS += -DBLIP_STFU
 # endif
 ifdef KERNEL_WITH_ETH_SHIELD
     PFLAGS += -DWITH_WIZ
     LINKERFILE = stormkernel_ethshield.ld
 else
-	  PFLAGS += -DENABLE_SCRUFFLES
+#	  PFLAGS += -DENABLE_SCRUFFLES
 endif
 
 # radio options
