@@ -170,7 +170,6 @@ module UdpP {
     pkt.ip6_data = &v[0];
 
     udp.chksum = htons(msg_cksum(&pkt.ip6_hdr, v, IANA_UDP));
-
     rc = call IP.send(&pkt);
     BLIP_STATS_INCR(stats.sent);
     return rc;

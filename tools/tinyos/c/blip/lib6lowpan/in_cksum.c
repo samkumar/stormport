@@ -62,7 +62,6 @@
 #include "lib6lowpan.h"
 #include "nwbyte.h"
 
-
 #define ADDCARRY(x)  (x > 65535 ? x -= 65535 : x)
 #define REDUCE {l_util.l = sum; sum = l_util.s[0] + l_util.s[1]; ADDCARRY(sum);}
 
@@ -75,11 +74,11 @@ in_cksum(const struct ip_iovec *vec) {
   uint16_t cur = 0;
   int i;
   uint8_t *w;
- 
+
   for (; vec != NULL;  vec = vec->iov_next) {
     if (vec->iov_len == 0)
       continue;
-   
+
     w = vec->iov_base;
     for (i = 0; i < vec->iov_len; i++) {
       if (i % 2 == 0) {
@@ -98,7 +97,9 @@ in_cksum(const struct ip_iovec *vec) {
   while (sum > 0xffff) {
     sum = (sum & 0xffff) + (sum >> 16);
   }
-  return ~((uint16_t)sum);
+  sum = (uint16_t)(~((uint16_t)sum));
+  if (sum == 0) return 0xFFFF;
+  return sum;
 #else
 	register const uint16_t *w;
 	register uint32_t sum = 0;
@@ -194,7 +195,7 @@ in_cksum(const struct ip_iovec *vec) {
 }
 
 /* SDH : Added to allow for friendly message checksumming */
-uint16_t msg_cksum(const struct ip6_hdr *iph, 
+uint16_t msg_cksum(const struct ip6_hdr *iph,
                    struct ip_iovec *data,
                    uint8_t nxt_hdr) {
   struct ip_iovec cksum_vec[3];
@@ -211,6 +212,7 @@ uint16_t msg_cksum(const struct ip6_hdr *iph,
   cksum_vec[2].iov_next = data;
   hdr[0] = htonl(iov_len(data));
   hdr[1] = htonl(nxt_hdr);
+
 
   return in_cksum(cksum_vec);
 }
