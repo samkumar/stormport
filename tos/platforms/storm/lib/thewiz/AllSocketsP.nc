@@ -30,6 +30,7 @@ implementation
     EthernetShieldConfigC.Timer -> EthernetShieldTimer;
     EthernetShieldConfigC.SocketSpi -> SocketSpiP.SocketSpi;
     EthernetShieldConfigC.SpiResource -> arbiter.Resource[unique(ETHERNETRESOURCE_ID)];
+    EthernetShieldConfigC.Sdcard_cs -> HplSam4lIOC.PC09;
 
     EthernetShieldConfig = EthernetShieldConfigC;
 

@@ -3,6 +3,7 @@ module EthernetShieldConfigC
     uses interface SocketSpi;
     uses interface Timer<T32khz> as Timer;
     uses interface Resource as SpiResource;
+    uses interface GeneralIO as Sdcard_cs;
     provides interface EthernetShieldConfig;
 }
 implementation
@@ -40,6 +41,8 @@ implementation
         netmask = nm;
         gateway = gw;
         mac = m;
+        call Sdcard_cs.makeOutput();
+        call Sdcard_cs.set();
         call SpiResource.immediateRequest();
 #ifndef BLIP_STFU
         printf("eth shield initialize start\n");
