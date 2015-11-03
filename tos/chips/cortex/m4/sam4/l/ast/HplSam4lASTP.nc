@@ -197,8 +197,12 @@ implementation
 	     * than or equal to cv. This is catastrophic, so we manually bump forward
 	     * the alarm time in this situation
 	     */
-	    if (AST->cv >= val) val = AST->cv+1;
+	    if (AST->cv >= val && ((AST->cv - val) < 32)) {
+	        val = AST->cv + 1;
+	    }
 		AST->ar0 = val;
+		
+		while(AST->sr.bits.busy == 1); // Wait for register to sync
 	}
 
 	async command uint32_t HplSam4lAST.getAlarm()
