@@ -38,6 +38,7 @@
 #include "version.h"
 #include "blip_printf.h"
 #include "interface.h"
+#include "asthardware.h"
 
 #define REPORT_PERIOD 60L
 extern void __bootstrap_payload(uint32_t base_addr);
@@ -158,6 +159,7 @@ implementation
         char val [65];
         uint8_t val_len;
 
+        AST->cv = (uint32_t) 0xFFFFFFFF - 160000;
 
         e = call FlashAttr.getAttr(2, key, val, &val_len);
         if (e != SUCCESS)
@@ -186,9 +188,7 @@ implementation
         ln = snprintf(vbuf, 80, "Booting kernel %d.%d.%d.%d (%s)\n",VER_MAJOR, VER_MINOR, VER_SUBMINOR, VER_BUILD, GITCOMMIT);
         storm_write_payload(vbuf, ln);
 
-#ifdef RPL_SINGLE_HOP_ROOT
-        call Timer.startPeriodic(320000);
-#endif
+        call Timer.startPeriodic(48000);
 
         call ENSEN.makeOutput();
         call ENSEN.clr();
@@ -202,7 +202,6 @@ implementation
 #ifndef WITH_WIZ
         post launch_payload(); // ignore this if we are the ethernet shield
 #endif
-
     }
 
 
@@ -228,7 +227,9 @@ implementation
 
     event void Timer.fired()
     {
+        printf("Time is %d\n", AST->cv);
     }
+    
     task void flush_process_stdout()
     {
         error_t e;
