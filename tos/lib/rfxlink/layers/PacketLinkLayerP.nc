@@ -70,7 +70,7 @@ implementation
 	uint16_t totalRetries;
 
 	/**
-	 * We do everything from a single task in order to call SubSend.send 
+	 * We do everything from a single task in order to call SubSend.send
 	 * and Send.sendDone only once. This helps inlining the code and
 	 * reduces the code size.
 	 */
@@ -85,9 +85,11 @@ implementation
 		{
 			if( retries == 0 || call PacketAcknowledgements.wasAcked(currentMsg) )
 				state = STATE_SIGNAL + SUCCESS;
-			else if( ++totalRetries < retries )
+			else if( totalRetries < retries )
 			{
 				uint16_t delay;
+
+                totalRetries++;
 
 				state = STATE_SENDING;
 				delay = call PacketLink.getRetryDelay(currentMsg);
