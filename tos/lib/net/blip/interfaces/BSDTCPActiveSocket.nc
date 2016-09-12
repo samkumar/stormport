@@ -18,7 +18,7 @@ interface BSDTCPActiveSocket {
 
     event void connectionLost(uint8_t how);
 
-    command void getStats(int* segssent, int* sacks_sent, int* srtt);
+    command void getStats(int* segsrcvd, int* segssent, int* sacks_sent, int* srtt, int* delacks);
 
     command error_t shutdown(bool reads, bool writes);
     command error_t abort();

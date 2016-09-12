@@ -58,6 +58,7 @@ module RF230DriverHwAckP
 		interface LinkPacketMetadata;
 
 		interface PacketAcknowledgements;
+		interface RadioStats;
 	}
 
 	uses
@@ -329,6 +330,13 @@ implementation
 		//For sensys demo, try fix ETX by not doing hardware retries:
 		//writeRegister(RF230_XAH_CTRL_0, 0b00001000);
 
+		//For TCP experiments, use no hardware retries and no CSMA
+	    //writeRegister(RF230_XAH_CTRL_0, 0b00001110);
+
+		//writeRegister(0x0c, 0b10000000);
+
+		writeRegister(0x2F, 0b11110000);
+
 		writeRegister(RF230_CSMA_SEED_1, 0);
 
         //MPA: favouring 15.4
@@ -539,6 +547,14 @@ tasklet_async command uint8_t RadioState.getChannel()
 
 	tasklet_norace message_t* txMsg;
 
+	uint32_t attempts[] = {0, 0};
+
+	command uint32_t* RadioStats.getAttempts() {
+		atomic {
+			return attempts;
+		}
+	}
+
 	tasklet_async command error_t RadioSend.send(message_t* msg)
 	{
 		uint16_t time;
@@ -548,8 +564,20 @@ tasklet_async command uint8_t RadioState.getChannel()
 		uint8_t upload1;
 		uint8_t upload2;
 
-		if( cmd != CMD_NONE || state != STATE_RX_ON || radioIrq || ! isSpiAcquired() )
+		volatile uint8_t x = 0;
+		//char buf[20];
+
+		if( cmd != CMD_NONE || state != STATE_RX_ON || radioIrq || ! isSpiAcquired() || (x = (0b00011111 & readRegister(0x01))) != 0x16)
+		{
+			//snprintf(buf, 20, "x = %d\n", x);
+			//storm_write_payload(buf, strlen(buf));
+			//call SpiResource.release();
 			return EBUSY;
+		}
+
+		//if (x == 0x11) {
+		//	storm_write_payload("sending\n", 8);
+		//}
 
 		length = (call PacketTransmitPower.isSet(msg) ?
 			call PacketTransmitPower.get(msg) : RF230_DEF_RFPOWER) & RF230_TX_PWR_MASK;
@@ -559,6 +587,13 @@ tasklet_async command uint8_t RadioState.getChannel()
 			txPower = length;
 			writeRegister(RF230_PHY_TX_PWR, txPower);
 		}
+
+		/*x = readRegister(0x01);
+		//snprintf(buf, 20, "x = %x\n", x);
+		//storm_write_payload(buf, strlen(buf));
+		while ((x = readRegister(0x01)) == 0x01 || x == 0x11) {
+			//storm_write_payload("looping\n", 8);
+		}*/
 
 		writeRegister(RF230_TRX_STATE, RF230_TX_ARET_ON);
 
@@ -588,12 +623,16 @@ tasklet_async command uint8_t RadioState.getChannel()
 		// we have missed an incoming message in this short amount of time
 		if( (readRegister(RF230_TRX_STATUS) & RF230_TRX_STATUS_MASK) != RF230_TX_ARET_ON )
 		{
-			RADIO_ASSERT( (readRegister(RF230_TRX_STATUS) & RF230_TRX_STATUS_MASK) == RF230_BUSY_RX_AACK );
+			RADIO_ASSERT( (readRegister(RF230_TRX_STATUS) & RF230_TRX_STATUS_MASK) == RF230_BUSY_RX_AACK );\
+
+			storm_write_payload("this happens instead\n", 21);
 
 			writeRegister(RF230_TRX_STATE, RF230_RX_AACK_ON);
 			call SpiResource.release();
 			return EBUSY;
 		}
+
+		atomic attempts[0]++;
 
 #ifndef RF230_SLOW_SPI
 		atomic
@@ -810,7 +849,9 @@ tasklet_async command uint8_t RadioState.getChannel()
 		// signal only if it has passed the CRC check
 		if( crcValid )
 		{
-            //printf("\033[31;1mRX MESSAGE\n\033[0m");
+			atomic attempts[1]++;
+            printf("\033[31;1mRX MESSAGE\n\033[0m");
+			//storm_write_payload("rx\n", 3);
 			rxMsg = signal RadioReceive.receive(rxMsg);
         }
         else
@@ -869,6 +910,7 @@ tasklet_async command uint8_t RadioState.getChannel()
 			{
 				if( cmd == CMD_TRANSMIT )
 				{
+					//char buf[20];
 					RADIO_ASSERT( state == STATE_BUSY_TX_2_RX_ON );
 
 					temp = readRegister(RF230_TRX_STATE) & RF230_TRAC_STATUS_MASK;
@@ -878,6 +920,13 @@ tasklet_async command uint8_t RadioState.getChannel()
 
 					state = STATE_RX_ON;
 					cmd = CMD_NONE;
+
+					if (temp == RF230_TRAC_CHANNEL_ACCESS_FAILURE) {
+						storm_write_payload("CAF\n", 4);
+					}
+
+					//snprintf(buf, 20, "temp is %d\n", temp);
+					//storm_write_payload(buf, strlen(buf));
 
 					signal RadioSend.sendDone(temp != RF230_TRAC_CHANNEL_ACCESS_FAILURE ? SUCCESS : EBUSY);
 

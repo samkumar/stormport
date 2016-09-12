@@ -36,7 +36,7 @@
 
 configuration RF230RadioC
 {
-	provides 
+	provides
 	{
 		interface SplitControl;
 
@@ -249,6 +249,7 @@ implementation
 	components new SlottedCollisionLayerC() as CollisionAvoidanceLayerC;
 #else
 	components new RandomCollisionLayerC() as CollisionAvoidanceLayerC;
+    //components new DummyLayerC() as CollisionAvoidanceLayerC;
 #endif
 	CollisionAvoidanceLayerC.Config -> RadioP;
 	CollisionAvoidanceLayerC.SubSend -> SoftwareAckLayerC;

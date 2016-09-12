@@ -748,7 +748,6 @@ send:
 		/* Processing the options. */
 		hdrlen += optlen = tcp_addoptions(&to, opt);
 	}
-	segs_sent++; // At this point, we intend to send the segment
 //#ifdef INET6
 //	if (isipv6)
 //		ipoptlen = ip6_optlen(tp->t_inpcb);

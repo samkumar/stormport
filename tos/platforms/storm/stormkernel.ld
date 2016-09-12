@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
- *  
+ *
  * Copyright 2014, Michael Andersen <m.andersen@eecs.berkeley.edu>
  *
  * This file is largely copied from the Atmel supplied linker scripts
@@ -21,13 +21,13 @@
 
 OUTPUT_FORMAT("elf32-littlearm", "elf32-littlearm", "elf32-littlearm")
 OUTPUT_ARCH(arm)
-SEARCH_DIR(.) 
+SEARCH_DIR(.)
 
 /* Memory Spaces Definitions, 448K flash, 64K ram */
 MEMORY
 {
   rom (rx)  : ORIGIN = 0x00010000, LENGTH = 0x00040000
-  ram (rwx) : ORIGIN = 0x20000000, LENGTH = 0x00005000
+  ram (rwx) : ORIGIN = 0x20000000, LENGTH = 0x00007b00
 }
 
 __stack_size__ = DEFINED(__stack_size__) ? __stack_size__ : 0x1000;

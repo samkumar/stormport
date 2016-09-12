@@ -1,12 +1,14 @@
 #include <bsdtcp.h>
 
+#include "blip_printf.h"
+
 #define NUMBSDTCPACTIVESOCKETS uniqueCount(UQ_BSDTCP_ACTIVE)
 #define NUMBSDTCPPASSIVESOCKETS uniqueCount(UQ_BSDTCP_PASSIVE)
 
 #define hz 1000 // number of ticks per second
 #define MILLIS_PER_TICK 1 // number of milliseconds per tick
 
-#define FRAMES_PER_SEG 5
+#define FRAMES_PER_SEG 4
 #define FRAMECAP_6LOWPAN (122 - 22 - 12) // Fragmentation limit: maximum frame size of the IP and TCP headers
 
 #define COMPRESSED_IP6HDR_SIZE (2 + 1 + 1 + 16 + 8) // IPHC header (2) + Next header (1) + Hop count (1) + Dest. addr (16) + Src. addr (8)
@@ -61,6 +63,10 @@ module BsdTcpP {
 
     struct tcpcb tcbs[NUMBSDTCPACTIVESOCKETS];
     struct tcpcb_listen tcbls[NUMBSDTCPPASSIVESOCKETS];
+
+    int segs_rcvd = 0;
+
+    int delack = 0;
 
     event void Boot.booted() {
         int i;
@@ -152,6 +158,8 @@ module BsdTcpP {
         wrapper.iov_base = packet;
         wrapper.iov_len = len;
         wrapper.iov_next = NULL;
+
+        segs_rcvd++;
 
         th = (struct tcphdr*) packet;
         sport = th->th_sport; // network byte order
@@ -309,10 +317,12 @@ module BsdTcpP {
         return SUCCESS;
     }
 
-    command void BSDTCPActiveSocket.getStats[uint8_t asockid](int* segssent, int* sackssent, int* srtt) {
+    command void BSDTCPActiveSocket.getStats[uint8_t asockid](int* segsrcvd, int* segssent, int* sackssent, int* srtt, int* delacks) {
+        *segsrcvd = segs_rcvd;
         *segssent = segs_sent;
         *sackssent = sacks_sent;
         *srtt = tcbs[asockid].t_srtt;
+        *delacks = delack;
     }
 
     default event void BSDTCPPassiveSocket.acceptDone[uint8_t psockid](struct sockaddr_in6* addr, int asockid) {
@@ -339,7 +349,13 @@ module BsdTcpP {
         th->th_sum = get_checksum(&msg->ip6_hdr.ip6_src, &msg->ip6_hdr.ip6_dst, msg->ip6_data, tlen);
         inet_ntop6(&msg->ip6_hdr.ip6_dst, destaddr, 50);
         printf("Sending message to %s\n", destaddr);
-        printf("Return value: %d\n", call IP.send(msg));
+        //printf("Return value: %d\n", call IP.send(msg));
+
+        segs_sent++;
+
+        if (0 != call IP.send(msg)) {
+            storm_write_payload("dropped\n", 8);
+        }
     }
 
     uint32_t get_ticks() {
@@ -354,9 +370,12 @@ module BsdTcpP {
         uint8_t tcb_index = (uint8_t) tcb->index;
         uint8_t timer_index = (tcb_index << 2) | timer_id;
         if (timer_id > 0x3) {
-            printf("WARNING: setting out of bounds timer!\n");
+            //printf("WARNING: setting out of bounds timer!\n");
         }
-        printf("Setting timer %d, delay is %d\n", timer_index, delay * MILLIS_PER_TICK);
+        if (timer_index == 0) {
+            delack++;
+        }
+        //printf("Setting timer %d, delay is %d\n", timer_index, delay * MILLIS_PER_TICK);
         call Timer.startOneShot[timer_index](delay * MILLIS_PER_TICK);
     }
 

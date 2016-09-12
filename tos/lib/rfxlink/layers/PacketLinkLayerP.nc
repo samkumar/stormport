@@ -83,7 +83,8 @@ implementation
 
 		if( state == STATE_SENDDONE )
 		{
-			if( retries == 0 || call PacketAcknowledgements.wasAcked(currentMsg) )
+            // SAM: always need an ACK, since we changed it due to hardware retries
+			if(/* retries == 0 || */call PacketAcknowledgements.wasAcked(currentMsg) )
 				state = STATE_SIGNAL + SUCCESS;
 			else if( totalRetries < retries )
 			{
@@ -154,7 +155,8 @@ implementation
         }
 
 		// it is enough to set it only once
-		if( call PacketLink.getRetries(msg) > 0 )
+        // SAM: always do this, since we have hardware retries
+		if( 1 || call PacketLink.getRetries(msg) > 0 )
 			call PacketAcknowledgements.requestAck(msg);
 
 		currentMsg = msg;

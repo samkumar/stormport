@@ -79,11 +79,17 @@ implementation
 			{
 				txMsg = msg;
 
+                //storm_write_payload("Doing software CSMA\n", 20);
+
 				if( (error = call SubCCA.request()) == SUCCESS )
 					state = STATE_CCA_WAIT;
 			}
-			else if( (error = call SubSend.send(msg)) == SUCCESS )
+			else
+            {
+            //storm_write_payload("No software CSMA\n", 17);
+            if( (error = call SubSend.send(msg)) == SUCCESS )
 				state = STATE_SEND;
+            }
 		}
 		else
 			error = EBUSY;
@@ -99,6 +105,7 @@ implementation
 			state = STATE_SEND;
 		else
 		{
+            //storm_write_payload("bad!\n", 5);
 			state = STATE_READY;
 			signal RadioSend.sendDone(EBUSY);
 		}

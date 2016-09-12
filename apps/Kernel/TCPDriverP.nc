@@ -1,15 +1,20 @@
 #include <bsdtcp/lbuf.h>
 #include <bsdtcp/sys/errno.h>
 #include "driver.h"
+#include "BlipStatistics.h"
 
 // Number of active sockets and number of passive sockets must be the same
-#define NUMSOCKETS 3
+#define NUMSOCKETS 1
 
 module TCPDriverP {
     provides interface Driver;
     provides interface Init;
     uses interface BSDTCPActiveSocket[uint8_t aclient];
     uses interface BSDTCPPassiveSocket[uint8_t pclient];
+    uses interface BlipStatistics<retry_statistics_t> as RetryStatistics;
+    uses interface BlipStatistics<ip_statistics_t> as IPStatistics;
+    uses interface RadioStats;
+    uses interface TrafficMonitor;
 } implementation {
     #include <bsdtcp/socket.h>
     #include <bsdtcp/tcp.h>
@@ -228,7 +233,7 @@ module TCPDriverP {
         return EBADF;
     }
 
-    default command void BSDTCPActiveSocket.getStats[uint8_t asockid](int* segssent, int* sackssent, int* srtt) {
+    default command void BSDTCPActiveSocket.getStats[uint8_t asockid](int* segsrcvd, int* segssent, int* sackssent, int* srtt, int* delacks) {
     }
 
     int alloc_fd(uint32_t* mask, bool (*isvalid)(int) ) {
@@ -324,6 +329,10 @@ module TCPDriverP {
         struct in6_addr* addrptr;
         uint16_t* portptr;
         tcp_callback_t* tostore;
+        union {
+            retry_statistics_t rstats;
+            ip_statistics_t istats;
+        } stats;
         syscall_rv_t rv = (syscall_rv_t) EBADF;
         fd = decode_fd(arg0, &passive); // most syscalls need this info
         svc_id = number & 0xFF;
@@ -479,7 +488,20 @@ module TCPDriverP {
                 if (fd < 0 || passive) {
                     break;
                 }
-                call BSDTCPActiveSocket.getStats[fd]((int*) arg1, (int*) arg2, (int*) argx[0]);
+                call BSDTCPActiveSocket.getStats[fd]((int*) arg1, (int*) arg2, (int*) argx[0], (int*) argx[1], (int*) argx[2]);
+                call RetryStatistics.get(&stats.rstats);
+                *((int*) argx[3]) = stats.rstats.tx_cnt;
+                {
+                    char str[100];
+                    uint32_t* attempts = call RadioStats.getAttempts();
+                    snprintf(str, 100, "rsa: %d, rra: %d, tx: %d, rx: %d, txf: %d\n", attempts[0], attempts[1],
+                    call TrafficMonitor.getTxMessages(), call TrafficMonitor.getRxMessages(), call TrafficMonitor.getTxErrors());
+                    storm_write_payload(str, strlen(str));
+                    snprintf(str, 100, "%d, %d, %d, %d, %d, %d, ND: %d\n", stats.rstats.retries[0], stats.rstats.retries[1], stats.rstats.retries[2], stats.rstats.retries[3], stats.rstats.retries[4], stats.rstats.retries[5], stats.rstats.retries[6]);
+                    storm_write_payload(str, strlen(str));
+                }
+                call IPStatistics.get(&stats.istats);
+                *((int*) argx[4]) = stats.istats.rx_total;
                 break;
             default:
                 printf("Doing nothing\n");

@@ -144,7 +144,7 @@ implementation
 	task void stateDoneTask()
 	{
 		uint8_t s;
-		
+
 		s = state;
 
 		// change the state before so we can be reentered from the event
@@ -200,7 +200,10 @@ implementation
 			if( txError == SUCCESS )
 				state = STATE_TX_SEND;
 			else
+            {
+                storm_write_payload("retrying...\n", 12);
 				state = STATE_TX_RETRY;
+            }
 		}
 		else
 		{
@@ -234,7 +237,10 @@ implementation
 		call Tasklet.suspend();
 
 		if( state != STATE_READY )
+        {
+            storm_write_payload("dropping in mb\n", 15);
 			result = EBUSY;
+        }
 		else
 		{
 			txMsg = msg;
@@ -352,10 +358,15 @@ implementation
 	{
 		message_t *m;
 
+        printf("radioreceive\n");
+
 		atomic
 		{
 			if( receiveQueueSize >= RECEIVE_QUEUE_SIZE )
+            {
+                storm_write_payload("msgbuf full...\n", 15);
 				m = msg;
+            }
 			else
 			{
 				uint8_t idx = receiveQueueHead + receiveQueueSize;
@@ -366,6 +377,7 @@ implementation
 				receiveQueue[idx] = msg;
 
 				++receiveQueueSize;
+                printf("here it iz\n");
 				post deliverTask();
 			}
 		}
