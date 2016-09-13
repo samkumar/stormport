@@ -74,7 +74,7 @@ implementation
 			signal RadioSend.ready();
 	}
 
-	uint16_t nextRandom = 8956;
+	uint16_t nextRandom = 8452;
 	task void calcNextRandom()
 	{
 		uint16_t a = call Random.rand16();
@@ -104,7 +104,8 @@ implementation
 		txMsg = msg;
 		state = STATE_TX_PENDING_FIRST;
         //storm_write_payload("try\n", 4);
-		call RadioAlarm.wait(0/*getBackoff(call Config.getInitialBackoff(msg))*/);
+        //call RadioAlarm.wait(0);
+		call RadioAlarm.wait(getBackoff(/*call Config.getInitialBackoff(msg)*/64));
 
 		return SUCCESS;
 	}

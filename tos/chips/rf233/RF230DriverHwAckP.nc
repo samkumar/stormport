@@ -325,16 +325,17 @@ implementation
 		writeRegister(RF230_PHY_CC_CCA, RF230_CCA_MODE_VALUE | channel);
 
         //Enable four CSMA retries and 1 packet retries
-	    writeRegister(RF230_XAH_CTRL_0, 0b00011000);
+	    //writeRegister(RF230_XAH_CTRL_0, 0b00011000);
 
 		//For sensys demo, try fix ETX by not doing hardware retries:
 		//writeRegister(RF230_XAH_CTRL_0, 0b00001000);
 
-		//For TCP experiments, use no hardware retries and no CSMA
-	    //writeRegister(RF230_XAH_CTRL_0, 0b00001110);
+		//For TCP experiments, use one hardware retries and five CSMA probes
+	    writeRegister(RF230_XAH_CTRL_0, 0b00011010);
 
 		//writeRegister(0x0c, 0b10000000);
 
+		// MIN_BE = 0, MAX_BE = 16 for CSMA
 		writeRegister(0x2F, 0b11110000);
 
 		writeRegister(RF230_CSMA_SEED_1, 0);
