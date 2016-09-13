@@ -47,8 +47,8 @@ PFLAGS += -DBLIP_SEND_ROUTER_ADVERTISEMENTS=0
 
 # Configure the number of times BLIP tries to send a packet and how long it
 # waits between attempts
-PFLAGS += -DBLIP_L2_RETRIES=5
-PFLAGS += -DBLIP_L2_DELAY=5
+PFLAGS += -DBLIP_L2_RETRIES=11
+PFLAGS += -DBLIP_L2_DELAY=2
 
 # Configure how many of the 6LoWPAN headers we support
 PFLAGS += -DLIB6LOWPAN_FULL=1

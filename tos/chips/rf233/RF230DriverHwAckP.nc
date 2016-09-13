@@ -331,12 +331,16 @@ implementation
 		//writeRegister(RF230_XAH_CTRL_0, 0b00001000);
 
 		//For TCP experiments, use one hardware retries and five CSMA probes
-	    writeRegister(RF230_XAH_CTRL_0, 0b00011010);
-
-		//writeRegister(0x0c, 0b10000000);
+	    //writeRegister(RF230_XAH_CTRL_0, 0b00011010);
 
 		// MIN_BE = 0, MAX_BE = 16 for CSMA
-		writeRegister(0x2F, 0b11110000);
+		//writeRegister(0x2F, 0b11110000);
+
+		//For Software CSMA, use zero hardware retries and one CSMA probe (zero retries), with zero backoff
+		writeRegister(RF230_XAH_CTRL_0, 0b00000000);
+		writeRegister(0x2F, 0b00000000);
+
+		//writeRegister(0x0c, 0b10000000);
 
 		writeRegister(RF230_CSMA_SEED_1, 0);
 
@@ -922,10 +926,6 @@ tasklet_async command uint8_t RadioState.getChannel()
 					state = STATE_RX_ON;
 					cmd = CMD_NONE;
 
-					if (temp == RF230_TRAC_CHANNEL_ACCESS_FAILURE) {
-						storm_write_payload("CAF\n", 4);
-					}
-
 					//snprintf(buf, 20, "temp is %d\n", temp);
 					//storm_write_payload(buf, strlen(buf));
 
@@ -979,6 +979,11 @@ tasklet_async command uint8_t RadioState.getChannel()
 		call SpiResource.release();
 	}
 
+	task void signalReady()
+	{
+		signal RadioSend.ready();
+	}
+
 	tasklet_async event void Tasklet.run()
 	{
 		if( radioIrq )
@@ -1000,8 +1005,17 @@ tasklet_async command uint8_t RadioState.getChannel()
 			}
 		}
 
-		if( cmd == CMD_NONE && state == STATE_RX_ON && ! radioIrq )
-			signal RadioSend.ready();
+		if( cmd == CMD_NONE && state == STATE_RX_ON)
+		{
+			if (radioIrq)
+			{
+				post signalReady();
+			}
+			else
+			{
+				signal RadioSend.ready();
+			}
+		}
 
 		if( cmd == CMD_NONE )
 			post releaseSpi();

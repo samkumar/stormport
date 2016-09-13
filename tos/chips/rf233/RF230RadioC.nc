@@ -243,6 +243,15 @@ implementation
 
 	UniqueLayerC.SubReceive -> CollisionAvoidanceLayerC;
 
+// -------- Software CSMA and Collision Avoidance
+
+    components new SoftwareCsmaLayerC() as CollisionAvoidanceLayerC;
+    CollisionAvoidanceLayerC.SubSend -> SoftwareAckLayerC;
+    CollisionAvoidanceLayerC.SubReceive -> SoftwareAckLayerC;
+    CollisionAvoidanceLayerC.RadioAlarm -> RadioAlarmC.RadioAlarm[unique(UQ_RADIO_ALARM)];
+
+/*
+
 // -------- CollisionAvoidance
 
 #ifdef SLOTTED_MAC
@@ -255,6 +264,8 @@ implementation
 	CollisionAvoidanceLayerC.SubSend -> SoftwareAckLayerC;
 	CollisionAvoidanceLayerC.SubReceive -> SoftwareAckLayerC;
 	CollisionAvoidanceLayerC.RadioAlarm -> RadioAlarmC.RadioAlarm[unique(UQ_RADIO_ALARM)];
+
+*/
 
 // -------- SoftwareAcknowledgement
 

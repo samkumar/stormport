@@ -499,6 +499,7 @@ void SENDINFO_DECR(struct send_info *si) {
       dbg("Drops", "drops: sendTask: send failed\n");
       goto fail;
     } else {
+      //storm_write_payload("IPd sent\n", 9);
       radioBusy = TRUE;
     }
 
@@ -668,6 +669,8 @@ void SENDINFO_DECR(struct send_info *si) {
 #endif
     struct send_entry *s_entry = call SendQueue.head();
 
+    //storm_write_payload("IPd send done\n", 14);
+
     radioBusy = FALSE;
 
     if (state == S_STOPPING) {
@@ -681,7 +684,7 @@ void SENDINFO_DECR(struct send_info *si) {
 
     //populate retry stats
     {
-        int retries = call PacketLink.getRetries(msg);
+        int retries = call PacketLink.getRetries(msg) / 2;
         retry_stats.pkt_cnt += 1;
         retry_stats.tx_cnt += (1 + retries);
         if (!call PacketLink.wasDelivered(msg)) {
