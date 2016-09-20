@@ -62,7 +62,8 @@ implementation
 	};
     enum
     {
-        MIN_BE = 1,
+        MIN_BE = 3,
+        MAX_BE = 5,
         MAX_TRIES = 5,
         BACKOFF_PERIOD = 10, // ticks in one backoff period (~320 microseconds)
     };
@@ -73,7 +74,7 @@ implementation
     //uint16_t seed = 45623; // sender
 
     uint16_t random() {
-        atomic seed = 54325 * seed + 18653;
+        atomic seed = 49433 * seed + 12345;
         return seed;
     }
 
@@ -84,11 +85,17 @@ implementation
 
     void backoff_and_send()
     {
+        uint8_t be;
         atomic
         {
             state = STATE_BACKOFF;
             //storm_write_payload("backoff\n", 8);
-            call RadioAlarm.wait(randomBackoff(MIN_BE + numtries) * BACKOFF_PERIOD);
+            be = MIN_BE + numtries;
+            if (be > MAX_BE)
+            {
+                be = MAX_BE;
+            }
+            call RadioAlarm.wait(randomBackoff(be) * BACKOFF_PERIOD);
         }
     }
 
