@@ -570,19 +570,11 @@ tasklet_async command uint8_t RadioState.getChannel()
 		uint8_t upload2;
 
 		volatile uint8_t x = 0;
-		//char buf[20];
 
 		if( cmd != CMD_NONE || state != STATE_RX_ON || radioIrq || ! isSpiAcquired() || (x = (0b00011111 & readRegister(0x01))) != 0x16)
 		{
-			//snprintf(buf, 20, "x = %d\n", x);
-			//storm_write_payload(buf, strlen(buf));
-			//call SpiResource.release();
 			return EBUSY;
 		}
-
-		//if (x == 0x11) {
-		//	storm_write_payload("sending\n", 8);
-		//}
 
 		length = (call PacketTransmitPower.isSet(msg) ?
 			call PacketTransmitPower.get(msg) : RF230_DEF_RFPOWER) & RF230_TX_PWR_MASK;
@@ -592,13 +584,6 @@ tasklet_async command uint8_t RadioState.getChannel()
 			txPower = length;
 			writeRegister(RF230_PHY_TX_PWR, txPower);
 		}
-
-		/*x = readRegister(0x01);
-		//snprintf(buf, 20, "x = %x\n", x);
-		//storm_write_payload(buf, strlen(buf));
-		while ((x = readRegister(0x01)) == 0x01 || x == 0x11) {
-			//storm_write_payload("looping\n", 8);
-		}*/
 
 		writeRegister(RF230_TRX_STATE, RF230_TX_ARET_ON);
 
@@ -629,8 +614,6 @@ tasklet_async command uint8_t RadioState.getChannel()
 		if( (readRegister(RF230_TRX_STATUS) & RF230_TRX_STATUS_MASK) != RF230_TX_ARET_ON )
 		{
 			RADIO_ASSERT( (readRegister(RF230_TRX_STATUS) & RF230_TRX_STATUS_MASK) == RF230_BUSY_RX_AACK );\
-
-			storm_write_payload("this happens instead\n", 21);
 
 			writeRegister(RF230_TRX_STATE, RF230_RX_AACK_ON);
 			call SpiResource.release();
@@ -856,7 +839,6 @@ tasklet_async command uint8_t RadioState.getChannel()
 		{
 			atomic attempts[1]++;
             printf("\033[31;1mRX MESSAGE\n\033[0m");
-			//storm_write_payload("rx\n", 3);
 			rxMsg = signal RadioReceive.receive(rxMsg);
         }
         else
@@ -915,7 +897,6 @@ tasklet_async command uint8_t RadioState.getChannel()
 			{
 				if( cmd == CMD_TRANSMIT )
 				{
-					//char buf[20];
 					RADIO_ASSERT( state == STATE_BUSY_TX_2_RX_ON );
 
 					temp = readRegister(RF230_TRX_STATE) & RF230_TRAC_STATUS_MASK;
@@ -925,9 +906,6 @@ tasklet_async command uint8_t RadioState.getChannel()
 
 					state = STATE_RX_ON;
 					cmd = CMD_NONE;
-
-					//snprintf(buf, 20, "temp is %d\n", temp);
-					//storm_write_payload(buf, strlen(buf));
 
 					signal RadioSend.sendDone(temp != RF230_TRAC_CHANNEL_ACCESS_FAILURE ? SUCCESS : EBUSY);
 

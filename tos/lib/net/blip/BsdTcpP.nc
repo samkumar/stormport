@@ -354,7 +354,7 @@ module BsdTcpP {
         segs_sent++;
 
         if (0 != call IP.send(msg)) {
-            storm_write_payload("dropped\n", 8);
+            printf("tcp: dropped segment\n");
         }
     }
 

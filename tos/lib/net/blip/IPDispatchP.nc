@@ -225,7 +225,6 @@ void SENDINFO_DECR(struct send_info *si) {
 
     /* the payload length field is always compressed, have to put it back here */
     iph->ip6_plen = htons(recon->r_bytes_rcvd - sizeof(struct ip6_hdr));
-    //storm_write_payload("Got something here...\n", 22);
     signal IPLower.recv(iph, (void *)(iph + 1), &recon->r_meta);
 
     // printf("ip_free(%p)\n", recon->r_buf);
@@ -469,13 +468,9 @@ void SENDINFO_DECR(struct send_info *si) {
     struct send_entry *s_entry;
 
     if (radioBusy || state != S_RUNNING) {
-        //storm_write_payload("wtf 1\n", 6);
-        //return;
-        //post sendTask();
         return;
     }
     if (call SendQueue.empty()) {
-        //storm_write_payload("wtf 2\n", 6);
         return;
     }
     // this does not dequeue
@@ -499,14 +494,13 @@ void SENDINFO_DECR(struct send_info *si) {
       dbg("Drops", "drops: sendTask: send failed\n");
       goto fail;
     } else {
-      //storm_write_payload("IPd sent\n", 9);
+
       radioBusy = TRUE;
     }
 
     return;
   fail:
     printf("SEND FAIL\n");
-    //storm_write_payload("SEND FAIL\n", 10);
     post sendTask();
     BLIP_STATS_INCR(stats.tx_drop);
 
@@ -543,8 +537,7 @@ void SENDINFO_DECR(struct send_info *si) {
     error_t rc = SUCCESS;
     if (state != S_RUNNING) {
         printf("radio is not running\n");
-      storm_write_payload("nr!\n", 4);
-      return EOFF;
+        return EOFF;
     }
 
 
@@ -564,7 +557,6 @@ void SENDINFO_DECR(struct send_info *si) {
 
     s_info = getSendInfo();
     if (s_info == NULL) {
-      //storm_write_payload("m!\n", 3);
       rc = ERETRY;
       goto cleanup_outer;
     }
@@ -583,7 +575,6 @@ void SENDINFO_DECR(struct send_info *si) {
         // be dropped by the send task.
         s_info->failed = TRUE;
         printf("drops: IP send: no fragments\n");
-        storm_write_payload("f!\n", 3);
         rc = ERETRY;
         goto done;
       }
@@ -613,9 +604,6 @@ void SENDINFO_DECR(struct send_info *si) {
       if (frag_len <= 0) {
         call FragPool.put(outgoing);
         call SendEntryPool.put(s_entry);
-        if (rc != 0) {
-            //storm_write_payload("g!\n", 3);
-        }
         goto done;
       }
 
@@ -630,7 +618,6 @@ void SENDINFO_DECR(struct send_info *si) {
         call FragPool.put(outgoing);
         call SendEntryPool.put(s_entry);
         printf("drops: IP send: enqueue failed\n");
-        storm_write_payload("enqueue failed\n", 15);
         goto done;
       }
 
@@ -656,9 +643,6 @@ void SENDINFO_DECR(struct send_info *si) {
     SENDINFO_DECR(s_info);
     post sendTask();
   cleanup_outer:
-    if (rc != 0) {
-        storm_write_payload("e!\n", 3);
-    }
     return rc;
   }
 
@@ -668,8 +652,6 @@ void SENDINFO_DECR(struct send_info *si) {
   event void Ieee154Send.sendDone(message_t *msg, error_t error) {
 #endif
     struct send_entry *s_entry = call SendQueue.head();
-
-    //storm_write_payload("IPd send done\n", 14);
 
     radioBusy = FALSE;
 
@@ -691,7 +673,7 @@ void SENDINFO_DECR(struct send_info *si) {
             retries = 6;
         }
         if (retries > 6) {
-            storm_write_payload("How is it possible?\n", 20);
+            //storm_write_payload("How is it possible?\n", 20);
         }
         retry_stats.retries[retries]++;
     }

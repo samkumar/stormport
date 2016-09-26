@@ -143,7 +143,6 @@ implementation {
 
   /***************** SubSend Events ***************/
   event void SubSend.sendDone(message_t* msg, error_t error) {
-    storm_write_payload("got here\n, 9);
     dbg("PacketLink", "PacketLink: SubSend.sendDone: msg %p for %d, ack %d, error %d, retries so far %d.\n",
 	msg, call AMPacket.destination(msg), call PacketAcknowledgements.wasAcked(msg), error, totalRetries);
     if(call SendState.getState() == S_SENDING) {

@@ -11,10 +11,10 @@ module TCPDriverP {
     provides interface Init;
     uses interface BSDTCPActiveSocket[uint8_t aclient];
     uses interface BSDTCPPassiveSocket[uint8_t pclient];
-    uses interface BlipStatistics<retry_statistics_t> as RetryStatistics;
-    uses interface BlipStatistics<ip_statistics_t> as IPStatistics;
-    uses interface RadioStats;
-    uses interface TrafficMonitor;
+    //uses interface BlipStatistics<retry_statistics_t> as RetryStatistics;
+    //uses interface BlipStatistics<ip_statistics_t> as IPStatistics;
+    //uses interface RadioStats;
+    //uses interface TrafficMonitor;
 } implementation {
     #include <bsdtcp/socket.h>
     #include <bsdtcp/tcp.h>
@@ -484,7 +484,7 @@ module TCPDriverP {
             	*((uint16_t*) argx[0]) = ntohs(*portptr);
             	rv = (syscall_rv_t) 0;
             	break;
-            case 0x12: // stats(fd, segssent, sackssent, srtt)
+            /*case 0x12: // stats(fd, segssent, sackssent, srtt)
                 if (fd < 0 || passive) {
                     break;
                 }
@@ -502,7 +502,7 @@ module TCPDriverP {
                 }
                 call IPStatistics.get(&stats.istats);
                 *((int*) argx[4]) = stats.istats.rx_total;
-                break;
+                break;*/
             default:
                 printf("Doing nothing\n");
                 break;

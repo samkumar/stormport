@@ -89,7 +89,6 @@ implementation
         atomic
         {
             state = STATE_BACKOFF;
-            //storm_write_payload("backoff\n", 8);
             be = MIN_BE + numtries;
             if (be > MAX_BE)
             {
@@ -107,8 +106,6 @@ implementation
             {
                 return EBUSY;
             }
-
-            //storm_write_payload("send\n", 5);
 
             txMsg = msg;
             numtries = 0;
@@ -130,7 +127,6 @@ implementation
             rv = call SubSend.send(txMsg);
             if (rv == EBUSY)
             {
-                //storm_write_payload("busy...\n", 8);
                 state = STATE_RADIO_BUSY;
 
                 // Try again in 1 ms
@@ -155,7 +151,6 @@ implementation
         if (error == SUCCESS)
         {
             atomic state = STATE_READY;
-            //storm_write_payload("success\n", 8);
             signal RadioSend.sendDone(error);
         }
         else
@@ -168,7 +163,6 @@ implementation
                 if (numtries == MAX_TRIES)
                 {
                     state = STATE_READY;
-                    //storm_write_payload("failed\n", 7);
                     signal RadioSend.sendDone(error);
                 }
                 else
@@ -185,12 +179,10 @@ implementation
         {
     		if( state == STATE_READY && call RadioAlarm.isFree())
             {
-                //storm_write_payload("got it\n", 7);
     			signal RadioSend.ready();
             }
             else if (state == STATE_RADIO_BUSY)
             {
-                //storm_write_payload("free!\n", 6);
                 call RadioAlarm.cancel();
                 send();
             }

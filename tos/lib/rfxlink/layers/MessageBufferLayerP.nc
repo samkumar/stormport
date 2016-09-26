@@ -201,7 +201,6 @@ implementation
 				state = STATE_TX_SEND;
 			else
             {
-                storm_write_payload("retrying...\n", 12);
 				state = STATE_TX_RETRY;
             }
 		}
@@ -238,7 +237,6 @@ implementation
 
 		if( state != STATE_READY )
         {
-            storm_write_payload("dropping in mb\n", 15);
 			result = EBUSY;
         }
 		else
@@ -364,7 +362,7 @@ implementation
 		{
 			if( receiveQueueSize >= RECEIVE_QUEUE_SIZE )
             {
-                storm_write_payload("msgbuf full...\n", 15);
+                //storm_write_payload("msgbuf full...\n", 15);
 				m = msg;
             }
 			else

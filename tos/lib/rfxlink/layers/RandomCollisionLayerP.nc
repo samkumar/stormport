@@ -74,7 +74,7 @@ implementation
 			signal RadioSend.ready();
 	}
 
-	uint16_t nextRandom = 8452;
+	uint16_t nextRandom;
 	task void calcNextRandom()
 	{
 		uint16_t a = call Random.rand16();
@@ -83,17 +83,17 @@ implementation
 
 	uint16_t getBackoff(uint16_t maxBackoff)
 	{
-		uint16_t a;
+		/*uint16_t a;
 
 		atomic
 		{
 			a = nextRandom;
-			nextRandom = 273 + 8561 * nextRandom;
+			nextRandom += 273;
 		}
-		//post calcNextRandom();
+		post calcNextRandom();
 
-		return (a % maxBackoff) + call Config.getMinimumBackoff();
-		//return 32; // 1 ms
+		return (a % maxBackoff) + call Config.getMinimumBackoff();*/
+		return 1;
 	}
 
 	tasklet_async command error_t RadioSend.send(message_t* msg)
@@ -103,9 +103,7 @@ implementation
 
 		txMsg = msg;
 		state = STATE_TX_PENDING_FIRST;
-        //storm_write_payload("try\n", 4);
-        //call RadioAlarm.wait(0);
-		call RadioAlarm.wait(getBackoff(/*call Config.getInitialBackoff(msg)*/64));
+		call RadioAlarm.wait(getBackoff(call Config.getInitialBackoff(msg)));
 
 		return SUCCESS;
 	}
@@ -129,21 +127,17 @@ implementation
 		else if( (state & STATE_BARRIER) && delay > 0 )
 			error = EBUSY;
 		else
-        {
 			error = call SubSend.send(txMsg);
-        }
 
 		if( error != SUCCESS )
 		{
 			if( (state & ~STATE_BARRIER) == STATE_TX_PENDING_FIRST )
 			{
-				state = (state & STATE_BARRIER) | STATE_TX_PENDING_FIRST;
-                //storm_write_payload("retry\n", 6);
+				state = (state & STATE_BARRIER) | STATE_TX_PENDING_SECOND;
 				call RadioAlarm.wait(getBackoff(call Config.getCongestionBackoff(txMsg)));
 			}
 			else
 			{
-                storm_write_payload("failed after retry\n", 19);
 				if( (state & STATE_BARRIER) && delay > 0 )
 				{
 					state = STATE_BARRIER;
@@ -177,8 +171,6 @@ implementation
 		int16_t delay;
 		txBarrier = call Config.getTransmitBarrier(msg);
 		delay = txBarrier - call RadioAlarm.getNow();
-
-        printf("Got to the random collision layer\n");
 
 		if( delay > 0 )
 		{

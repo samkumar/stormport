@@ -2,8 +2,8 @@
 
 configuration TCPDriverC {
     provides interface Driver;
-    uses interface BlipStatistics<retry_statistics_t> as ProvidedRetryStatistics;
-    uses interface BlipStatistics<ip_statistics_t> as ProvidedIPStatistics;
+    //uses interface BlipStatistics<retry_statistics_t> as ProvidedRetryStatistics;
+    //uses interface BlipStatistics<ip_statistics_t> as ProvidedIPStatistics;
 } implementation {
     components TCPDriverP, BsdTcpC;
     components RealMainP;
@@ -16,13 +16,13 @@ configuration TCPDriverC {
     //TCPDriverP.BSDTCPPassiveSocket[2] -> BsdTcpC.BSDTCPPassiveSocket[unique(UQ_BSDTCP_PASSIVE)];
 
     TCPDriverP.Init <- RealMainP.SoftwareInit;
-    TCPDriverP.RetryStatistics = ProvidedRetryStatistics;
-    TCPDriverP.IPStatistics = ProvidedIPStatistics;
+    //TCPDriverP.RetryStatistics = ProvidedRetryStatistics;
+    //TCPDriverP.IPStatistics = ProvidedIPStatistics;
     Driver = TCPDriverP;
 
-    components RF230DriverHwAckC;
-    TCPDriverP.RadioStats -> RF230DriverHwAckC;
+    //components RF230DriverHwAckC;
+    //TCPDriverP.RadioStats -> RF230DriverHwAckC;
 
-    components RF230RadioC;
-    TCPDriverP.TrafficMonitor -> RF230RadioC;
+    //components RF230RadioC;
+    //TCPDriverP.TrafficMonitor -> RF230RadioC;
 }
