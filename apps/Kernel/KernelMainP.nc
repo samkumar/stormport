@@ -58,10 +58,10 @@ module KernelMainP
         interface UartStream;
         interface Driver as GPIO_Driver;
         interface Driver as Timer_Driver;
-        interface Driver as UDP_Driver;
+        //interface Driver as UDP_Driver;
         interface Driver as SysInfo_Driver;
         interface Driver as RoutingTable_Driver;
-        interface Driver as BLE_Driver;
+        //interface Driver as BLE_Driver;
         interface Driver as I2C_Driver;
         interface Driver as SPI_Driver;
         interface Driver as AES_Driver;
@@ -359,7 +359,7 @@ implementation
                     return TRUE;
                 }
                 //check for UDP callbacks:
-                cb = call UDP_Driver.peek_callback();
+                /*cb = call UDP_Driver.peek_callback();
                 if (cb != NULL)
                 {
                     char v6addr[40];
@@ -370,9 +370,9 @@ implementation
                     __syscall(KABI_RESUME_PROCESS);
                     call UDP_Driver.pop_callback();
                     return TRUE;
-                }
+                }*/
                 //check for BLE callbacks:
-                cb = call BLE_Driver.peek_callback();
+                /*cb = call BLE_Driver.peek_callback();
                 if (cb != NULL)
                 {
                     ble_callback_t *c = (ble_callback_t*) cb;
@@ -381,7 +381,7 @@ implementation
                     __syscall(KABI_RESUME_PROCESS);
                     call BLE_Driver.pop_callback();
                     return TRUE;
-                }
+                }*/
                 //check for SPI callbacks
                 cb = call SPI_Driver.peek_callback();
                 if (cb != NULL)
@@ -511,10 +511,10 @@ implementation
                 uint32_t rv;
                 if (( syscall_args[0] >> 8) == 1 ) rv = call GPIO_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
                 if (( syscall_args[0] >> 8) == 2 ) rv = call Timer_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
-                if (( syscall_args[0] >> 8) == 3 ) rv = call UDP_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
+                //if (( syscall_args[0] >> 8) == 3 ) rv = call UDP_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
                 if (( syscall_args[0] >> 8) == 4 ) rv = call SysInfo_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
                 if (( syscall_args[0] >> 8) == 5 ) rv = call I2C_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
-                if (( syscall_args[0] >> 8) == 6 ) rv = call BLE_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
+                //if (( syscall_args[0] >> 8) == 6 ) rv = call BLE_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
                 if (( syscall_args[0] >> 8) == 7 ) rv = call RoutingTable_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
                 if (( syscall_args[0] >> 8) == 8 ) rv = call AES_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);
                 if (( syscall_args[0] >> 8) == 9 ) rv = call SPI_Driver.syscall_ex(syscall_args[0], syscall_args[1],syscall_args[2],syscall_args[3],&syscall_args[STACKED+0]);

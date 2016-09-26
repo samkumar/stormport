@@ -101,14 +101,14 @@ implementation
     KernelMainP.GPIO_Driver -> StormSimpleGPIOC.Driver;
     components TimerDriverC;
     KernelMainP.Timer_Driver -> TimerDriverC.Driver;
-    components UDPDriverC;
-    KernelMainP.UDP_Driver -> UDPDriverC;
+    //components UDPDriverC;
+    //KernelMainP.UDP_Driver -> UDPDriverC;
     components StormSysInfoC;
     KernelMainP.SysInfo_Driver -> StormSysInfoC;
     components StormRoutingTableC;
     KernelMainP.RoutingTable_Driver -> StormRoutingTableC;
-    components BLEDriverC;
-    KernelMainP.BLE_Driver -> BLEDriverC;
+    //components BLEDriverC;
+    //KernelMainP.BLE_Driver -> BLEDriverC;
     components I2CDriverC;
     KernelMainP.I2C_Driver -> I2CDriverC;
     components SPIDriverC;
