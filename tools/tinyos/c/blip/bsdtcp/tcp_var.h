@@ -121,7 +121,7 @@ struct tcpcb_listen {
 /* These estimates are used to allocate sackholes (see tcp_sack.c). */
 #define AVG_SACKHOLES 2 // per TCB
 #define MAX_SACKHOLES 5 // per TCB
-#define SACKHOLE_POOL_SIZE AVG_SACKHOLES * NUMBSDTCPACTIVESOCKETS
+#define SACKHOLE_POOL_SIZE (AVG_SACKHOLES * NUMBSDTCPACTIVESOCKETS)
 #define SACKHOLE_BMP_SIZE BITS_TO_BYTES(SACKHOLE_POOL_SIZE)
 
 // You can set the maximum number of SACK blocks in tcp.h
@@ -132,21 +132,21 @@ struct tcpcb_listen {
  */
 struct tcpcb {
     uint8_t	t_state;		/* state of this connection */
-	
+
 	/* Extra fields that I added. */
 	uint8_t index; /* Index/ID of this TCB */
 	uint8_t miscflags;
-	
+
 	struct lbufhead sendbuf;
 	struct cbufhead recvbuf;
 	uint8_t* reassbmp;
 	int16_t reass_fin_index;
-	
+
 	uint16_t lport; // local port, network byte order
 	uint16_t fport; // foreign port, network byte order
-	
+
 	struct in6_addr faddr; // foreign IP address
-	
+
 #if 0 // I used unused space in the receive buffer for the reassembly queue
 	struct	tsegqe_head t_segq;	/* segment reassembly queue */
 	void	*t_pspare[2];		/* new reassembly queue */
@@ -596,7 +596,7 @@ struct	tcpstat {
 	uint64_t tcps_sack_rcv_blocks;	    /* SACK blocks (options) received */
 	uint64_t tcps_sack_send_blocks;	    /* SACK blocks (options) sent     */
 	uint64_t tcps_sack_sboverflow;	    /* times scoreboard overflowed */
-	
+
 	/* ECN related stats */
 	uint64_t tcps_ecn_ce;		/* ECN Congestion Experienced */
 	uint64_t tcps_ecn_ect0;		/* ECN Capable Transport */

@@ -25,9 +25,9 @@
 #include <message.h>
 
 enum {
-  N_RECONSTRUCTIONS = 50,        /* number of concurrent reconstructions */
-  N_CONCURRENT_SENDS = 70,       /* number of concurrent sends */
-  N_FRAGMENTS = 70,             /* number of link-layer fragments to buffer */
+  N_RECONSTRUCTIONS = 30,        /* number of concurrent reconstructions */
+  N_CONCURRENT_SENDS = 40,       /* number of concurrent sends */
+  N_FRAGMENTS = 40,             /* number of link-layer fragments to buffer */
 };
 
 struct send_info {
